@@ -76,6 +76,12 @@ import type {
   BillsSetupRow,
   BudgetClosingOptions,
   BudgetClosingPayload,
+  AllocationInput,
+  AllocationOptions,
+  AllocationRow,
+  BudgetCodeInput,
+  BudgetCodeOptions,
+  BudgetCodeRow,
   BudgetInitialOptions,
   BudgetInitialRow,
   BudgetMonitoringOptions,
@@ -83,6 +89,16 @@ import type {
   BudgetMovementOptions,
   BudgetMovementRow,
   BudgetMovementType,
+  BudgetPlanningNewAccount,
+  BudgetPlanningNewCreated,
+  BudgetPlanningNewInput,
+  BudgetPlanningNewOptions,
+  BudgetPlanningOptions,
+  BudgetPlanningRow,
+  BudgetPlanningScope,
+  BudgetPlanningScheduleInput,
+  BudgetPlanningScheduleOptions,
+  BudgetPlanningScheduleRow,
   BudgetStructureSearchForms,
   BudgetStructureSearchOptions,
   Category,
@@ -166,6 +182,9 @@ import type {
   JournalListingLine,
   JournalListingOptions,
   JournalListingRow,
+  LaporanBelanjawanOptions,
+  LaporanBelanjawanRow,
+  LaporanBelanjawanTotals,
   ManualJournalDetail,
   ManualJournalListingPdfPayload,
   ManualJournalOptions,
@@ -209,6 +228,11 @@ import type {
   PtptnDataRow,
   StatusPoPrOptions,
   StatusPoPrRow,
+  StructureBudgetListOptions,
+  StructureBudgetListRow,
+  TotalAllocationOptions,
+  TotalAllocationRow,
+  TotalAllocationTotals,
   StudentInvoiceGenerationGenerateInput,
   StudentInvoiceGenerationGenerateResult,
   StudentInvoiceGenerationOptions,
@@ -2764,4 +2788,178 @@ export async function deleteAgRatePeriod(year: number, month: string) {
   return apiRequest<{ data: { success: boolean } }>(`/api/global/ag-rate?${qs}`, {
     method: "DELETE",
   });
+}
+
+// Budget > Setup > Budget Code (PAGEID 1475 / MENUID 1796).
+export async function listBudgetCodes(params = "") {
+  return apiRequest<{ data: BudgetCodeRow[]; meta: Record<string, unknown> }>(`/api/budget/budget-code${params}`);
+}
+
+export async function getBudgetCode(id: number) {
+  return apiRequest<{ data: BudgetCodeRow }>(`/api/budget/budget-code/${id}`);
+}
+
+export async function createBudgetCode(input: BudgetCodeInput) {
+  return apiRequest<{ data: { id: number } }>("/api/budget/budget-code", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateBudgetCode(id: number, input: BudgetCodeInput) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/budget/budget-code/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function getBudgetCodeOptions() {
+  return apiRequest<{ data: BudgetCodeOptions }>("/api/budget/budget-code/options");
+}
+
+// Budget > Setup > Budget Planning Schedule (PAGEID 2872 / MENUID 3456).
+export async function listBudgetPlanningSchedules(params = "") {
+  return apiRequest<{ data: BudgetPlanningScheduleRow[]; meta: Record<string, unknown> }>(
+    `/api/budget/planning-schedule${params}`,
+  );
+}
+
+export async function getBudgetPlanningSchedule(id: number) {
+  return apiRequest<{ data: BudgetPlanningScheduleRow }>(`/api/budget/planning-schedule/${id}`);
+}
+
+export async function createBudgetPlanningSchedule(input: BudgetPlanningScheduleInput) {
+  return apiRequest<{ data: { id: number; successMessage?: string } }>("/api/budget/planning-schedule", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateBudgetPlanningSchedule(id: number, input: BudgetPlanningScheduleInput) {
+  return apiRequest<{ data: { success: boolean; successMessage?: string } }>(
+    `/api/budget/planning-schedule/${id}`,
+    { method: "PUT", body: JSON.stringify(input) },
+  );
+}
+
+export async function deleteBudgetPlanningSchedule(id: number) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/budget/planning-schedule/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getBudgetPlanningScheduleOptions() {
+  return apiRequest<{ data: BudgetPlanningScheduleOptions }>("/api/budget/planning-schedule/options");
+}
+
+// Budget > Setup > Allocation (PAGEID 1035 / MENUID 1294).
+// Legacy BL: SWS_DT_SETUP_QUARTER + popup-modal update.
+export async function listAllocations(params = "") {
+  return apiRequest<{ data: AllocationRow[]; meta: Record<string, unknown> }>(
+    `/api/budget/allocation${params}`,
+  );
+}
+
+export async function getAllocation(id: string) {
+  return apiRequest<{ data: AllocationRow }>(`/api/budget/allocation/${encodeURIComponent(id)}`);
+}
+
+export async function updateAllocation(id: string, input: AllocationInput) {
+  return apiRequest<{ data: { qbuQuarterId: string; successMessage?: string } }>(
+    `/api/budget/allocation/${encodeURIComponent(id)}`,
+    { method: "PUT", body: JSON.stringify(input) },
+  );
+}
+
+export async function getAllocationOptions() {
+  return apiRequest<{ data: AllocationOptions }>("/api/budget/allocation/options");
+}
+
+// Budget > Structure Budget List (PAGEID 1071 / MENUID 1334).
+export async function listStructureBudgetList(params = "") {
+  return apiRequest<{ data: StructureBudgetListRow[]; meta: Record<string, unknown> }>(
+    `/api/budget/structure-list${params}`,
+  );
+}
+
+export async function getStructureBudgetListOptions() {
+  return apiRequest<{ data: StructureBudgetListOptions }>("/api/budget/structure-list/options");
+}
+
+// Budget Planning suite (shared list controller, scoped by ?scope=).
+export async function listBudgetPlanning(scope: BudgetPlanningScope, params = "") {
+  const sep = params.startsWith("?") ? "&" : params ? "&" : "?";
+  const trimmed = params.startsWith("?") ? params.slice(1) : params;
+  const query = `?scope=${encodeURIComponent(scope)}${trimmed ? sep + trimmed : ""}`;
+  return apiRequest<{
+    data: BudgetPlanningRow[];
+    meta: Record<string, unknown>;
+  }>(`/api/budget/planning-list${query}`);
+}
+
+export async function getBudgetPlanningOptions(scope: BudgetPlanningScope) {
+  return apiRequest<{ data: BudgetPlanningOptions }>(
+    `/api/budget/planning-list/options?scope=${encodeURIComponent(scope)}`,
+  );
+}
+
+export async function deleteBudgetPlanning(id: number) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/budget/planning-list/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function duplicateBudgetPlanning(id: number) {
+  return apiRequest<{
+    data: { bpmId: number; bpmPlanningNo: string | null; successMessage?: string };
+  }>(`/api/budget/planning-list/${id}/duplicate`, { method: "POST" });
+}
+
+// Budget > Planning > New Application (PAGEID 1236 / MENUID 1516).
+export async function getBudgetPlanningNewOptions() {
+  return apiRequest<{ data: BudgetPlanningNewOptions }>("/api/budget/planning-new/options");
+}
+
+export async function listBudgetPlanningNewAccounts(fund: string, activity = "") {
+  const params = new URLSearchParams({ fund });
+  if (activity) params.set("activity", activity);
+  return apiRequest<{
+    data: BudgetPlanningNewAccount[];
+    meta: { fund: string; activity: string; total: number };
+  }>(`/api/budget/planning-new/accounts?${params.toString()}`);
+}
+
+export async function createBudgetPlanningNew(input: BudgetPlanningNewInput) {
+  return apiRequest<{ data: BudgetPlanningNewCreated }>("/api/budget/planning-new", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// Budget > Reports > Total Allocation Report (PAGEID 1626 / MENUID 1968).
+export async function listTotalAllocationReport(params = "") {
+  return apiRequest<{
+    data: TotalAllocationRow[];
+    meta: Record<string, unknown> & { totals?: TotalAllocationTotals };
+  }>(`/api/budget/report/total-allocation${params}`);
+}
+
+export async function getTotalAllocationReportOptions() {
+  return apiRequest<{ data: TotalAllocationOptions }>(
+    "/api/budget/report/total-allocation/options",
+  );
+}
+
+// Budget > Reports > Laporan Belanjawan (PAGEID 2873 / MENUID 3457).
+export async function listLaporanBelanjawan(params = "") {
+  return apiRequest<{
+    data: LaporanBelanjawanRow[];
+    meta: Record<string, unknown> & { totals?: LaporanBelanjawanTotals };
+  }>(`/api/budget/report/laporan-belanjawan${params}`);
+}
+
+export async function getLaporanBelanjawanOptions() {
+  return apiRequest<{ data: LaporanBelanjawanOptions }>(
+    "/api/budget/report/laporan-belanjawan/options",
+  );
 }

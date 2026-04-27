@@ -4016,3 +4016,326 @@ export type AgRateEntryInput = {
     cydConversationRate: number;
   }>;
 };
+
+// Budget > Setup > Budget Code (PAGEID 1475 / MENUID 1796).
+// Legacy BL: MM_API_BUDGET_SETUP_BUDGETCODE.
+export type BudgetCodeRow = {
+  index: number;
+  lbcId: number;
+  lbcLevel: number;
+  lbcBudgetCode: string;
+  lbcDescription: string;
+  lbcStatus: "ACTIVE" | "INACTIVE";
+  lbcStatusValue: number;
+};
+
+export type BudgetCodeInput = {
+  lbcLevel: number;
+  lbcBudgetCode: string;
+  lbcDescription?: string | null;
+  lbcStatus: "ACTIVE" | "INACTIVE";
+};
+
+export type BudgetCodeOptionEntry = { id: string; label: string };
+
+export type BudgetCodeOptions = {
+  smartFilter: {
+    level: BudgetCodeOptionEntry[];
+    budgetCode: BudgetCodeOptionEntry[];
+    status: BudgetCodeOptionEntry[];
+  };
+  popupModal: {
+    level: BudgetCodeOptionEntry[];
+    budgetCode: BudgetCodeOptionEntry[];
+    status: BudgetCodeOptionEntry[];
+  };
+};
+
+// Budget > Setup > Budget Planning Schedule (PAGEID 2872 / MENUID 3456).
+// Legacy BL: SNA_API_BUDGET_SETUP_BDGPLANNINGSCHEDULE.
+export type BudgetPlanningScheduleRow = {
+  index: number;
+  bpsId: number;
+  bpsYearBudget: number;
+  bpsPlanStartDate: string | null;
+  bpsPlanEndDate: string | null;
+  planningDate: string | null;
+  bpsStatus: "ACTIVE" | "INACTIVE";
+  bpsStatusValue: number;
+  isCurrentYear: boolean;
+};
+
+export type BudgetPlanningScheduleInput = {
+  bpsYearBudget: number;
+  bpsPlanStartDate: string;
+  bpsPlanEndDate: string;
+  bpsStatus: "ACTIVE" | "INACTIVE";
+};
+
+export type BudgetPlanningScheduleOptions = {
+  topFilter: { years: { id: string; label: string }[] };
+  popupModal: { status: { id: string; label: string }[] };
+};
+
+type IdLabel = { id: string; label: string };
+
+// Budget > Setup > Allocation (PAGEID 1035 / MENUID 1294).
+// Legacy BL: SWS_DT_SETUP_QUARTER (read paths) + popup-modal update.
+export type AllocationRow = {
+  index: number;
+  qbuQuarterId: string;
+  qbuYear: number | null;
+  qbuDescription: string | null;
+  qbuStartDate: string | null;
+  qbuEndDate: string | null;
+  qbuStatus: string;
+};
+
+export type AllocationInput = {
+  qbuYear: number;
+  qbuDescription: string;
+  qbuStartDate: string;
+  qbuEndDate: string;
+  qbuStatus: "ACTIVE" | "INACTIVE";
+};
+
+export type AllocationOptions = {
+  smartFilter: {
+    year: IdLabel[];
+    status: IdLabel[];
+  };
+  popupModal: {
+    status: IdLabel[];
+  };
+};
+
+// Budget > Structure Budget List (PAGEID 1071 / MENUID 1334).
+// Legacy BL: SWS_DT_SETUP_BUDGETSTRUCTURELIST.
+export type StructureBudgetListRow = {
+  index: number;
+  sbBudgetId: string;
+  sbYear: string | null;
+  sbFund: string | null;
+  sbActivity: string | null;
+  sbActivityDesc: string | null;
+  sbOun: string | null;
+  sbOunDesc: string | null;
+  sbCcr: string | null;
+  sbCcrDesc: string | null;
+  sbBudgetCode: string | null;
+  sbBudgetCodeDesc: string | null;
+  sbStatus: string | null;
+  sbInitialAmt: number | null;
+  sbTopupAmt: number | null;
+  sbVirementAmt: number | null;
+  sbBalanceAmt: number | null;
+};
+
+export type StructureBudgetListOptions = {
+  topFilter: {
+    year: IdLabel[];
+    fund: IdLabel[];
+    activity: IdLabel[];
+    oun: IdLabel[];
+    ccr: IdLabel[];
+  };
+  smartFilter: {
+    year: IdLabel[];
+    fund: IdLabel[];
+    activity: IdLabel[];
+    oun: IdLabel[];
+    ccr: IdLabel[];
+    budgetCode: IdLabel[];
+    status: IdLabel[];
+    deficit: IdLabel[];
+  };
+};
+
+// Budget > Planning suite (shared across MENUID 2506 / 3012 / 3013 / 3196 / 3279).
+export type BudgetPlanningScope =
+  | "yearly"
+  | "allocation_2"
+  | "allocation_3"
+  | "one_off"
+  | "to_initial";
+
+export type BudgetPlanningRow = {
+  index: number;
+  bpmId: number;
+  bpmPlanningNo: string | null;
+  bpmPlanningNoPrev: string | null;
+  bpmYear: string | null;
+  bpmOunCode: string | null;
+  bpmOunDesc: string | null;
+  bpmCcrCostcentre: string | null;
+  bpmCcrCostcentreDesc: string | null;
+  bpmFundType: string | null;
+  bpmActivityCode: string | null;
+  bpmRemark: string | null;
+  bpmTotalAmt: number | null;
+  bpmStatus: string | null;
+  bpmType: string | null;
+  duplicateCount: number;
+  createddate: string | null;
+  updateddate: string | null;
+  canEdit: boolean;
+  canDelete: boolean;
+};
+
+export type BudgetPlanningOptions = {
+  smartFilter: {
+    year: IdLabel[];
+    status: IdLabel[];
+    oun: IdLabel[];
+    ccr: IdLabel[];
+    type: IdLabel[];
+  };
+};
+
+// Budget > Planning > New Application (PAGEID 1236 / MENUID 1516).
+export type BudgetPlanningNewPtjOption = IdLabel & {
+  ounCode: string;
+  ounDesc: string;
+};
+
+export type BudgetPlanningNewCostCentreOption = IdLabel & {
+  ccrCostcentre: string;
+  ccrCostcentreDesc: string;
+  ounCode: string;
+};
+
+export type BudgetPlanningNewOptions = {
+  defaults: { year: number };
+  ptjs: BudgetPlanningNewPtjOption[];
+  costCentres: BudgetPlanningNewCostCentreOption[];
+  funds: IdLabel[];
+  activities: IdLabel[];
+  types: IdLabel[];
+};
+
+export type BudgetPlanningNewAccount = {
+  index: number;
+  acmAcctCode: string;
+  acmAcctDesc: string;
+  acmAcctActivity: string;
+  acmAcctLevel: number | null;
+  bpdAmt: number;
+};
+
+export type BudgetPlanningNewLineInput = {
+  acmAcctCode: string;
+  bpdAmt: number;
+};
+
+export type BudgetPlanningNewInput = {
+  bpmYear: number;
+  bpmOunCode: string;
+  bpmCcrCostcentre: string;
+  ftyFundType: string;
+  atActivityCode: string;
+  bpmType: string;
+  bpmRemark: string;
+  lines: BudgetPlanningNewLineInput[];
+};
+
+export type BudgetPlanningNewCreated = {
+  bpmId: number;
+  bpmPlanningNo: string;
+  bpmYear: number;
+  bpmStatus: string;
+  bpmType: string;
+  bpmTotalAmt: number;
+  lineCount: number;
+  successMessage: string;
+};
+
+// Budget > Reports > Total Allocation Report (PAGEID 1626 / MENUID 1968).
+export type TotalAllocationRow = {
+  index: number;
+  rptYear: string | null;
+  rptFund: string | null;
+  rptFundDesc: string | null;
+  rptActivity: string | null;
+  rptActivityDesc: string | null;
+  rptOun: string | null;
+  rptOunDesc: string | null;
+  rptCcr: string | null;
+  rptCcrDesc: string | null;
+  rptBudgetCode: string | null;
+  rptBudgetCodeDesc: string | null;
+  rptInitial: number;
+  rptTopup: number;
+  rptVirement: number;
+  rptTotal: number;
+  rptBalance: number | null;
+};
+
+export type TotalAllocationTotals = {
+  initial: number;
+  topup: number;
+  virement: number;
+  grand: number;
+};
+
+export type TotalAllocationOptions = {
+  topFilter: {
+    year: IdLabel[];
+  };
+  smartFilter: {
+    fund: IdLabel[];
+    activity: IdLabel[];
+    oun: IdLabel[];
+    ccr: IdLabel[];
+    budgetCode: IdLabel[];
+  };
+};
+
+// Budget > Reports > Laporan Belanjawan (PAGEID 2873 / MENUID 3457).
+export type LaporanBelanjawanRow = {
+  index: number;
+  fund: string | null;
+  fundDesc: string | null;
+  activity: string | null;
+  activityDesc: string | null;
+  costcentre: string | null;
+  costcentreDesc: string | null;
+  accountSeries: string | null;
+  account: string | null;
+  accountDesc: string | null;
+  glacctCode: string | null;
+  opening: number;
+  initial: number;
+  additional: number;
+  virement: number;
+  topup: number;
+  allocated: number;
+  locked: number;
+  preRequest: number;
+  request: number;
+  commit: number;
+  expenses: number;
+  balance: number;
+  expensesPercentage: number;
+};
+
+export type LaporanBelanjawanTotals = {
+  initial: number;
+  additional: number;
+  virement: number;
+  topup: number;
+  allocated: number;
+  expenses: number;
+  balance: number;
+};
+
+export type LaporanBelanjawanOptions = {
+  topFilter: {
+    year: IdLabel[];
+    fund: IdLabel[];
+    accountSeries: IdLabel[];
+  };
+  smartFilter: {
+    fund: IdLabel[];
+    accountSeries: IdLabel[];
+  };
+};

@@ -18,8 +18,16 @@ use App\Http\Controllers\Api\BankAccountUpdateController;
 use App\Http\Controllers\Api\BankMasterController;
 use App\Http\Controllers\Api\BankSetupController;
 use App\Http\Controllers\Api\BudgetClosingController;
+use App\Http\Controllers\Api\BudgetCodeController;
 use App\Http\Controllers\Api\BudgetInitialController;
+use App\Http\Controllers\Api\BudgetPlanningListController;
+use App\Http\Controllers\Api\BudgetPlanningNewController;
+use App\Http\Controllers\Api\BudgetPlanningScheduleController;
 use App\Http\Controllers\Api\BudgetMonitoringController;
+use App\Http\Controllers\Api\LaporanBelanjawanController;
+use App\Http\Controllers\Api\QuarterBudgetController;
+use App\Http\Controllers\Api\StructureBudgetListController;
+use App\Http\Controllers\Api\TotalAllocationReportController;
 use App\Http\Controllers\Api\BudgetMovementController;
 use App\Http\Controllers\Api\BudgetNotExistsController;
 use App\Http\Controllers\Api\CascadeStructureController;
@@ -192,6 +200,77 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/budget/closing/options', [BudgetClosingController::class, 'options']);
     Route::post('/budget/closing/process', [BudgetClosingController::class, 'process']);
     Route::post('/budget/closing/reverse', [BudgetClosingController::class, 'reverse']);
+
+    // FIMS Budget Setup > Budget Code (PAGEID 1475 / MENUID 1796).
+    // Legacy BL: MM_API_BUDGET_SETUP_BUDGETCODE — datatable + popup modal CRUD
+    // backed by the `lkp_budget_code` table. Level + budget_code are immutable
+    // once created (matches saveItem path on the legacy BL).
+    Route::get('/budget/budget-code/options', [BudgetCodeController::class, 'options']);
+    Route::get('/budget/budget-code', [BudgetCodeController::class, 'index']);
+    Route::get('/budget/budget-code/{id}', [BudgetCodeController::class, 'show'])->whereNumber('id');
+    Route::post('/budget/budget-code', [BudgetCodeController::class, 'store']);
+    Route::put('/budget/budget-code/{id}', [BudgetCodeController::class, 'update'])->whereNumber('id');
+
+    // FIMS Budget Setup > Budget Planning Schedule (PAGEID 2872 / MENUID 3456).
+    // Legacy BL: SNA_API_BUDGET_SETUP_BDGPLANNINGSCHEDULE — top filter (Year)
+    // + datatable + popup-modal CRUD on `budget_planning_schedule`.
+    Route::get('/budget/planning-schedule/options', [BudgetPlanningScheduleController::class, 'options']);
+    Route::get('/budget/planning-schedule', [BudgetPlanningScheduleController::class, 'index']);
+    Route::get('/budget/planning-schedule/{id}', [BudgetPlanningScheduleController::class, 'show'])->whereNumber('id');
+    Route::post('/budget/planning-schedule', [BudgetPlanningScheduleController::class, 'store']);
+    Route::put('/budget/planning-schedule/{id}', [BudgetPlanningScheduleController::class, 'update'])->whereNumber('id');
+    Route::delete('/budget/planning-schedule/{id}', [BudgetPlanningScheduleController::class, 'destroy'])->whereNumber('id');
+
+    // FIMS Budget Setup > Allocation (PAGEID 1035 / MENUID 1294).
+    // Legacy BL: SWS_DT_SETUP_QUARTER (read paths only). The migrated
+    // controller adds an UPDATE for the popup modal because the legacy UI
+    // does expose Year / Description / Start Date / End Date / Status edits.
+    Route::get('/budget/allocation/options', [QuarterBudgetController::class, 'options']);
+    Route::get('/budget/allocation', [QuarterBudgetController::class, 'index']);
+    Route::get('/budget/allocation/{id}', [QuarterBudgetController::class, 'show']);
+    Route::put('/budget/allocation/{id}', [QuarterBudgetController::class, 'update']);
+
+    // FIMS Budget > Structure Budget List (PAGEID 1071 / MENUID 1334).
+    // Legacy BL: SWS_DT_SETUP_BUDGETSTRUCTURELIST — read-only listing across
+    // structure_budget × budget × activity_type × organization_unit ×
+    // costcentre × lkp_budget_code with top + smart filters.
+    Route::get('/budget/structure-list/options', [StructureBudgetListController::class, 'options']);
+    Route::get('/budget/structure-list', [StructureBudgetListController::class, 'index']);
+
+    // FIMS Budget Planning suite (shared list controller, scoped by ?scope=).
+    //   yearly       — PAGEID 2056 / MENUID 2506  Dasar Sedia Ada
+    //   allocation_2 — PAGEID 2489 / MENUID 3012  Allocation 2 List
+    //   allocation_3 — PAGEID 2490 / MENUID 3013  Allocation 3 List
+    //   one_off      — PAGEID 2635 / MENUID 3196  Dasar Baru / One Off
+    //   to_initial   — PAGEID 2713 / MENUID 3279  Planning to Initial
+    Route::get('/budget/planning-list/options', [BudgetPlanningListController::class, 'options']);
+    Route::get('/budget/planning-list', [BudgetPlanningListController::class, 'index']);
+    Route::delete('/budget/planning-list/{id}', [BudgetPlanningListController::class, 'destroy'])->whereNumber('id');
+    Route::post('/budget/planning-list/{id}/duplicate', [BudgetPlanningListController::class, 'duplicate'])->whereNumber('id');
+
+    // FIMS Budget > Planning > New Application (PAGEID 1236 / MENUID 1516).
+    // Legacy form (`api/CH9_BUDGET_PLANNING?fn=...`). The legacy BL did not
+    // ship as JSON metadata, so this endpoint group is derived from the
+    // visible Planning Info / Account Activity / Review File / Remark
+    // popup contract and creates DRAFT rows on
+    // budget_planning_master + budget_planning_details.
+    Route::get('/budget/planning-new/options', [BudgetPlanningNewController::class, 'options']);
+    Route::get('/budget/planning-new/accounts', [BudgetPlanningNewController::class, 'accounts']);
+    Route::post('/budget/planning-new', [BudgetPlanningNewController::class, 'store']);
+
+    // FIMS Budget > Reports > Total Allocation Report (PAGEID 1626 / MENUID 1968).
+    // Legacy BL: SWS_DT_REPORT_TOTAL_ALLOCATION — read-only report joining
+    // budget × structure_budget aggregated for initial + topup + virement.
+    Route::get('/budget/report/total-allocation/options', [TotalAllocationReportController::class, 'options']);
+    Route::get('/budget/report/total-allocation', [TotalAllocationReportController::class, 'index']);
+
+    // FIMS Budget > Reports > Laporan Belanjawan (PAGEID 2873 / MENUID 3457).
+    // Legacy BL: YUS_BELANJAWAN_REPO_API — read-only report with full ledger
+    // breakdown (opening / initial / additional / virement / topup /
+    // allocated / locked / pre_request / request / commit / expenses /
+    // balance / expenses_percentage).
+    Route::get('/budget/report/laporan-belanjawan/options', [LaporanBelanjawanController::class, 'options']);
+    Route::get('/budget/report/laporan-belanjawan', [LaporanBelanjawanController::class, 'index']);
 
     // FIMS Cashbook (Bank Setup / Bank Master / Bank Account / List Of Cashbook)
     // — see app/Http/Controllers/Api/{BankSetupController,BankMasterController,

@@ -40,6 +40,14 @@ import BudgetMovementView from "@/views/BudgetMovementView.vue";
 import BudgetMonitoringView from "@/views/BudgetMonitoringView.vue";
 import BudgetInitialView from "@/views/BudgetInitialView.vue";
 import BudgetClosingView from "@/views/BudgetClosingView.vue";
+import AllocationView from "@/views/AllocationView.vue";
+import BudgetCodeView from "@/views/BudgetCodeView.vue";
+import BudgetPlanningListView from "@/views/BudgetPlanningListView.vue";
+import BudgetPlanningScheduleView from "@/views/BudgetPlanningScheduleView.vue";
+import LaporanBelanjawanView from "@/views/LaporanBelanjawanView.vue";
+import PlanningNewApplicationView from "@/views/PlanningNewApplicationView.vue";
+import StructureBudgetListView from "@/views/StructureBudgetListView.vue";
+import TotalAllocationReportView from "@/views/TotalAllocationReportView.vue";
 import BankSetupView from "@/views/BankSetupView.vue";
 import BankMasterView from "@/views/BankMasterView.vue";
 import BankAccountView from "@/views/BankAccountView.vue";
@@ -372,6 +380,29 @@ const router = createRouter({
     { path: "/admin/kerisi/m/2073", name: "kerisi-vc-tnc", component: VcTncView, meta: { requiresAuth: true, title: "HOD, VC & TNC" } },
     { path: "/admin/kerisi/m/2740", name: "kerisi-check-error", component: CheckErrorView, meta: { requiresAuth: true, title: "Cek yang mungkin error" } },
     { path: "/admin/kerisi/m/3224", name: "kerisi-budget-structure-search", component: BudgetStructureSearchView, meta: { requiresAuth: true, title: "Setup Carian Structure Budget" } },
+    // FIMS Budget setup pages migrated from PAGE_MENUID1007_LEVEL3.json:
+    //   - PAGEID 1475 / MENUID 1796: Budget Code (BL MM_API_BUDGET_SETUP_BUDGETCODE)
+    //   - PAGEID 2872 / MENUID 3456: Budget Planning Schedule
+    //     (BL SNA_API_BUDGET_SETUP_BDGPLANNINGSCHEDULE)
+    { path: "/admin/kerisi/m/1796", name: "kerisi-budget-code", component: BudgetCodeView, meta: { requiresAuth: true, title: "Budget Code" } },
+    { path: "/admin/kerisi/m/3456", name: "kerisi-budget-planning-schedule", component: BudgetPlanningScheduleView, meta: { requiresAuth: true, title: "Budget Planning Schedule" } },
+    // Pass 2 of FIMS Budget migration (PAGE_MENUID1007_LEVEL3.json):
+    //   - MENUID 1294: Allocation (Quarter Budget) — PAGEID 1035
+    //   - MENUID 1334: Structure Budget List — PAGEID 1071
+    //   - MENUID 1516: Planning New Application stub — PAGEID 1236 (workflow deferred)
+    //   - MENUID 1968: Total Allocation Report — PAGEID 1626
+    //   - MENUID 3457: Laporan Belanjawan — PAGEID 2873
+    //   - Budget Planning lists (shared): 2506 / 3012 / 3013 / 3196 / 3279
+    { path: "/admin/kerisi/m/1294", name: "kerisi-allocation", component: AllocationView, meta: { requiresAuth: true, title: "Allocation" } },
+    { path: "/admin/kerisi/m/1334", name: "kerisi-structure-budget-list", component: StructureBudgetListView, meta: { requiresAuth: true, title: "Structure Budget List" } },
+    { path: "/admin/kerisi/m/1516", name: "kerisi-planning-new-application", component: PlanningNewApplicationView, meta: { requiresAuth: true, title: "Planning New Application" } },
+    { path: "/admin/kerisi/m/1968", name: "kerisi-total-allocation-report", component: TotalAllocationReportView, meta: { requiresAuth: true, title: "Total Allocation Report" } },
+    { path: "/admin/kerisi/m/3457", name: "kerisi-laporan-belanjawan", component: LaporanBelanjawanView, meta: { requiresAuth: true, title: "Laporan Belanjawan" } },
+    { path: "/admin/kerisi/m/2506", name: "kerisi-planning-dasar-sedia-ada", component: BudgetPlanningListView, props: { scope: "yearly" }, meta: { requiresAuth: true, title: "Dasar Sedia Ada" } },
+    { path: "/admin/kerisi/m/3012", name: "kerisi-planning-allocation-2", component: BudgetPlanningListView, props: { scope: "allocation_2" }, meta: { requiresAuth: true, title: "Allocation 2" } },
+    { path: "/admin/kerisi/m/3013", name: "kerisi-planning-allocation-3", component: BudgetPlanningListView, props: { scope: "allocation_3" }, meta: { requiresAuth: true, title: "Allocation 3" } },
+    { path: "/admin/kerisi/m/3196", name: "kerisi-planning-dasar-baru", component: BudgetPlanningListView, props: { scope: "one_off" }, meta: { requiresAuth: true, title: "Dasar Baru / One Off" } },
+    { path: "/admin/kerisi/m/3279", name: "kerisi-planning-to-initial", component: BudgetPlanningListView, props: { scope: "to_initial" }, meta: { requiresAuth: true, title: "Planning to Initial" } },
     { path: "/admin/kerisi/m/:menuId", name: "kerisi-menu", component: ComingSoonView, meta: { requiresAuth: true, title: "KERISI" } },
     { path: "/admin/kitchen-sink", name: "kitchen-sink", component: KitchenSinkView, meta: { requiresAuth: true, title: "Kitchen Sink" } },
     { path: "/admin/kitchen-sink/forms", name: "kitchen-forms", component: KitchenFormsView, meta: { requiresAuth: true, title: "Forms" } },
