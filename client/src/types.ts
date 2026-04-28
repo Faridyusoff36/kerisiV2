@@ -2710,6 +2710,27 @@ export type OfferedStudentSmartFilter = {
   offeredSemester: string;
 };
 
+/** Insurance student lists (MENUID 1039 / 2797 / 2799). {@link StudentInsuranceListingController}. */
+export type StudentInsuranceListingRow = {
+  matric: string;
+  name: string;
+  statusLabel: string;
+  programLevelLabel: string;
+  semesterStart: string;
+  insuranceInstitution: string;
+  policyNo: string;
+};
+
+export type StudentInsuranceListingOptions = {
+  programLevel: ArOption[];
+  semesterStart: ArOption[];
+};
+
+export type StudentInsuranceListingSmartFilter = {
+  programLevel: string;
+  semesterStart: string;
+};
+
 // Student Finance > Invoice (PAGEID 828 / MENUID 1023).
 // Source: FIMS BLs `DT_SF_INVOICE` (main listing) + `DT_DEBIT_LIST`
 // (per-invoice debit detail drilldown). Read-only migration — the
@@ -4506,6 +4527,17 @@ export type SponsorProfileSmartFilter = {
   country: string;
   email: string;
   sponStatus: string;
+};
+
+// Student Finance > Sponsor > Report > List of Sponsor (PAGEID 1583 / MENUID 1916).
+// Legacy BL `API_SF_SPONSOR_LISTOFSPONSOR` — read-only 5-column report.
+export type SponsorListRow = {
+  index: number;
+  spnSponsorId: number;
+  sponsorCode: string;
+  sponsorName: string;
+  status: string;
+  claim: string;
 };
 
 // Student Finance > Sponsor > Invoice Generation (PAGEID 1218 / MENUID 1491).

@@ -24,6 +24,8 @@ import WebfrontSettingsView from "@/views/WebfrontSettingsView.vue";
 import AuditLogsView from "@/views/AuditLogsView.vue";
 import QueueMonitorView from "@/views/QueueMonitorView.vue";
 import ComingSoonView from "@/views/ComingSoonView.vue";
+import KerisiMenuPlaceholderView from "@/views/KerisiMenuPlaceholderView.vue";
+import { studentFinanceKerisiRoutes } from "@/router/studentFinanceKerisiRoutes";
 import RolesView from "@/views/RolesView.vue";
 import SettingsView from "@/views/SettingsView.vue";
 import SystemInfoView from "@/views/SystemInfoView.vue";
@@ -248,14 +250,7 @@ const router = createRouter({
     { path: "/admin/kerisi/m/1042", name: "kerisi-ar-debit-note", component: DebitNoteView, meta: { requiresAuth: true, title: "Debit Note" } },
     { path: "/admin/kerisi/m/1783", name: "kerisi-ar-debit-note-form", component: DebitNoteFormView, meta: { requiresAuth: true, title: "Debit Note Form" } },
     { path: "/admin/kerisi/m/1043", name: "kerisi-ar-discount-note", component: DiscountNoteView, meta: { requiresAuth: true, title: "Discount Note" } },
-    // Student Finance list aliases — same backend tables/columns as the admin
-    // AR listings above; the legacy `DT_CREDIT_NOTE_LIST` / `DT_DEBIT_NOTE_LIST`
-    // / `DT_DISCOUNT_NOTE_LIST` BL files are not present in the available
-    // source JSON, so they are assumed to be alternate menu placements of the
-    // same `DT_AR_*_LIST` listings already wired for MENUID 1041/1042/1043.
-    { path: "/admin/kerisi/m/1529", name: "kerisi-sf-credit-note", component: CreditNoteView, meta: { requiresAuth: true, title: "Credit Note" } },
-    { path: "/admin/kerisi/m/1575", name: "kerisi-sf-debit-note", component: DebitNoteView, meta: { requiresAuth: true, title: "Debit Note" } },
-    { path: "/admin/kerisi/m/1570", name: "kerisi-sf-discount-note", component: DiscountNoteView, meta: { requiresAuth: true, title: "Discount Note" } },
+    // Student Finance note listings (1529 / 1575 / 1570) live under `studentFinanceKerisiRoutes.ts`.
     { path: "/admin/kerisi/m/1784", name: "kerisi-ar-discount-note-form", component: DiscountNoteFormView, meta: { requiresAuth: true, title: "Discount Note Form" } },
     { path: "/admin/kerisi/m/1952", name: "kerisi-ar-authorized-receipting", component: AuthorizedReceiptingView, meta: { requiresAuth: true, title: "Authorized Receipting" } },
     { path: "/admin/kerisi/m/1953", name: "kerisi-ar-authorized-receipting-form", component: AuthorizedReceiptingFormView, meta: { requiresAuth: true, title: "Authorized Receipting Form" } },
@@ -287,29 +282,8 @@ const router = createRouter({
     { path: "/admin/kerisi/m/1544", name: "kerisi-project-monitoring-list", component: ProjectListView, meta: { requiresAuth: true, title: "Project Monitoring / List of Project" } },
     { path: "/admin/kerisi/m/2065", name: "kerisi-project-monitoring-balance", component: ProjectUpdatedBalanceView, meta: { requiresAuth: true, title: "Project Monitoring / Updated Balance" } },
     { path: "/admin/kerisi/m/1841", name: "kerisi-purchasing-status-po-pr", component: StatusPoPrView, meta: { requiresAuth: true, title: "Status PO & PR" } },
-    { path: "/admin/kerisi/m/1031", name: "kerisi-student-finance-ptptn-data", component: PtptnDataView, meta: { requiresAuth: true, title: "PTPTN Data" } },
-    { path: "/admin/kerisi/m/2636", name: "kerisi-student-finance-list-of-offered", component: OfferedStudentView, meta: { requiresAuth: true, title: "List of Offered" } },
-    { path: "/admin/kerisi/m/1023", name: "kerisi-student-finance-invoice", component: InvoiceListView, meta: { requiresAuth: true, title: "Invoice" } },
-    {
-      path: "/admin/kerisi/m/2897",
-      name: "kerisi-student-finance-manual-invoice-listing",
-      component: ManualInvoiceListingView,
-      meta: { requiresAuth: true, title: "Manual Invoice Listing" },
-    },
-    {
-      path: "/admin/kerisi/m/2898",
-      name: "kerisi-student-finance-manual-invoice-form",
-      component: ManualInvoiceFormView,
-      meta: { requiresAuth: true, title: "Manual Invoice Form" },
-    },
-    { path: "/admin/kerisi/m/1231", name: "kerisi-student-finance-invoice-generation", component: StudentInvoiceGenerationView, meta: { requiresAuth: true, title: "Generate Student Invoice" } },
-    // Sponsor sub-section (parent menuId 1149) — pages migrated from
-    // PAGE_MENUID1019_LEVEL3.json (PAGEIDs 1669, 1231, 845, 1218, 1954).
-    { path: "/admin/kerisi/m/2020", name: "kerisi-student-finance-sponsor-advance-payment", component: AdvancePaymentView, meta: { requiresAuth: true, title: "Advance Payment" } },
-    { path: "/admin/kerisi/m/1507", name: "kerisi-student-finance-sponsor-ptptn", component: SponsorPtptnView, meta: { requiresAuth: true, title: "PTPTN" } },
-    { path: "/admin/kerisi/m/1025", name: "kerisi-student-finance-sponsor-profile", component: SponsorProfileView, meta: { requiresAuth: true, title: "Sponsor Profile" } },
-    { path: "/admin/kerisi/m/1491", name: "kerisi-student-finance-sponsor-invoice-generation", component: SponsorInvoiceGenerationView, meta: { requiresAuth: true, title: "Sponsor Invoice Generation" } },
-    { path: "/admin/kerisi/m/2390", name: "kerisi-student-finance-sponsor-student-journal-approval", component: StudentJournalApprovalView, meta: { requiresAuth: true, title: "Student Journal Approval" } },
+    // Student Finance (`menuId` 1019) — exhaustive `menuId` coverage (119 routes); see module.
+    ...studentFinanceKerisiRoutes,
     { path: "/admin/kerisi/m/1877", name: "kerisi-investment-list-of-accrual", component: ListOfAccrualView, meta: { requiresAuth: true, title: "List of Accrual" } },
     { path: "/admin/kerisi/m/2808", name: "kerisi-investment-summary-list", component: SummaryListInvestmentsView, meta: { requiresAuth: true, title: "Summary List of Investments" } },
     { path: "/admin/kerisi/m/1448", name: "kerisi-investment-list", component: ListOfInvestmentsView, meta: { requiresAuth: true, title: "List of Investments" } },
@@ -425,7 +399,12 @@ const router = createRouter({
     { path: "/admin/kerisi/m/3013", name: "kerisi-planning-allocation-3", component: BudgetPlanningListView, props: { scope: "allocation_3" }, meta: { requiresAuth: true, title: "Allocation 3" } },
     { path: "/admin/kerisi/m/3196", name: "kerisi-planning-dasar-baru", component: BudgetPlanningListView, props: { scope: "one_off" }, meta: { requiresAuth: true, title: "Dasar Baru / One Off" } },
     { path: "/admin/kerisi/m/3279", name: "kerisi-planning-to-initial", component: BudgetPlanningListView, props: { scope: "to_initial" }, meta: { requiresAuth: true, title: "Planning to Initial" } },
-    { path: "/admin/kerisi/m/:menuId", name: "kerisi-menu", component: ComingSoonView, meta: { requiresAuth: true, title: "KERISI" } },
+    {
+      path: "/admin/kerisi/m/:menuId",
+      name: "kerisi-menu",
+      component: KerisiMenuPlaceholderView,
+      meta: { requiresAuth: true },
+    },
     { path: "/admin/kitchen-sink", name: "kitchen-sink", component: KitchenSinkView, meta: { requiresAuth: true, title: "Kitchen Sink" } },
     { path: "/admin/kitchen-sink/forms", name: "kitchen-forms", component: KitchenFormsView, meta: { requiresAuth: true, title: "Forms" } },
     { path: "/admin/kitchen-sink/charts", name: "kitchen-charts", component: KitchenChartsView, meta: { requiresAuth: true, title: "Charts" } },
@@ -552,6 +531,9 @@ router.beforeEach(async (to) => {
 });
 
 router.afterEach((to) => {
+  if (to.name === "kerisi-menu") {
+    return;
+  }
   const site = useSiteStore();
   const pageTitle = (to.meta.title as string) || "Admin";
   site.setDocumentTitle(pageTitle);

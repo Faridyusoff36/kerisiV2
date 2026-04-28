@@ -204,6 +204,8 @@ import type {
   LedgerRow,
   OfferedStudentOptions,
   OfferedStudentRow,
+  StudentInsuranceListingOptions,
+  StudentInsuranceListingRow,
   InvestmentAccrualOptions,
   InvestmentAccrualPostResult,
   InvestmentAccrualRow,
@@ -233,6 +235,7 @@ import type {
   SponsorInvoiceGenerationFooter,
   SponsorInvoiceGenerationOptions,
   SponsorInvoiceGenerationRow,
+  SponsorListRow,
   SponsorProfileOptions,
   SponsorProfileRow,
   SponsorPtptnOptions,
@@ -1993,6 +1996,26 @@ export async function getOfferedStudentOptions() {
   );
 }
 
+/** Registry shell for PAGE_MENUID1019_LEVEL3 menus — {@link KerisiSfLevel3Controller}. */
+export async function listKerisiSfLevel3Data(menuId: number, params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/kerisi-level3/${menuId}${params}`,
+  );
+}
+
+// Insurance lists — MENUID 1039 / 2797 / 2799. {@link StudentInsuranceListingController}.
+export async function listStudentInsuranceListing(params = "") {
+  return apiRequest<{ data: StudentInsuranceListingRow[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/insurance-student-list${params}`,
+  );
+}
+
+export async function getStudentInsuranceListingOptions() {
+  return apiRequest<{ data: StudentInsuranceListingOptions }>(
+    "/api/student-finance/insurance-student-list/options",
+  );
+}
+
 // Legacy BLs `DT_SF_INVOICE` (main listing) + `DT_DEBIT_LIST`
 // (per-invoice debit detail drilldown).
 export async function listInvoices(params = "") {
@@ -3038,6 +3061,14 @@ export async function listSponsorProfile(params = "") {
 export async function getSponsorProfileOptions() {
   return apiRequest<{ data: SponsorProfileOptions }>(
     "/api/student-finance/sponsor-profile/options",
+  );
+}
+
+// Student Finance > Sponsor > Report > List of Sponsor (PAGEID 1583 / MENUID 1916).
+// Legacy BL `API_SF_SPONSOR_LISTOFSPONSOR`.
+export async function listReportListOfSponsor(params = "") {
+  return apiRequest<{ data: SponsorListRow[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/report/list-of-sponsor${params}`,
   );
 }
 

@@ -9,6 +9,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import { generateKerisiAllMenuIds } from "./gen-kerisi-all-menu-ids.mjs";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const defaultCsv = path.join(root, "client/src/config/kerisi-menu-source.csv");
@@ -174,6 +176,7 @@ function main() {
     .replace(/"children":/g, "children:");
 
   fs.writeFileSync(outFile, `${header}${body};\n`, "utf8");
+  generateKerisiAllMenuIds();
   console.log(
     "Wrote",
     outFile,

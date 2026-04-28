@@ -7,10 +7,6 @@ use App\Http\Controllers\Api\AccountCodeController;
 use App\Http\Controllers\Api\AccountCodePpiController;
 use App\Http\Controllers\Api\ActivityCodeController;
 use App\Http\Controllers\Api\AdvancePaymentController;
-use App\Http\Controllers\Api\SponsorInvoiceGenerationController;
-use App\Http\Controllers\Api\SponsorProfileController;
-use App\Http\Controllers\Api\SponsorPtptnController;
-use App\Http\Controllers\Api\StudentJournalApprovalController;
 use App\Http\Controllers\Api\AgRateController;
 use App\Http\Controllers\Api\AssetInventoryListController;
 use App\Http\Controllers\Api\AuditLogController;
@@ -25,16 +21,12 @@ use App\Http\Controllers\Api\BankSetupController;
 use App\Http\Controllers\Api\BudgetClosingController;
 use App\Http\Controllers\Api\BudgetCodeController;
 use App\Http\Controllers\Api\BudgetInitialController;
+use App\Http\Controllers\Api\BudgetMonitoringController;
+use App\Http\Controllers\Api\BudgetMovementController;
+use App\Http\Controllers\Api\BudgetNotExistsController;
 use App\Http\Controllers\Api\BudgetPlanningListController;
 use App\Http\Controllers\Api\BudgetPlanningNewController;
 use App\Http\Controllers\Api\BudgetPlanningScheduleController;
-use App\Http\Controllers\Api\BudgetMonitoringController;
-use App\Http\Controllers\Api\LaporanBelanjawanController;
-use App\Http\Controllers\Api\QuarterBudgetController;
-use App\Http\Controllers\Api\StructureBudgetListController;
-use App\Http\Controllers\Api\TotalAllocationReportController;
-use App\Http\Controllers\Api\BudgetMovementController;
-use App\Http\Controllers\Api\BudgetNotExistsController;
 use App\Http\Controllers\Api\CascadeStructureController;
 use App\Http\Controllers\Api\CashbookListController;
 use App\Http\Controllers\Api\CashbookPtjController;
@@ -69,14 +61,17 @@ use App\Http\Controllers\Api\InvestmentToBeWithdrawnController;
 use App\Http\Controllers\Api\InvoiceBalanceController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\JournalListingController;
+use App\Http\Controllers\Api\KerisiSfLevel3Controller;
+use App\Http\Controllers\Api\LaporanBelanjawanController;
 use App\Http\Controllers\Api\LedgerController;
 use App\Http\Controllers\Api\LetterPhraseController;
 use App\Http\Controllers\Api\ListOfAccrualController;
 use App\Http\Controllers\Api\ListOfCurrencyController;
 use App\Http\Controllers\Api\ListOfDepositController;
 use App\Http\Controllers\Api\ListOfInvestmentsController;
-use App\Http\Controllers\Api\ManualJournalListingController;
+use App\Http\Controllers\Api\ListOfSponsorController;
 use App\Http\Controllers\Api\ManualInvoiceListingController;
+use App\Http\Controllers\Api\ManualJournalListingController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\OfferedStudentController;
 use App\Http\Controllers\Api\PageController;
@@ -96,15 +91,23 @@ use App\Http\Controllers\Api\ProjectMonitoringController;
 use App\Http\Controllers\Api\PtjCodeController;
 use App\Http\Controllers\Api\PtptnDataController;
 use App\Http\Controllers\Api\PublicController;
+use App\Http\Controllers\Api\QuarterBudgetController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SetupBudgetStructureSearchController;
+use App\Http\Controllers\Api\SponsorInvoiceGenerationController;
 use App\Http\Controllers\Api\SponsorLetterController;
+use App\Http\Controllers\Api\SponsorProfileController;
+use App\Http\Controllers\Api\SponsorPtptnController;
 use App\Http\Controllers\Api\StaffProfileController;
 use App\Http\Controllers\Api\StatusPoPrController;
+use App\Http\Controllers\Api\StructureBudgetListController;
+use App\Http\Controllers\Api\StudentInsuranceListingController;
 use App\Http\Controllers\Api\StudentInvoiceGenerationController;
+use App\Http\Controllers\Api\StudentJournalApprovalController;
 use App\Http\Controllers\Api\SummaryListInvestmentsController;
 use App\Http\Controllers\Api\TenderQuotationController;
+use App\Http\Controllers\Api\TotalAllocationReportController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UtilityRegistrationController;
 use App\Http\Controllers\Api\VcTncController;
@@ -428,6 +431,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/student-finance/sponsor-profile/options', [SponsorProfileController::class, 'options']);
     Route::get('/student-finance/sponsor-profile', [SponsorProfileController::class, 'index']);
 
+    // Student Finance > Sponsor > Report > List of Sponsor (PAGEID 1583 / MENUID 1916).
+    // Legacy BL `API_SF_SPONSOR_LISTOFSPONSOR` (?dt_listofsponsor=1).
+    Route::get('/student-finance/report/list-of-sponsor', [ListOfSponsorController::class, 'index']);
+
     // Student Finance > Sponsor > Invoice Generation (PAGEID 1218 / MENUID 1491).
     // Legacy BL `V2_SFSI_API` (?listing=2 + ?get_sponsorAmt=1 +
     // ?generateInvoice=1). Top filter (Sponsor / Program Level /
@@ -454,6 +461,12 @@ Route::middleware('auth:sanctum')->group(function () {
         ->whereNumber('id');
     Route::get('/student-finance/student-journal-approval/{id}/debit', [StudentJournalApprovalController::class, 'debit'])
         ->whereNumber('id');
+
+    // Student Finance > Insurance — Returning / iFAS / duplicate-multiple listings
+    // (PAGEIDs 859 / 2307 / 2308 — MENUID 1039 / 2797 / 2799). Variant query:
+    // returning | ifas | duplicate — see StudentInsuranceListingController.
+    Route::get('/student-finance/insurance-student-list/options', [StudentInsuranceListingController::class, 'options']);
+    Route::get('/student-finance/insurance-student-list', [StudentInsuranceListingController::class, 'index']);
 
     // Student Finance > Invoice (PAGEID 828 / MENUID 1023). Legacy BLs
     // `DT_SF_INVOICE` (main listing scoped to cim_cust_type IN ('A','E')
@@ -495,6 +508,10 @@ Route::middleware('auth:sanctum')->group(function () {
         ->whereNumber('id');
     Route::delete('/student-finance/manual-invoice/{id}', [ManualInvoiceListingController::class, 'destroy'])
         ->whereNumber('id');
+
+    // PAGE_MENUID1019_LEVEL3 registry shell — empty rows until per-menu BL is wired.
+    Route::get('/student-finance/kerisi-level3/{menuId}', [KerisiSfLevel3Controller::class, 'index'])
+        ->whereNumber('menuId');
 
     // Investment > List Of Accrual (PAGEID 1548 / MENUID 1877). Legacy BL
     // API_LIST_OF_ACCRUAL (action=listing_all_dt) — read-only datatable

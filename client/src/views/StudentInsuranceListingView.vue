@@ -1,21 +1,13 @@
 <script setup lang="ts">
 /**
- * Shared view for two Student Finance offered-student pages:
+ * Student Finance / Insurance — shared list UI for:
+ *   - MENUID 1039 — Insurance : Returning Student (PAGEID 859, `api/DT_RETURNSTUDENT_LIST`).
+ *   - MENUID 2797 — List … insurance invoice at iFAS (BL `MZ_BL_SF_REPORT_IFAS`).
+ *   - MENUID 2799 — Duplicate / multiple policies (BL `MZ_BL_SF_INS_MULTIPLE_REPORT`).
  *
- *   MENUID 1038 — Insurance / List of Offered Student
- *     Legacy BL `DT_OFFERED_STUDENT` — basic offered-student list.
- *     Filter: ost_citizenship_status = '1' AND ost_mode_study = '1'.
- *     Columns: No / Matric No / Name / No IC / Prog Level / Semester Intake
- *             (no payment info in legacy).
- *
- *   MENUID 2636 — Student Finance / List of Offered
- *     Legacy BL `MZ_BL_SF_OFFEREDLIST` — full payment join.
- *     Columns: No / Matric No / Name / No IC / Prog Level / Semester Intake /
- *              Payment / Tarikh / Receipt No
- *
- * The view reads the menu ID from the route and shows/hides columns accordingly.
- * API passes `variant=insurance_new` for MENUID 1038 so the controller applies
- * the citizenship/mode filter. MENUID 2636 uses the default (full) variant.
+ * Smart filter & columns match PAGE_MENUID1019_LEVEL3.json. Legacy COMPONENT_JS is
+ * unrelated boilerplate; exports default to PDF / CSV / Excel per project policy.
+ * Edit icon (1039 only): insurance maintenance form + POST flows are not migrated yet.
  */
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
@@ -25,19 +17,23 @@ import {
   FileSpreadsheet,
   Filter,
   MoreVertical,
+  Pencil,
   Search,
   X,
 } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
+import {
+  getStudentInsuranceListingOptions,
+  listStudentInsuranceListing,
+} from "@/api/cms";
+import { getKerisiMenuTrailByMenuId, parseKerisiNumericMenuIdFromPath } from "@/config/kerisi-menu-resolve";
 import { useDatatableFeatures } from "@/composables/useDatatableFeatures";
 import type { DatatableRefApi } from "@/composables/useDatatableFeatures";
-import { getOfferedStudentOptions, listOfferedStudents } from "@/api/cms";
-import { getKerisiMenuTrailByMenuId, parseKerisiNumericMenuIdFromPath } from "@/config/kerisi-menu-resolve";
 import { useToast } from "@/composables/useToast";
 import type {
-  OfferedStudentOptions,
-  OfferedStudentRow,
-  OfferedStudentSmartFilter,
+  StudentInsuranceListingOptions,
+  StudentInsuranceListingRow,
+  StudentInsuranceListingSmartFilter,
 } from "@/types";
 
 const toast = useToast();
@@ -46,52 +42,65 @@ const datatableRef = ref<DatatableRefApi | null>(null);
 
 const menuId = computed(() => parseKerisiNumericMenuIdFromPath(route.path));
 
-/** MENUID 1038 = Insurance / List of Offered Student (no payment columns). */
-const isInsuranceNewStudent = computed(() => menuId.value === 1038);
+const listingVariant = computed(() => {
+  switch (menuId.value) {
+    case 2797:
+      return "ifas";
+    case 2799:
+      return "duplicate";
+    default:
+      return "returning";
+  }
+});
+
+const showActionColumn = computed(() => menuId.value === 1039);
 
 const pageTitle = computed(() => {
   const id = menuId.value;
-  if (id !== null) {
-    const trail = getKerisiMenuTrailByMenuId(id);
-    if (trail?.length) return trail.join(" / ");
-  }
-  return "Student Finance / List of Offered";
+  if (id === null) return "Student Finance / Insurance";
+  const trail = getKerisiMenuTrailByMenuId(id);
+  return trail?.length ? trail.join(" / ") : `Student Finance / Menu ${id}`;
 });
 
-const cardHeading = computed(() =>
-  isInsuranceNewStudent.value ? "List of Offered Student" : "List of Offered Student",
-);
+const cardHeading = computed(() => {
+  switch (menuId.value) {
+    case 2797:
+      return "List of returning student whose insurance invoice at iFAS";
+    case 2799:
+      return "List of new/returning student whose insurance is duplicate/multiple";
+    default:
+      return "List of New/Returning Student";
+  }
+});
 
-const tableColspan = computed(() => (isInsuranceNewStudent.value ? 6 : 9));
-
-const rows = ref<OfferedStudentRow[]>([]);
+const rows = ref<StudentInsuranceListingRow[]>([]);
 const loading = ref(false);
 const total = ref(0);
 const page = ref(1);
 const limit = ref(10);
 const q = ref("");
 
-type OfferedSortKey =
+type InsuranceSortKey =
   | "matric"
   | "name"
-  | "ic_passport"
+  | "status"
   | "program_level"
-  | "offered_semester"
-  | "payment"
-  | "approve_date"
-  | "receipt_no";
+  | "semester"
+  | "ins_inst"
+  | "policy";
 
-const sortBy = ref<OfferedSortKey>("matric");
+const sortBy = ref<InsuranceSortKey>("matric");
 const sortDir = ref<"asc" | "desc">("asc");
 
 const showSmartFilter = ref(false);
-const smartFilter = ref<OfferedStudentSmartFilter>({
+const smartFilter = ref<StudentInsuranceListingSmartFilter>({
   programLevel: "",
-  offeredSemester: "",
+  semesterStart: "",
 });
-const options = ref<OfferedStudentOptions>({
+
+const options = ref<StudentInsuranceListingOptions>({
   programLevel: [],
-  offeredSemester: [],
+  semesterStart: [],
 });
 
 const totalPages = computed(() =>
@@ -102,29 +111,9 @@ const startIdx = computed(() =>
 );
 const endIdx = computed(() => Math.min(page.value * limit.value, total.value));
 
-function currencyMyr(amount: number | null): string {
-  if (amount === null || !Number.isFinite(amount)) return "-";
-  return new Intl.NumberFormat("en-MY", {
-    style: "currency",
-    currency: "MYR",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
-function formatDate(iso: string | null): string {
-  if (!iso) return "-";
-  // Server returns either YYYY-MM-DD or full ISO timestamp; either way
-  // the first 10 chars are the date portion. Convert to dd/mm/yyyy.
-  const d = String(iso).slice(0, 10);
-  const [y, m, day] = d.split("-");
-  if (!y || !m || !day) return iso;
-  return `${day}/${m}/${y}`;
-}
-
 async function loadOptions() {
   try {
-    const res = await getOfferedStudentOptions();
+    const res = await getStudentInsuranceListingOptions();
     options.value = res.data;
   } catch (e) {
     toast.error(
@@ -141,34 +130,29 @@ async function loadRows() {
     limit: String(limit.value),
     sort_by: sortBy.value,
     sort_dir: sortDir.value,
+    variant: listingVariant.value,
   });
-  if (isInsuranceNewStudent.value) params.set("variant", "insurance_new");
   if (q.value.trim()) params.set("q", q.value.trim());
   if (smartFilter.value.programLevel)
-    params.set("ost_program_level", smartFilter.value.programLevel);
-  if (smartFilter.value.offeredSemester)
-    params.set("ost_offered_semester", smartFilter.value.offeredSemester);
+    params.set("std_program_level", smartFilter.value.programLevel);
+  if (smartFilter.value.semesterStart)
+    params.set("std_intake_semester", smartFilter.value.semesterStart);
 
   try {
-    const res = await listOfferedStudents(`?${params.toString()}`);
+    const res = await listStudentInsuranceListing(`?${params.toString()}`);
     rows.value = res.data;
     total.value = Number(res.meta?.total ?? 0);
   } catch (e) {
     toast.error(
       "Load failed",
-      e instanceof Error ? e.message : "Unable to load List of Offered.",
+      e instanceof Error ? e.message : "Unable to load list.",
     );
   } finally {
     loading.value = false;
   }
 }
 
-watch(menuId, () => {
-  page.value = 1;
-  void loadRows();
-});
-
-function toggleSort(col: OfferedSortKey) {
+function toggleSort(col: InsuranceSortKey) {
   if (sortBy.value === col) sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
   else {
     sortBy.value = col;
@@ -200,15 +184,26 @@ function applySmartFilter() {
 function resetSmartFilter() {
   smartFilter.value = {
     programLevel: "",
-    offeredSemester: "",
+    semesterStart: "",
   };
 }
 
-const exportColumnsBasic = ["Matric No", "Name", "No IC", "Prog Level", "Semester Intake"];
-const exportColumnsFull = [...exportColumnsBasic, "Payment", "Tarikh", "Receipt No"];
-const exportColumns = computed(() =>
-  isInsuranceNewStudent.value ? exportColumnsBasic : exportColumnsFull,
-);
+function onEdit(matric: string) {
+  toast.info(
+    "Edit",
+    `Policy maintenance for ${matric} is not migrated yet (legacy modal + POST).`,
+  );
+}
+
+const exportColumns = [
+  "Matric No",
+  "Name",
+  "Status",
+  "Prog Level",
+  "Semester Start",
+  "Insurance Institution",
+  "Policy No",
+];
 
 const {
   templateFileInputRef,
@@ -216,25 +211,19 @@ const {
   handleDownloadPDF,
   handleDownloadCSV,
 } = useDatatableFeatures({
-  pageName: "List of Offered",
-  apiDataPath: "/student-finance/offered",
-  defaultExportColumns: exportColumnsBasic,
+  pageName: "Insurance student list",
+  apiDataPath: "/student-finance/insurance-student-list",
+  defaultExportColumns: exportColumns,
   getFilteredList: () =>
-    rows.value.map((r) => {
-      const base: Record<string, string> = {
-        "Matric No": r.matric,
-        Name: r.name ?? "",
-        "No IC": r.icPassport ?? "",
-        "Prog Level": r.programLevelLabel ?? r.programLevel ?? "",
-        "Semester Intake": r.offeredSemester ?? "",
-      };
-      if (!isInsuranceNewStudent.value) {
-        base["Payment"] = r.paymentAmt !== null ? r.paymentAmt.toFixed(2) : "";
-        base["Tarikh"] = formatDate(r.paymentDate);
-        base["Receipt No"] = r.receiptNo ?? "";
-      }
-      return base;
-    }),
+    rows.value.map((r) => ({
+      "Matric No": r.matric,
+      Name: r.name ?? "",
+      Status: r.statusLabel ?? "",
+      "Prog Level": r.programLevelLabel ?? "",
+      "Semester Start": r.semesterStart ?? "",
+      "Insurance Institution": r.insuranceInstitution ?? "",
+      "Policy No": r.policyNo ?? "",
+    })),
   datatableRef,
   searchKeyword: q,
   smartFilter,
@@ -249,24 +238,19 @@ async function exportExcel() {
     }
     const ExcelJS = await import("exceljs");
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Offered");
-    const cols = exportColumns.value;
-    ws.addRow(["No", ...cols]);
+    const ws = wb.addWorksheet("Insurance");
+    ws.addRow(["No", ...exportColumns]);
     rows.value.forEach((r, idx) => {
-      const cells: unknown[] = [
+      ws.addRow([
         idx + 1,
         r.matric,
         r.name ?? "",
-        r.icPassport ?? "",
-        r.programLevelLabel ?? r.programLevel ?? "",
-        r.offeredSemester ?? "",
-      ];
-      if (!isInsuranceNewStudent.value) {
-        cells.push(r.paymentAmt ?? "");
-        cells.push(formatDate(r.paymentDate));
-        cells.push(r.receiptNo ?? "");
-      }
-      ws.addRow(cells);
+        r.statusLabel ?? "",
+        r.programLevelLabel ?? "",
+        r.semesterStart ?? "",
+        r.insuranceInstitution ?? "",
+        r.policyNo ?? "",
+      ]);
     });
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], {
@@ -275,7 +259,7 @@ async function exportExcel() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ListOfOffered_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = `InsuranceList_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Excel downloaded");
@@ -297,6 +281,11 @@ watch(q, () => {
   }, 350);
 });
 
+watch(listingVariant, () => {
+  page.value = 1;
+  void loadRows();
+});
+
 onMounted(async () => {
   await loadOptions();
   await loadRows();
@@ -305,6 +294,8 @@ onMounted(async () => {
 onUnmounted(() => {
   if (searchDebounce) clearTimeout(searchDebounce);
 });
+
+const colspanBody = computed(() => (showActionColumn.value ? 9 : 8));
 </script>
 
 <template>
@@ -322,12 +313,8 @@ onUnmounted(() => {
 
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <h1 class="text-base font-semibold text-slate-900">{{ cardHeading }}</h1>
-          <button
-            type="button"
-            class="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
-            aria-label="More"
-          >
+          <h2 class="text-base font-semibold text-slate-900">{{ cardHeading }}</h2>
+          <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="More">
             <MoreVertical class="h-4 w-4" />
           </button>
         </div>
@@ -347,7 +334,7 @@ onUnmounted(() => {
                 <option v-for="n in [5, 10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
               </select>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
               <label class="text-xs font-medium text-slate-600">Search</label>
               <div class="relative">
                 <Search
@@ -386,7 +373,7 @@ onUnmounted(() => {
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[900px] text-sm">
+              <table class="w-full min-w-[960px] text-sm">
                 <thead class="sticky top-0 bg-slate-50">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No.</th>
@@ -395,115 +382,101 @@ onUnmounted(() => {
                       @click="toggleSort('matric')"
                     >
                       Matric No
-                      <span v-if="sortBy === 'matric'">{{
-                        sortDir === "asc" ? "↑" : "↓"
-                      }}</span>
+                      <span v-if="sortBy === 'matric'">{{ sortDir === "asc" ? "↑" : "↓" }}</span>
                     </th>
                     <th
                       class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"
                       @click="toggleSort('name')"
                     >
                       Name
-                      <span v-if="sortBy === 'name'">{{
-                        sortDir === "asc" ? "↑" : "↓"
-                      }}</span>
+                      <span v-if="sortBy === 'name'">{{ sortDir === "asc" ? "↑" : "↓" }}</span>
                     </th>
                     <th
-                      class="cursor-pointer whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase"
-                      @click="toggleSort('ic_passport')"
+                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"
+                      @click="toggleSort('status')"
                     >
-                      No IC
-                      <span v-if="sortBy === 'ic_passport'">{{
-                        sortDir === "asc" ? "↑" : "↓"
-                      }}</span>
+                      Status
+                      <span v-if="sortBy === 'status'">{{ sortDir === "asc" ? "↑" : "↓" }}</span>
                     </th>
                     <th
                       class="cursor-pointer whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase"
                       @click="toggleSort('program_level')"
                     >
                       Prog Level
-                      <span v-if="sortBy === 'program_level'">{{
-                        sortDir === "asc" ? "↑" : "↓"
-                      }}</span>
+                      <span v-if="sortBy === 'program_level'">{{ sortDir === "asc" ? "↑" : "↓" }}</span>
                     </th>
                     <th
                       class="cursor-pointer whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase"
-                      @click="toggleSort('offered_semester')"
+                      @click="toggleSort('semester')"
                     >
-                      Semester Intake
-                      <span v-if="sortBy === 'offered_semester'">{{
-                        sortDir === "asc" ? "↑" : "↓"
-                      }}</span>
+                      Semester Start
+                      <span v-if="sortBy === 'semester'">{{ sortDir === "asc" ? "↑" : "↓" }}</span>
                     </th>
-                    <template v-if="!isInsuranceNewStudent">
-                      <th
-                        class="cursor-pointer px-3 py-2 text-right text-xs font-semibold uppercase"
-                        @click="toggleSort('payment')"
-                      >
-                        Payment
-                        <span v-if="sortBy === 'payment'">{{ sortDir === "asc" ? "↑" : "↓" }}</span>
-                      </th>
-                      <th
-                        class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"
-                        @click="toggleSort('approve_date')"
-                      >
-                        Tarikh
-                        <span v-if="sortBy === 'approve_date'">{{ sortDir === "asc" ? "↑" : "↓" }}</span>
-                      </th>
-                      <th
-                        class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"
-                        @click="toggleSort('receipt_no')"
-                      >
-                        Receipt No
-                        <span v-if="sortBy === 'receipt_no'">{{ sortDir === "asc" ? "↑" : "↓" }}</span>
-                      </th>
-                    </template>
+                    <th
+                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"
+                      @click="toggleSort('ins_inst')"
+                    >
+                      Insurance Institution
+                      <span v-if="sortBy === 'ins_inst'">{{ sortDir === "asc" ? "↑" : "↓" }}</span>
+                    </th>
+                    <th
+                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"
+                      @click="toggleSort('policy')"
+                    >
+                      Policy No
+                      <span v-if="sortBy === 'policy'">{{ sortDir === "asc" ? "↑" : "↓" }}</span>
+                    </th>
+                    <th v-if="showActionColumn" class="px-3 py-2 text-right text-xs font-semibold uppercase">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="loading">
-                    <td :colspan="tableColspan" class="px-3 py-6 text-center text-sm text-slate-500">
+                    <td :colspan="colspanBody" class="px-3 py-6 text-center text-sm text-slate-500">
                       Loading...
                     </td>
                   </tr>
                   <tr v-else-if="rows.length === 0">
-                    <td :colspan="tableColspan" class="px-3 py-6 text-center text-sm text-slate-500">
+                    <td :colspan="colspanBody" class="px-3 py-6 text-center text-sm text-slate-500">
                       No records found.
                     </td>
                   </tr>
-                  <tr
-                    v-for="row in rows"
-                    :key="`${row.matric}-${row.offeredSemester ?? ''}-${row.receiptNo ?? ''}-${row.index}`"
-                    class="border-b border-slate-100 hover:bg-slate-50"
-                  >
-                    <td class="px-3 py-2">{{ row.index }}</td>
+                  <template v-else>
+                    <tr
+                      v-for="(row, idx) in rows"
+                      :key="`${row.matric}-${idx}-${row.policyNo}`"
+                      class="border-b border-slate-100 hover:bg-slate-50"
+                    >
+                    <td class="px-3 py-2">{{ startIdx + idx }}</td>
                     <td class="px-3 py-2 font-medium text-slate-900">{{ row.matric }}</td>
-                    <td class="px-3 py-2">{{ row.name ?? "-" }}</td>
-                    <td class="whitespace-nowrap px-3 py-2">{{ row.icPassport ?? "-" }}</td>
-                    <td class="whitespace-nowrap px-3 py-2">
-                      {{ row.programLevelLabel ?? row.programLevel ?? "-" }}
+                    <td class="px-3 py-2">{{ row.name || "—" }}</td>
+                    <td class="px-3 py-2">{{ row.statusLabel || "—" }}</td>
+                    <td class="whitespace-nowrap px-3 py-2">{{ row.programLevelLabel || "—" }}</td>
+                    <td class="whitespace-nowrap px-3 py-2">{{ row.semesterStart || "—" }}</td>
+                    <td class="px-3 py-2">{{ row.insuranceInstitution || "—" }}</td>
+                    <td class="px-3 py-2">{{ row.policyNo || "—" }}</td>
+                    <td v-if="showActionColumn" class="px-3 py-2 text-right">
+                      <button
+                        type="button"
+                        class="inline-flex rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                        title="Edit"
+                        aria-label="Edit"
+                        @click="onEdit(row.matric)"
+                      >
+                        <Pencil class="h-4 w-4" />
+                      </button>
                     </td>
-                    <td class="whitespace-nowrap px-3 py-2">{{ row.offeredSemester ?? "-" }}</td>
-                    <template v-if="!isInsuranceNewStudent">
-                      <td class="px-3 py-2 text-right tabular-nums">
-                        {{ currencyMyr(row.paymentAmt) }}
-                      </td>
-                      <td class="whitespace-nowrap px-3 py-2">{{ formatDate(row.paymentDate) }}</td>
-                      <td class="whitespace-nowrap px-3 py-2">{{ row.receiptNo ?? "-" }}</td>
-                    </template>
                   </tr>
+                  </template>
                 </tbody>
               </table>
             </div>
           </div>
 
-          <div
-            class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3"
-          >
-            <div class="text-xs text-slate-500">
-              Showing {{ startIdx }}-{{ endIdx }} of {{ total }}
-            </div>
-            <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+            <div class="text-xs text-slate-500">Showing {{ startIdx }}-{{ endIdx }} of {{ total }}</div>
+            <div class="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 :disabled="page <= 1"
@@ -562,35 +535,25 @@ onUnmounted(() => {
           <div class="space-y-4 p-4">
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label class="mb-1 block text-sm font-medium text-slate-700">Program Level</label>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Program level</label>
                 <select
                   v-model="smartFilter.programLevel"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 >
                   <option value="">Any</option>
-                  <option
-                    v-for="opt in options.programLevel"
-                    :key="opt.id"
-                    :value="opt.id"
-                  >
+                  <option v-for="opt in options.programLevel" :key="opt.id" :value="opt.id">
                     {{ opt.label }}
                   </option>
                 </select>
               </div>
               <div>
-                <label class="mb-1 block text-sm font-medium text-slate-700">
-                  Offered Semester
-                </label>
+                <label class="mb-1 block text-sm font-medium text-slate-700">Semester Start</label>
                 <select
-                  v-model="smartFilter.offeredSemester"
+                  v-model="smartFilter.semesterStart"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 >
                   <option value="">Any</option>
-                  <option
-                    v-for="opt in options.offeredSemester"
-                    :key="opt.id"
-                    :value="opt.id"
-                  >
+                  <option v-for="opt in options.semesterStart" :key="opt.id" :value="opt.id">
                     {{ opt.label }}
                   </option>
                 </select>
