@@ -83,13 +83,19 @@ import InvestmentGenerateScheduleView from "@/views/InvestmentGenerateScheduleVi
 import InvestmentMonitoringView from "@/views/InvestmentMonitoringView.vue";
 import InvestmentToBeWithdrawnView from "@/views/InvestmentToBeWithdrawnView.vue";
 import ListOfInvestmentsView from "@/views/ListOfInvestmentsView.vue";
-import ManualInvoiceListingView from "@/views/ManualInvoiceListingView.vue";
 import SummaryListInvestmentsView from "@/views/SummaryListInvestmentsView.vue";
 import PtptnDataView from "@/views/PtptnDataView.vue";
 import StudentLedgerView from "@/views/StudentLedgerView.vue";
 import OfferedStudentView from "@/views/OfferedStudentView.vue";
 import InvoiceListView from "@/views/InvoiceListView.vue";
+import ManualInvoiceFormView from "@/views/ManualInvoiceFormView.vue";
+import ManualInvoiceListingView from "@/views/ManualInvoiceListingView.vue";
 import StudentInvoiceGenerationView from "@/views/StudentInvoiceGenerationView.vue";
+import AdvancePaymentView from "@/views/AdvancePaymentView.vue";
+import SponsorPtptnView from "@/views/SponsorPtptnView.vue";
+import SponsorProfileView from "@/views/SponsorProfileView.vue";
+import SponsorInvoiceGenerationView from "@/views/SponsorInvoiceGenerationView.vue";
+import StudentJournalApprovalView from "@/views/StudentJournalApprovalView.vue";
 import StatusPoPrView from "@/views/StatusPoPrView.vue";
 import TenderQuotationView from "@/views/TenderQuotationView.vue";
 import AuditSystemTransactionView from "@/views/AuditSystemTransactionView.vue";
@@ -282,12 +288,28 @@ const router = createRouter({
     { path: "/admin/kerisi/m/2065", name: "kerisi-project-monitoring-balance", component: ProjectUpdatedBalanceView, meta: { requiresAuth: true, title: "Project Monitoring / Updated Balance" } },
     { path: "/admin/kerisi/m/1841", name: "kerisi-purchasing-status-po-pr", component: StatusPoPrView, meta: { requiresAuth: true, title: "Status PO & PR" } },
     { path: "/admin/kerisi/m/1031", name: "kerisi-student-finance-ptptn-data", component: PtptnDataView, meta: { requiresAuth: true, title: "PTPTN Data" } },
-    { path: "/admin/kerisi/m/1509", name: "kerisi-student-finance-ledger", component: StudentLedgerView, meta: { requiresAuth: true, title: "Student Profile or Ledger" } },
-    { path: "/admin/kerisi/m/2897", name: "kerisi-student-finance-manual-invoice", component: ManualInvoiceListingView, meta: { requiresAuth: true, title: "Manual Invoice Listing" } },
-    { path: "/admin/kerisi/m/1081", name: "kerisi-student-finance-bank-account-update", component: BankAccountUpdateView, meta: { requiresAuth: true, title: "Bank Account Update" } },
     { path: "/admin/kerisi/m/2636", name: "kerisi-student-finance-list-of-offered", component: OfferedStudentView, meta: { requiresAuth: true, title: "List of Offered" } },
     { path: "/admin/kerisi/m/1023", name: "kerisi-student-finance-invoice", component: InvoiceListView, meta: { requiresAuth: true, title: "Invoice" } },
+    {
+      path: "/admin/kerisi/m/2897",
+      name: "kerisi-student-finance-manual-invoice-listing",
+      component: ManualInvoiceListingView,
+      meta: { requiresAuth: true, title: "Manual Invoice Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/2898",
+      name: "kerisi-student-finance-manual-invoice-form",
+      component: ManualInvoiceFormView,
+      meta: { requiresAuth: true, title: "Manual Invoice Form" },
+    },
     { path: "/admin/kerisi/m/1231", name: "kerisi-student-finance-invoice-generation", component: StudentInvoiceGenerationView, meta: { requiresAuth: true, title: "Generate Student Invoice" } },
+    // Sponsor sub-section (parent menuId 1149) — pages migrated from
+    // PAGE_MENUID1019_LEVEL3.json (PAGEIDs 1669, 1231, 845, 1218, 1954).
+    { path: "/admin/kerisi/m/2020", name: "kerisi-student-finance-sponsor-advance-payment", component: AdvancePaymentView, meta: { requiresAuth: true, title: "Advance Payment" } },
+    { path: "/admin/kerisi/m/1507", name: "kerisi-student-finance-sponsor-ptptn", component: SponsorPtptnView, meta: { requiresAuth: true, title: "PTPTN" } },
+    { path: "/admin/kerisi/m/1025", name: "kerisi-student-finance-sponsor-profile", component: SponsorProfileView, meta: { requiresAuth: true, title: "Sponsor Profile" } },
+    { path: "/admin/kerisi/m/1491", name: "kerisi-student-finance-sponsor-invoice-generation", component: SponsorInvoiceGenerationView, meta: { requiresAuth: true, title: "Sponsor Invoice Generation" } },
+    { path: "/admin/kerisi/m/2390", name: "kerisi-student-finance-sponsor-student-journal-approval", component: StudentJournalApprovalView, meta: { requiresAuth: true, title: "Student Journal Approval" } },
     { path: "/admin/kerisi/m/1877", name: "kerisi-investment-list-of-accrual", component: ListOfAccrualView, meta: { requiresAuth: true, title: "List of Accrual" } },
     { path: "/admin/kerisi/m/2808", name: "kerisi-investment-summary-list", component: SummaryListInvestmentsView, meta: { requiresAuth: true, title: "Summary List of Investments" } },
     { path: "/admin/kerisi/m/1448", name: "kerisi-investment-list", component: ListOfInvestmentsView, meta: { requiresAuth: true, title: "List of Investments" } },

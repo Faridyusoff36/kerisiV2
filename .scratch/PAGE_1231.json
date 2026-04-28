@@ -1,0 +1,110 @@
+{
+  "PAGEID": 1231,
+  "MENUID": 1507,
+  "Menu": "Student Finance>Sponsor>PTPTN",
+  "PAGENAME": "PTPTN",
+  "PAGETITLE": "PTPTN",
+  "PAGEBREADCRUMBS": "Student Finance / Sponsor / PTPTN",
+  "components": [
+    {
+      "COMPONENTID": 3383,
+      "COMPONENTTITLE": "List of PTPTN Students",
+      "COMPONENTTYPE": "datatable",
+      "API_URL": "\"api/V2_PTPTN_API?listing=1\"",
+      "API_BL_NAME": "V2_PTPTN_API",
+      "BL_preprocess_total": 1,
+      "BL_onload_total": 4,
+      "COMPONENT_JS": "//=================================================== declare awal\r\nvar labelModal = ['Fund Type Add', 'Fund Type Edit'];\r\ntargetedID     = ''\r\n\r\n// // ============================================================= autosuggest =====================================\r\n// $('#fty_fund_typesm').autoSuggest({ // tah knpe tak detect plak\r\n// \turl: 'api/ANIS_FUND_TYPE&autoSuggestfundtype=1'\r\n// })\r\n\r\n// =============================================================== add button ====================================\r\n$(document).ready(function(){\r\n\t\r\n\t$(\"#Fund_Type\").closest(\".card\").append(\r\n    \t\"<div class='text-right'>\"+\r\n    \t    \"<div class='btn btn-primary' id='Fund_Type_add'><i class='fas fa-plus align-middle'></i><span class='align-middle ml-1'>Add</span></div>\"+\r\n    \t\"</div>\"\r\n\t);\r\n});\r\n\r\n//================================================== function process crud =================================================\r\nwindow['saveItem'] = function save (){\r\n\t//$('#Fund_type_modal :input:not(#fty_status_modal, #fty_fund_ID, #fty_remark_modal)').attr('required',true);\r\n\tif(formValidate('#Fund_type_modal')){\r\n\t\t$.ajax({\r\n\t\t\ttype: \"POST\",\r\n\t\t\tdataType: 'json',\r\n\t\t\turl: \"api/ANIS_FUND_TYPE?FT_process=1\",\r\n\t\t\tdata : $('#Fund_type_modal :input').serializeJson(),\r\n\t\t\tsuccess: function(data){\r\n\t\t\t\tif(data.status==\"ok\"){\r\n\t\t\t\t\tshowModal({\r\n\t\t\t\t\t\ttype: \"alert\",\r\n\t\t\t\t\t\tcontent: LANG_INSERT_SUCCESS, \r\n\t\t\t\t\t\tsize: \"sm\",\r\n\t\t\t\t\t});\r\n\t\t\t\t\t$('#Fund_Type').DataTable().ajax.reload()\r\n\t\t\t\t\t$('#Fund_type_modal').modal(\"hide\");\r\n\t\t\t\t}\r\n\t\t\t\telse if(data.status==\"ko\"){\r\n\t\t\t\t\tshowModal({\r\n\t\t\t\t\t\ttype: \"alert\",\r\n\t\t\t\t\t\tcontent: data.errorMessage || data.message || LANG_PROCESS_ERROR,  \r\n\t\t\t\t\t\tsize: \"sm\"\r\n\t\t\t\t\t});    \r\n\t\t\t\t}\r\n\t\t\t}\r\n\t\t});\r\n\t}\r\n\telse{\r\n\t\tshowModal({\r\n\t\t\ttype: \"alert\",\r\n\t\t\tcontent: LANG_VALIDATE_VALUEMISSING,\r\n\t\t\tsize: \"sm\"\r\n\t\t});    \r\n\t}\r\n}\r\n\r\n//================================================== onclick add\r\n//$('#Fund_Type_add').click(function(){\r\n$(document).on('click', '#Fund_Type_add', function(){\r\n\r\n\t$('#fty_status_modal').val('1').change();\r\n\t//$('#Fund_type_modal :input:not(#fty_status_modal)').attr('required',false);\r\n\t$('#Fund_type_modal :input:not(#fty_status_modal)').val('').change();\r\n\t$('#inputLabel_fty_fund_ID, #inputArea_fty_fund_ID').hide();\r\n\t$('#Fund_type_modal').find('.modal-header').text(labelModal[i]);\r\n\t$('#Fund_type_modal').modal('show');\r\n})\r\n\r\n//=============================================onclick edit (utk edit button)\r\nedit = function (targetID){\r\n\t\r\n\t$.get(\"api/ANIS_FUND_TYPE?FT_modal=form&id=\" + targetID, function (data) {\r\n\r\n\t\t$('#inputLabel_fty_fund_ID, #inputArea_fty_fund_ID').hide();\r\n\t\t$('#fty_fund_ID').val(data.ID);\r\n\t\t$('#fty_fund_type_modal').val(data.TYPE);\r\n\t\t$('#fty_fund_desc_modal').val(data.DESCRIPTION);\r\n\t\t$('#fty_fund_desc_eng_modal\t').val(data.DESCRIPTIONENG);\r\n\t\t$('#fty_basis_modal').val(data.BASIS);\r\n\t\t$('#fty_remark_modal').val(data.REMARK);\r\n\t\t$('#fty_status_modal').val(data.STATUS).change();\r\n\r\n\t\t$('#Fund_type_modal').find('.modal-header').text(labelModal[1]);\r\n\t\t$('#Fund_type_modal').modal('show');\r\n\t});\r\n}\r\n\r\n//maz tambah\r\nif(PROJECT_TYPE != 'uum'){\r\n\r\n\t$(\"#listOfFundType\").closest(\".card\").append(\r\n    \t`<div class='text-right mt-2'>\r\n\t\t\t<button type='button' class='btn btn-primary' id='btnDownloadCSV' onclick='listing.download()'>\r\n\t\t\t<i class='fas fa-download align-middle'></i>\r\n\t\t\t\t<span class='align-middle ml-1'>Download CSV</span>\r\n\t\t\t</button>\r\n\t\t\t<button type='button' class='btn btn-primary' id='btnDownloadPDF' onclick='listing.downloadPDF()'>\r\n\t\t\t<i class='fas fa-download align-middle'></i>\r\n\t\t\t\t<span class='align-middle ml-1'>Download PDF</span>\r\n\t\t\t</button>\r\n\t\t</div>`\r\n\t);\r\n\r\n\twindow['listing'] = {\r\n\t\tdownload: function () {\r\n\t\t\tconst data1 = $('#ActivityFilter :input').serializeJson()\r\n\t\t\tconst data2 = $('#listOfFundTypeSmartFilter :input').serializeJson()\r\n\t\t\tvar data = Object.assign({}, data1, data2)\r\n\t\t\tdata.search = $('[type=\"search\"]').val()\r\n\t\t\tdata.sort = listOfFundType.order()['0']\r\n\t\t\twindow.post('api/NAD_API_FUNDTYPE_LISTING?download=1', data, '_BLANK');\r\n\t\t},\r\n\t\tdownloadPDF:function(){\r\n\t\t\twindow.post('custom/report/senarai/GeneralLedger/fundTypeList.php', {\r\n\t\t\t\tsearch: $('[type=\"search\"]').val(),\r\n\t\t\t\tfty_status: $('#fty_status').val(),\r\n\t\t\t\tsort: listOfFundType.order()['0']\r\n\t\t\t}, '_BLANK')\r\n\t\t},\r\n \t }\r\n}",
+      "BL_DETAILS": "<?php\r\n\r\ninclude 'userinfo.php';\r\n\r\nif($_GET['listing'] || $_GET['listing_download']) {\r\n\t//============================================================ common filter\r\n\t$common = \"\r\n\t\tFROM \".DB2.\".student A\r\n\t\t\tINNER JOIN \".DB2.\".stud_sponsor B ON (A.std_student_id = B.std_student_id)\r\n\t\t\tINNER JOIN \".DB2.\".sponsor C ON ( B.spn_sponsor_code = C.spn_sponsor_code) \r\n\t\tWHERE C.spn_sponsor_type = '05' -- AND A.std_status = '01'\r\n\t\t\t-- global filter\r\n\t\t\tAND CONCAT_WS('__',\r\n\t\t\t\tA.std_student_id,\r\n\t\t\t\tA.std_student_name,\r\n\t\t\t\tIFNULL(IF(A.std_ic_no='', NULL, A.std_ic_no), std_passport),\r\n\t\t\t\tA.std_extended_field->>'$.std_status_desc',\r\n\t\t\t\tA.std_program_level,\r\n\t\t\t\tB.ssp_reference_no,\r\n\t\t\t\tB.ssp_warrant_no,\r\n\t\t\t\tB.ssp_warrant_amt,\r\n\t\t\t\tssp_ptptn_deduction_amt,\r\n                ssp_ptptn_balance_amt\r\n\t\t\t) LIKE CONCAT('%', ?, '%')\r\n\t\t\t-- smartFilter\r\n\t\t\tAND A.std_student_id LIKE CONCAT('%', ?, '%')\r\n\t\t\tAND A.std_student_name LIKE CONCAT('%', ?, '%')\r\n\t\t\tAND IFNULL(IF(A.std_ic_no='', NULL, A.std_ic_no), std_passport) LIKE CONCAT('%', ?, '%')\r\n\t\t\tAND A.std_program_level LIKE CONCAT('%', ?, '%')\r\n\t\t\tAND A.std_status LIKE CONCAT('%', ?, '%')\r\n\t\t\tAND B.ssp_reference_no LIKE CONCAT('%', ?, '%')\r\n\t\t\tAND B.ssp_warrant_no LIKE CONCAT('%', ?, '%')\r\n\t\";\r\n\t$commonParam = [\r\n\t\t$_POST['search']['value'],\r\n\t\t$_POST['smartFilter']['std_student_id'],\r\n\t\t$_POST['smartFilter']['std_student_name'],\r\n\t\t$_POST['smartFilter']['ic_passport'],\r\n\t\t$_POST['smartFilter']['std_program_level'],\r\n\t\t$_POST['smartFilter']['std_status'],\r\n\t\t$_POST['smartFilter']['ssp_reference_no'],\r\n\t\t$_POST['smartFilter']['ssp_warrant_no']\r\n\t];\r\n\r\n\t//============================================================ record count\r\n\t$sql = \"SELECT COUNT(*) C $common\";\r\n\t$recordsFiltered = executeQueryV2($sql, $commonParam)[0]['C'];\r\n\r\n\t//============================================================ main sql\r\n\tif($_GET['listing']) {\r\n\t\t$sql = \"\r\n\t\t\tSELECT\r\n\t\t\t\tA.std_student_id,\r\n\t\t\t\tA.std_student_name,\r\n\t\t\t\tIFNULL(IF(A.std_ic_no='', NULL, A.std_ic_no), std_passport) ic_passport,\r\n\t\t\t\tA.std_extended_field->>'$.std_status_desc' studStatus,\r\n\t\t\t\tA.std_program_level,\r\n\t\t\t\tB.ssp_reference_no,\r\n\t\t\t\tB.ssp_warrant_no,\r\n\t\t\t\tB.ssp_id,\r\n\t\t\t\tFORMAT(B.ssp_warrant_amt, 2) ssp_warrant_amt,\r\n\t\t\t\tFORMAT(ssp_ptptn_deduction_amt, 2) deduction,\r\n\t\t\t\tFORMAT(ssp_ptptn_balance_amt, 2) balance\r\n\t\t\t$common\r\n\t\t\tORDER BY {$_POST['orderBy'][0]} {$_POST['orderBy'][1]}\r\n\t\t\tLIMIT \".$_POST['start'].\", \".$_POST['length'].\"\r\n\t\t\";\r\n\t\t$data = executeQueryV2($sql, $commonParam);\r\n\t\tforeach($data as &$d) $d['view'] = 'index.php?a='.flc_url_encode(\"page=page_wrapper&menuID=1479&mode=view&ssp_id=\".$d['ssp_id']);\r\n\t\r\n\t\treturn [\r\n\t\t\t'draw' => $_POST['draw'],\r\n\t\t\t'recordsFiltered' => $recordsFiltered,\r\n\t\t\t'data' => $data\r\n\t\t];\r\n\t}\r\n\telse {\r\n\t\t$data = executeQueryV2(\"\r\n\t\t\tSELECT\r\n\t\t\t\tnull `Indexing`,\r\n\t\t\t\tA.std_student_id `Matric`,\r\n\t\t\t\tA.std_student_name `Name`,\r\n\t\t\t\tIFNULL(IF(A.std_ic_no='', NULL, A.std_ic_no), std_passport) `NRIC/Passport`,\r\n\t\t\t\tA.std_extended_field->>'$.std_status_desc' `Status`,\r\n\t\t\t\tA.std_program_level `Program Level`,\r\n\t\t\t\tB.ssp_reference_no `No. Fail Pinjaman`,\r\n\t\t\t\tB.ssp_warrant_no `Warrant No.`,\r\n\t\t\t\tssp_warrant_amt `FORMAT_CURRENCY::Warrant Amt`,\r\n\t\t\t\tssp_ptptn_deduction_amt `FORMAT_CURRENCY::Deduction`,\r\n\t\t\t\tssp_ptptn_balance_amt `FORMAT_CURRENCY::ssp_ptptn_deduction_amt`\r\n\t\t\t\t$common\r\n\t\t\tORDER BY 1\r\n\t\t\", $commonParam);\r\n\r\n\t\tgenerateExcel([\r\n\t\t\t\"filename\" => \"List of PTPTN Students \".date(\"Ymd hiA\"),\r\n\t\t\t\"FILTERED CRITERIA\" => [\r\n\t\t\t\t[\"Filter Type\"=>\"Global Search\", \"Filter Value\"=>$_POST['search']['value']],\r\n\t\t\t\t[\"Filter Type\"=>\"Matric\", \"Filter Value\"=>$_POST['smartFilter']['std_student_id']],\r\n\t\t\t\t[\"Filter Type\"=>\"Name\", \"Filter Value\"=>$_POST['smartFilter']['std_student_name']],\r\n\t\t\t\t[\"Filter Type\"=>\"NRIC/Passport\", \"Filter Value\"=>$_POST['smartFilter']['ic_passport']],\r\n\t\t\t\t[\"Filter Type\"=>\"Program Level\", \"Filter Value\"=>$_POST['smartFilter']['std_program_level']],\r\n\t\t\t\t[\"Filter Type\"=>\"No. Fail Pinjaman\", \"Filter Value\"=>$_POST['smartFilter']['ssp_reference_no']],\r\n\t\t\t\t[\"Filter Type\"=>\"Warrant No.\", \"Filter Value\"=>$_POST['smartFilter']['ssp_warrant_no']],\r\n\t\t\t\t[\"Filter Type\"=>\"Status\", \"Filter Value\"=>$_POST['smartFilter']['std_status']],\r\n\t\t\t],\r\n\t\t\t\"DATA\" => $data\r\n\t\t]);\r\n\t}\r\n}",
+      "DT_COLS": "{\"dt_bi\": [\"No\", \"Matric\", \"Name\", \"NRIC/Passport\", \"Status\", \"Program Level\", \"No. Fail Pinjaman\", \"Warrant No.\", \"Warrant Amt\", \"Deduction\", \"Balance\", \"Action\"], \"dt_bm\": [\"No\", \"Matric\", \"Name\", \"NRIC/Passport\", \"Status\", \"Program Level\", \"No. Fail Pinjaman\", \"Warrant No.\", \"Warrant Amt\", \"Deduction\", \"Balance\", \"Action\"], \"dt_js\": [\"return row.index\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"return row.ssp_warrant_amt\", \"return row.deduction\", \"return row.balance\", \"return `\\r\\n\\t<a data-toggle=\\\"tooltip\\\" title=\\\"View\\\" href=\\\"${row.view}\\\"><i class=\\\"fas fa-eye\\\"></i></a>\\r\\n`\"], \"dt_key\": [\"\", \"std_student_id\", \"std_student_name\", \"ic_passport\", \"studStatus\", \"std_program_level\", \"ssp_reference_no\", \"ssp_warrant_no\", \"ssp_warrant_amt\", \"deduction\", \"balance\", \"\"], \"dt_ajax\": \"api/V2_PTPTN_API?listing=1\", \"dt_post\": null, \"dt_sort\": [\"unsortable\", \"asc\", \"default\", \"default\", \"default\", \"default\", \"default\", \"default\", \"default\", \"default\", \"default\", \"unsortable\"], \"dt_bInfo\": \"true\", \"dt_class\": [\"small-column\", \"small-column\", \"\", \"small-column text-nowrap\", \"\", \"\", \"small-column text-nowrap\", \"small-column text-nowrap\", \"small-column text-right text-nowrap\", \"small-column text-right text-nowrap\", \"small-column text-right text-nowrap\", \"action-column d-none\"], \"dt_print\": \"false\", \"dt_filter\": \"smart\", \"dt_bPaginate\": \"true\", \"dt_pageLength\": \"5\", \"dt_bLengthChange\": \"false\"}",
+      "items": [
+        {
+          "Form_Item_Title": null,
+          "Form_Item_Type": null,
+          "Form_Item_css_class": null,
+          "Form_Item_additional_attribute": null,
+          "Form_Item_default": null,
+          "Form_Item_lookup_query": null,
+          "Form_Item_isDisable": null
+        }
+      ]
+    },
+    {
+      "COMPONENTID": 3384,
+      "COMPONENTTITLE": "Smart Filter",
+      "COMPONENTTYPE": "form (Smart Filter)",
+      "API_URL": null,
+      "API_BL_NAME": null,
+      "BL_preprocess_total": 1,
+      "BL_onload_total": 4,
+      "COMPONENT_JS": "//=================================================== declare awal\r\nvar labelModal = ['Fund Type Add', 'Fund Type Edit'];\r\ntargetedID     = ''\r\n\r\n// // ============================================================= autosuggest =====================================\r\n// $('#fty_fund_typesm').autoSuggest({ // tah knpe tak detect plak\r\n// \turl: 'api/ANIS_FUND_TYPE&autoSuggestfundtype=1'\r\n// })\r\n\r\n// =============================================================== add button ====================================\r\n$(document).ready(function(){\r\n\t\r\n\t$(\"#Fund_Type\").closest(\".card\").append(\r\n    \t\"<div class='text-right'>\"+\r\n    \t    \"<div class='btn btn-primary' id='Fund_Type_add'><i class='fas fa-plus align-middle'></i><span class='align-middle ml-1'>Add</span></div>\"+\r\n    \t\"</div>\"\r\n\t);\r\n});\r\n\r\n//================================================== function process crud =================================================\r\nwindow['saveItem'] = function save (){\r\n\t//$('#Fund_type_modal :input:not(#fty_status_modal, #fty_fund_ID, #fty_remark_modal)').attr('required',true);\r\n\tif(formValidate('#Fund_type_modal')){\r\n\t\t$.ajax({\r\n\t\t\ttype: \"POST\",\r\n\t\t\tdataType: 'json',\r\n\t\t\turl: \"api/ANIS_FUND_TYPE?FT_process=1\",\r\n\t\t\tdata : $('#Fund_type_modal :input').serializeJson(),\r\n\t\t\tsuccess: function(data){\r\n\t\t\t\tif(data.status==\"ok\"){\r\n\t\t\t\t\tshowModal({\r\n\t\t\t\t\t\ttype: \"alert\",\r\n\t\t\t\t\t\tcontent: LANG_INSERT_SUCCESS, \r\n\t\t\t\t\t\tsize: \"sm\",\r\n\t\t\t\t\t});\r\n\t\t\t\t\t$('#Fund_Type').DataTable().ajax.reload()\r\n\t\t\t\t\t$('#Fund_type_modal').modal(\"hide\");\r\n\t\t\t\t}\r\n\t\t\t\telse if(data.status==\"ko\"){\r\n\t\t\t\t\tshowModal({\r\n\t\t\t\t\t\ttype: \"alert\",\r\n\t\t\t\t\t\tcontent: data.errorMessage || data.message || LANG_PROCESS_ERROR,  \r\n\t\t\t\t\t\tsize: \"sm\"\r\n\t\t\t\t\t});    \r\n\t\t\t\t}\r\n\t\t\t}\r\n\t\t});\r\n\t}\r\n\telse{\r\n\t\tshowModal({\r\n\t\t\ttype: \"alert\",\r\n\t\t\tcontent: LANG_VALIDATE_VALUEMISSING,\r\n\t\t\tsize: \"sm\"\r\n\t\t});    \r\n\t}\r\n}\r\n\r\n//================================================== onclick add\r\n//$('#Fund_Type_add').click(function(){\r\n$(document).on('click', '#Fund_Type_add', function(){\r\n\r\n\t$('#fty_status_modal').val('1').change();\r\n\t//$('#Fund_type_modal :input:not(#fty_status_modal)').attr('required',false);\r\n\t$('#Fund_type_modal :input:not(#fty_status_modal)').val('').change();\r\n\t$('#inputLabel_fty_fund_ID, #inputArea_fty_fund_ID').hide();\r\n\t$('#Fund_type_modal').find('.modal-header').text(labelModal[i]);\r\n\t$('#Fund_type_modal').modal('show');\r\n})\r\n\r\n//=============================================onclick edit (utk edit button)\r\nedit = function (targetID){\r\n\t\r\n\t$.get(\"api/ANIS_FUND_TYPE?FT_modal=form&id=\" + targetID, function (data) {\r\n\r\n\t\t$('#inputLabel_fty_fund_ID, #inputArea_fty_fund_ID').hide();\r\n\t\t$('#fty_fund_ID').val(data.ID);\r\n\t\t$('#fty_fund_type_modal').val(data.TYPE);\r\n\t\t$('#fty_fund_desc_modal').val(data.DESCRIPTION);\r\n\t\t$('#fty_fund_desc_eng_modal\t').val(data.DESCRIPTIONENG);\r\n\t\t$('#fty_basis_modal').val(data.BASIS);\r\n\t\t$('#fty_remark_modal').val(data.REMARK);\r\n\t\t$('#fty_status_modal').val(data.STATUS).change();\r\n\r\n\t\t$('#Fund_type_modal').find('.modal-header').text(labelModal[1]);\r\n\t\t$('#Fund_type_modal').modal('show');\r\n\t});\r\n}\r\n\r\n//maz tambah\r\nif(PROJECT_TYPE != 'uum'){\r\n\r\n\t$(\"#listOfFundType\").closest(\".card\").append(\r\n    \t`<div class='text-right mt-2'>\r\n\t\t\t<button type='button' class='btn btn-primary' id='btnDownloadCSV' onclick='listing.download()'>\r\n\t\t\t<i class='fas fa-download align-middle'></i>\r\n\t\t\t\t<span class='align-middle ml-1'>Download CSV</span>\r\n\t\t\t</button>\r\n\t\t\t<button type='button' class='btn btn-primary' id='btnDownloadPDF' onclick='listing.downloadPDF()'>\r\n\t\t\t<i class='fas fa-download align-middle'></i>\r\n\t\t\t\t<span class='align-middle ml-1'>Download PDF</span>\r\n\t\t\t</button>\r\n\t\t</div>`\r\n\t);\r\n\r\n\twindow['listing'] = {\r\n\t\tdownload: function () {\r\n\t\t\tconst data1 = $('#ActivityFilter :input').serializeJson()\r\n\t\t\tconst data2 = $('#listOfFundTypeSmartFilter :input').serializeJson()\r\n\t\t\tvar data = Object.assign({}, data1, data2)\r\n\t\t\tdata.search = $('[type=\"search\"]').val()\r\n\t\t\tdata.sort = listOfFundType.order()['0']\r\n\t\t\twindow.post('api/NAD_API_FUNDTYPE_LISTING?download=1', data, '_BLANK');\r\n\t\t},\r\n\t\tdownloadPDF:function(){\r\n\t\t\twindow.post('custom/report/senarai/GeneralLedger/fundTypeList.php', {\r\n\t\t\t\tsearch: $('[type=\"search\"]').val(),\r\n\t\t\t\tfty_status: $('#fty_status').val(),\r\n\t\t\t\tsort: listOfFundType.order()['0']\r\n\t\t\t}, '_BLANK')\r\n\t\t},\r\n \t }\r\n}",
+      "BL_DETAILS": null,
+      "DT_COLS": null,
+      "items": [
+        {
+          "Form_Item_Title": "Matric",
+          "Form_Item_Type": "text",
+          "Form_Item_css_class": "",
+          "Form_Item_additional_attribute": "",
+          "Form_Item_default": "",
+          "Form_Item_lookup_query": "",
+          "Form_Item_isDisable": null
+        },
+        {
+          "Form_Item_Title": "Name",
+          "Form_Item_Type": "text",
+          "Form_Item_css_class": "",
+          "Form_Item_additional_attribute": "",
+          "Form_Item_default": "",
+          "Form_Item_lookup_query": "",
+          "Form_Item_isDisable": null
+        },
+        {
+          "Form_Item_Title": "NRIC/Passport",
+          "Form_Item_Type": "text",
+          "Form_Item_css_class": "",
+          "Form_Item_additional_attribute": "",
+          "Form_Item_default": "",
+          "Form_Item_lookup_query": "",
+          "Form_Item_isDisable": null
+        },
+        {
+          "Form_Item_Title": "Program Level",
+          "Form_Item_Type": "dropdown",
+          "Form_Item_css_class": "",
+          "Form_Item_additional_attribute": "",
+          "Form_Item_default": "",
+          "Form_Item_lookup_query": "SELECT lde_value flc_id, lde_description flc_name FROM fims_usr.lookup_details WHERE lma_code_name = 'PROGRAM_LEVEL' ORDER BY 1",
+          "Form_Item_isDisable": null
+        },
+        {
+          "Form_Item_Title": "No. Fail Pinjaman",
+          "Form_Item_Type": "text",
+          "Form_Item_css_class": "",
+          "Form_Item_additional_attribute": "",
+          "Form_Item_default": "",
+          "Form_Item_lookup_query": "",
+          "Form_Item_isDisable": null
+        },
+        {
+          "Form_Item_Title": "Warrant No.",
+          "Form_Item_Type": "text",
+          "Form_Item_css_class": "",
+          "Form_Item_additional_attribute": "",
+          "Form_Item_default": "",
+          "Form_Item_lookup_query": "",
+          "Form_Item_isDisable": null
+        },
+        {
+          "Form_Item_Title": "Status",
+          "Form_Item_Type": "dropdown",
+          "Form_Item_css_class": "",
+          "Form_Item_additional_attribute": "",
+          "Form_Item_default": "",
+          "Form_Item_lookup_query": "SELECT lde_value flc_id, lde_description flc_name, lma_code_name FROM fims_usr.lookup_details WHERE lma_code_name LIKE '%STUDENT_STATUS%'",
+          "Form_Item_isDisable": null
+        }
+      ]
+    }
+  ]
+}

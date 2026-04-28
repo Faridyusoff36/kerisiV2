@@ -47,21 +47,6 @@ class StudentFinanceTest extends TestCase
         $this->assertUnauthorized('GET', '/api/student-finance/ledger/options');
     }
 
-    public function test_manual_invoice_list_requires_authentication(): void
-    {
-        $this->assertUnauthorized('GET', '/api/student-finance/manual-invoice');
-    }
-
-    public function test_manual_invoice_options_requires_authentication(): void
-    {
-        $this->assertUnauthorized('GET', '/api/student-finance/manual-invoice/options');
-    }
-
-    public function test_manual_invoice_destroy_requires_authentication(): void
-    {
-        $this->assertUnauthorized('DELETE', '/api/student-finance/manual-invoice/1');
-    }
-
     public function test_bank_account_update_list_requires_authentication(): void
     {
         $this->assertUnauthorized('GET', '/api/student-finance/bank-account-update');
@@ -120,5 +105,90 @@ class StudentFinanceTest extends TestCase
     public function test_invoice_generation_export_match_csv_requires_authentication(): void
     {
         $this->assertUnauthorized('POST', '/api/student-finance/invoice-generation/export/match-csv');
+    }
+
+    public function test_advance_payment_list_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/advance-payment');
+    }
+
+    public function test_advance_payment_options_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/advance-payment/options');
+    }
+
+    public function test_sponsor_ptptn_list_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/sponsor-ptptn');
+    }
+
+    public function test_sponsor_ptptn_options_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/sponsor-ptptn/options');
+    }
+
+    public function test_sponsor_profile_list_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/sponsor-profile');
+    }
+
+    public function test_sponsor_profile_options_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/sponsor-profile/options');
+    }
+
+    public function test_sponsor_invoice_generation_options_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/sponsor-invoice-generation/options');
+    }
+
+    public function test_sponsor_invoice_generation_list_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/sponsor-invoice-generation');
+    }
+
+    public function test_student_journal_approval_show_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/student-journal-approval/1');
+    }
+
+    public function test_student_journal_approval_credit_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/student-journal-approval/1/credit');
+    }
+
+    public function test_student_journal_approval_debit_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/student-journal-approval/1/debit');
+    }
+
+    public function test_manual_invoice_options_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/manual-invoice/options');
+    }
+
+    public function test_manual_invoice_list_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/manual-invoice');
+    }
+
+    public function test_manual_invoice_show_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/manual-invoice/1');
+    }
+
+    public function test_manual_invoice_destroy_requires_authentication(): void
+    {
+        $this->assertUnauthorized('DELETE', '/api/student-finance/manual-invoice/1');
+    }
+
+    public function test_manual_invoice_store_line_requires_authentication(): void
+    {
+        $this->assertUnauthorized('POST', '/api/student-finance/manual-invoice/1/lines');
+    }
+
+    public function test_manual_invoice_destroy_line_requires_authentication(): void
+    {
+        $this->assertUnauthorized('DELETE', '/api/student-finance/manual-invoice/1/lines/1');
     }
 }

@@ -470,7 +470,9 @@ Every admin view (anything wrapped in `<AdminLayout>`) MUST follow the **kitchen
 
 **When migrating an existing Kerisi/FIMS page** (or generating a new one), the first edit is always: drop every `max-w-*`/`mx-auto` on the root wrapper and replace the legacy breadcrumb element with a single `<h1 class="page-title">…</h1>`.
 
-**Concrete references:** `KitchenSinkView.vue`, `BankAccountView.vue`, `CashbookListView.vue`, `AccountCodeView.vue`, `CostCentreView.vue`, `InvestmentAccrualView.vue`, `ManualInvoiceListingView.vue`, `DepositFormView.vue`, `CreditNoteFormView.vue`, `PettyCashClaimFormView.vue`.
+**Concrete references:** `KitchenSinkView.vue`, `BankAccountView.vue`, `CashbookListView.vue`, `AccountCodeView.vue`, `CostCentreView.vue`, `InvestmentAccrualView.vue`, `InvoiceListView.vue`, `DepositFormView.vue`, `CreditNoteFormView.vue`, `PettyCashClaimFormView.vue`.
+
+**Kerisi / FIMS detail & workflow master–detail pages:** Read `.scratch/TRIGGER_PAGE_*.json` first; primary keys often arrive as **`wtk_application_id`** (not only `id`); **`taskId`** / **`task_id`** drives workflow chrome. **`watch`** loaders: with no entity id clear state and show **empty master + “No records”** (no banner). Gate Process/appr. **`v-if`** on task id when legacy hides approve without task. Visible DataTable/`colspan`/exports match legacy visible columns (`StudentJournalApprovalView.vue`).
 
 ---
 

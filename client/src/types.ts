@@ -2869,15 +2869,14 @@ export type StudentInvoiceGenerationGenerateResult = {
   taskIds: string[];
 };
 
-// Student Finance > Manual Invoice Listing (PAGEID 2389 / MENUID 2897).
-// Source: FIMS BL `DT_SF_MANUAL_INV_LISTING`. Scoped to
-// cim_system_id='STUD_INV' AND cim_invoice_type='12'. The list meta
-// includes a `footer.totalAmt` grand total (same as the legacy BL).
+// Student Finance > Manual Invoice Listing (PAGEID 2343 / MENUID 2897) +
+// Manual Invoice Form (MENUID 2898). Scoped to STUD_INV type 12.
 export type ManualInvoiceRow = {
   index: number;
   id: number;
   invoiceNo: string | null;
   invoiceDate: string | null;
+  invoiceDateTime: string | null;
   invoiceDateIso: string | null;
   status: string | null;
   debtorId: string | null;
@@ -2907,7 +2906,82 @@ export type ManualInvoiceFooter = {
   totalAmt: number;
 };
 
-// Student Finance > Bank Account Update (PAGEID 977 / MENUID 1081).
+/** POST /student-finance/manual-invoice/{id}/lines — insert cust_invoice_details DT/CR. */
+export type ManualInvoiceLineInput = {
+  transactionType: "DT" | "CR";
+  totalAmt: number;
+  taxAmt?: number;
+  itemCategory?: string | null;
+  itemCode?: string | null;
+  fundType?: string | null;
+  activityCode?: string | null;
+  acctCode?: string | null;
+  ounCode?: string | null;
+  costCentre?: string | null;
+  projectNo?: string | null;
+  taxCode?: string | null;
+};
+
+export type ManualInvoiceDetailLine = {
+  id: number;
+  transactionType: string | null;
+  itemCategory: string | null;
+  itemCode: string | null;
+  fundType: string | null;
+  activityCode: string | null;
+  ounCode: string | null;
+  costCentre: string | null;
+  projectNo: string | null;
+  acctCode: string | null;
+  taxCode: string | null;
+  taxAmt: number;
+  totalAmt: number;
+  crNoteAmt: number;
+  dnNoteAmt: number;
+  dcNoteAmt: number;
+  nettAmt: number;
+  balAmt: number;
+};
+
+/** Populated by `GET /api/student-finance/manual-invoice/{id}`. */
+export type ManualInvoiceDetail = {
+  id: number;
+  invoiceNo: string | null;
+  invoiceDate: string | null;
+  invoiceDateTime: string | null;
+  invoiceDateIso: string | null;
+  status: string | null;
+  debtorId: string | null;
+  debtorName: string | null;
+  debtorType: string | null;
+  debtorTypeLabel: string;
+  semesterId: string | null;
+  ourRef: string | null;
+  yourRef: string | null;
+  useRounding: string | boolean | number | null;
+  description: string | null;
+  addressType: string | null;
+  address1: string | null;
+  address2: string | null;
+  postcode: string | null;
+  country: string | null;
+  city: string | null;
+  state: string | null;
+  contactPerson: string | null;
+  telNo: string | null;
+  email: string | null;
+  totalAmt: number;
+  crNoteAmt: number;
+  dnNoteAmt: number;
+  dcNoteAmt: number;
+  paidAmt: number;
+  balAmt: number;
+  splitDebitCredit: boolean;
+  debitLines: ManualInvoiceDetailLine[];
+  creditLines: ManualInvoiceDetailLine[];
+  processFlow: unknown[];
+};
+
 // Source: FIMS BL `DT_BANK_ACC_UPDATE`. Read-only datatable joining
 // student + stud_account_application + bank_master + academic_calendar.
 export type BankAccountUpdateRow = {
@@ -4338,4 +4412,192 @@ export type LaporanBelanjawanOptions = {
     fund: IdLabel[];
     accountSeries: IdLabel[];
   };
+};
+
+// Student Finance > Sponsor > Advance Payment (PAGEID 1669 / MENUID 2020).
+// Source: FIMS BL `V2_SAP_LIST_API`. Read-only datatable + smart-filter
+// view of deposit_master rows where the sponsor still has unsettled
+// advance payment (legacy `dpm_payto_type='E'` + status APPROVE/1).
+export type AdvancePaymentRow = {
+  index: number;
+  vcsVendorCode: string;
+  dpmVendorName: string | null;
+  dpmDepositNo: string | null;
+  advanceAmount: number;
+  invoiceBalance: number;
+};
+
+export type AdvancePaymentOptions = {
+  sponsors: ArOption[];
+};
+
+export type AdvancePaymentSmartFilter = {
+  vcsVendorCode: string;
+  dpmVendorName: string;
+  advanceAmountFrom: string;
+  advanceAmountTo: string;
+  invoiceBalanceFrom: string;
+  invoiceBalanceTo: string;
+};
+
+// Student Finance > Sponsor > PTPTN (PAGEID 1231 / MENUID 1507).
+// Source: FIMS BL `V2_PTPTN_API` (?listing=1). Read-only listing of PTPTN
+// students (sponsor type '05') joining student + stud_sponsor + sponsor.
+// Legacy COMPONENT_JS marks the Action column as `d-none`, so View deep
+// link to the Sponsor form (menuID=1479) is hidden in the migration too
+// because that page is NOT migrated yet.
+export type SponsorPtptnRow = {
+  index: number;
+  stdStudentId: string;
+  stdStudentName: string | null;
+  icPassport: string | null;
+  studStatus: string | null;
+  stdProgramLevel: string | null;
+  sspReferenceNo: string | null;
+  sspWarrantNo: string | null;
+  sspWarrantAmt: number | null;
+  deduction: number | null;
+  balance: number | null;
+};
+
+export type SponsorPtptnOptions = {
+  programLevel: ArOption[];
+  studentStatus: ArOption[];
+};
+
+export type SponsorPtptnSmartFilter = {
+  matric: string;
+  name: string;
+  icPassport: string;
+  programLevel: string;
+  studentStatus: string;
+  referenceNo: string;
+  warrantNo: string;
+};
+
+// Student Finance > Sponsor > Profile (PAGEID 845 / MENUID 1025).
+// Source: FIMS BL `V2_SFSP_SPONSOR_API`. Read-only datatable + smart
+// filter on the `sponsor` master. Edit / View / Assign-Student deep
+// links target legacy menuID=1068 (Sponsor form) and menuID=1478
+// (Sponsor → Assign Student); neither is migrated yet so the Action
+// column renders as disabled buttons.
+export type SponsorProfileRow = {
+  index: number;
+  spnSponsorId: number | string;
+  sponsor: string | null;
+  spnContactPerson: string | null;
+  spnContactNo: string | null;
+  spnContactPerson2: string | null;
+  spnContactNo2: string | null;
+  spnContactPerson3: string | null;
+  spnContactNo3: string | null;
+  email: string | null;
+  sponStatus: string | null;
+  statusOfInvoice: string | null;
+  hasChild: boolean;
+};
+
+export type SponsorProfileOptions = {
+  status: ArOption[];
+};
+
+export type SponsorProfileSmartFilter = {
+  sponsor: string;
+  country: string;
+  email: string;
+  sponStatus: string;
+};
+
+// Student Finance > Sponsor > Invoice Generation (PAGEID 1218 / MENUID 1491).
+// Source: FIMS BL `V2_SFSI_API` (?listing=2 for the actual data; ?listing=1
+// returns an empty draw the legacy UI uses to bootstrap an empty grid before
+// the user picks Sponsor + Program Level + Semester). Top-filter form picks
+// the three required keys; the datatable surfaces students with outstanding
+// sponsor amount + smart filter (matric, name, status, invoice/claim
+// ranges). The legacy `generateInvoice` action calls
+// CALL create_invoice_sponsor SP which is NOT migrated; the frontend
+// renders the Generate button disabled with a "not migrated" tooltip.
+export type SponsorInvoiceGenerationRow = {
+  index: number;
+  cimCustInvoiceId: number;
+  stdStudentId: string;
+  stdStudentName: string | null;
+  stdStatusDesc: string | null;
+  spnSponsorName: string | null;
+  spcDateFrom: string | null;
+  spcDateTo: string | null;
+  cimInvoiceNo: string | null;
+  outstandingAmt: number;
+  sspLimitBal: number | null;
+  cimNettAmt: number | null;
+  isJournal: boolean;
+  tellMeWhy: string | null;
+};
+
+export type SponsorInvoiceGenerationFooter = {
+  outstandingAmt: number;
+  cimNettAmt: number;
+};
+
+export type SponsorInvoiceGenerationOptions = {
+  sponsors: ArOption[];
+  programLevels: ArOption[];
+  semesters: ArOption[];
+};
+
+export type SponsorInvoiceGenerationTopFilter = {
+  spnSponsorCode: string;
+  stdProgram: string;
+  cimSemesterId: string;
+};
+
+export type SponsorInvoiceGenerationSmartFilter = {
+  stdStudentId: string;
+  stdStudentName: string;
+  studStatus: string;
+  outstandingAmtFrom: string;
+  outstandingAmtTo: string;
+  cimNettAmtFrom: string;
+  cimNettAmtTo: string;
+};
+
+// Student Finance > Sponsor > Student Journal Approval (PAGEID 1954 / MENUID 2390).
+// Source: FIMS BL `MZ_BL_SF_APPROVAL`. Read-only master form (Journal
+// header from manual_journal_master) + two read-only datatables (Credit
+// rows where mjd_trans_type='CR'; Debit rows where mjd_trans_type='DT')
+// from manual_journal_details. The legacy Approve / Reject form calls
+// the `workflowUpdate` SP which is NOT migrated; the Process panel is
+// rendered as disabled with an explanatory note until the workflow
+// engine is ported.
+export type StudentJournalApprovalDetail = {
+  mjmJournalId: number;
+  mjmJournalNo: string | null;
+  mjmTotalAmt: number | null;
+  mjmJournalDesc: string | null;
+  mjmTypeofjournal: string | null;
+  mjmStatus: string | null;
+  mjmEnterdate: string | null;
+  dpmDepositNo: string | null;
+  advanceAmount: number | null;
+  semester: string | null;
+  advanceCategory: string | null;
+};
+
+export type StudentJournalApprovalRow = {
+  mjdJournalDetlId: number;
+  ounCode: string | null;
+  ftyFundType: string | null;
+  atActivityCode: string | null;
+  ccrCostcentre: string | null;
+  acmAcctCode: string | null;
+  mjdDocumentNo: string | null;
+  mjdTransAmt: number;
+  mjmTotalAmt: number | null;
+  cimCust: string | null;
+  safInvoiceAmt: number | null;
+};
+
+export type StudentJournalApprovalFooter = {
+  mjdTransAmt: number;
+  mjmTotalAmt: number;
 };

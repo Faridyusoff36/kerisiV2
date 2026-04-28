@@ -189,6 +189,11 @@ import type {
   ManualJournalListingPdfPayload,
   ManualJournalOptions,
   ManualJournalRow,
+  ManualInvoiceDetail,
+  ManualInvoiceFooter,
+  ManualInvoiceLineInput,
+  ManualInvoiceOptions,
+  ManualInvoiceRow,
   PostingToTbHeader,
   PostingToTbLine,
   PostingToTbOptions,
@@ -220,12 +225,21 @@ import type {
   InvoiceFooter,
   InvoiceOptions,
   InvoiceRow,
-  ManualInvoiceFooter,
-  ManualInvoiceOptions,
-  ManualInvoiceRow,
   PtptnDataDetail,
   PtptnDataHeader,
   PtptnDataRow,
+  AdvancePaymentOptions,
+  AdvancePaymentRow,
+  SponsorInvoiceGenerationFooter,
+  SponsorInvoiceGenerationOptions,
+  SponsorInvoiceGenerationRow,
+  SponsorProfileOptions,
+  SponsorProfileRow,
+  SponsorPtptnOptions,
+  SponsorPtptnRow,
+  StudentJournalApprovalDetail,
+  StudentJournalApprovalFooter,
+  StudentJournalApprovalRow,
   StatusPoPrOptions,
   StatusPoPrRow,
   StructureBudgetListOptions,
@@ -1921,21 +1935,7 @@ export async function getLedgerOptions() {
   return apiRequest<{ data: LedgerOptions }>("/api/student-finance/ledger/options");
 }
 
-// Student Finance > List of Offered (PAGEID 2181 / MENUID 2636).
-// Legacy BL `MZ_BL_SF_OFFEREDLIST`.
-export async function listOfferedStudents(params = "") {
-  return apiRequest<{ data: OfferedStudentRow[]; meta: Record<string, unknown> }>(
-    `/api/student-finance/offered${params}`,
-  );
-}
-
-export async function getOfferedStudentOptions() {
-  return apiRequest<{ data: OfferedStudentOptions }>(
-    "/api/student-finance/offered/options",
-  );
-}
-
-// Student Finance > Manual Invoice Listing (PAGEID 2389 / MENUID 2897).
+// Student Finance > Manual Invoice Listing (PAGEID 2343 / MENUID 2897).
 // Legacy BL `DT_SF_MANUAL_INV_LISTING`.
 export async function listManualInvoices(params = "") {
   return apiRequest<{
@@ -1950,6 +1950,28 @@ export async function getManualInvoiceOptions() {
   );
 }
 
+export async function getManualInvoice(id: number) {
+  return apiRequest<{ data: ManualInvoiceDetail }>(
+    `/api/student-finance/manual-invoice/${id}`,
+  );
+}
+
+/** Insert a cust_invoice_details row (legacy +Add). Returns refreshed invoice detail. */
+export async function addManualInvoiceLine(invoiceId: number, input: ManualInvoiceLineInput) {
+  return apiRequest<{ data: ManualInvoiceDetail }>(
+    `/api/student-finance/manual-invoice/${invoiceId}/lines`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+/** Remove one line (DRAFT only). Returns refreshed invoice detail. */
+export async function removeManualInvoiceLine(invoiceId: number, lineId: number) {
+  return apiRequest<{ data: ManualInvoiceDetail }>(
+    `/api/student-finance/manual-invoice/${invoiceId}/lines/${lineId}`,
+    { method: "DELETE" },
+  );
+}
+
 export async function deleteManualInvoice(id: number) {
   return apiRequest<{ data: { success: boolean } }>(
     `/api/student-finance/manual-invoice/${id}`,
@@ -1957,7 +1979,20 @@ export async function deleteManualInvoice(id: number) {
   );
 }
 
-// Student Finance > Invoice (PAGEID 828 / MENUID 1023).
+// Student Finance > List of Offered (PAGEID 2181 / MENUID 2636).
+// Legacy BL `MZ_BL_SF_OFFEREDLIST`.
+export async function listOfferedStudents(params = "") {
+  return apiRequest<{ data: OfferedStudentRow[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/offered${params}`,
+  );
+}
+
+export async function getOfferedStudentOptions() {
+  return apiRequest<{ data: OfferedStudentOptions }>(
+    "/api/student-finance/offered/options",
+  );
+}
+
 // Legacy BLs `DT_SF_INVOICE` (main listing) + `DT_DEBIT_LIST`
 // (per-invoice debit detail drilldown).
 export async function listInvoices(params = "") {
@@ -2962,4 +2997,83 @@ export async function getLaporanBelanjawanOptions() {
   return apiRequest<{ data: LaporanBelanjawanOptions }>(
     "/api/budget/report/laporan-belanjawan/options",
   );
+}
+
+// Student Finance > Sponsor > Advance Payment (PAGEID 1669 / MENUID 2020).
+// Legacy BL `V2_SAP_LIST_API`.
+export async function listAdvancePayments(params = "") {
+  return apiRequest<{ data: AdvancePaymentRow[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/advance-payment${params}`,
+  );
+}
+
+export async function getAdvancePaymentOptions() {
+  return apiRequest<{ data: AdvancePaymentOptions }>(
+    "/api/student-finance/advance-payment/options",
+  );
+}
+
+// Student Finance > Sponsor > PTPTN (PAGEID 1231 / MENUID 1507).
+// Legacy BL `V2_PTPTN_API`.
+export async function listSponsorPtptn(params = "") {
+  return apiRequest<{ data: SponsorPtptnRow[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/sponsor-ptptn${params}`,
+  );
+}
+
+export async function getSponsorPtptnOptions() {
+  return apiRequest<{ data: SponsorPtptnOptions }>(
+    "/api/student-finance/sponsor-ptptn/options",
+  );
+}
+
+// Student Finance > Sponsor > Profile (PAGEID 845 / MENUID 1025).
+// Legacy BL `V2_SFSP_SPONSOR_API`.
+export async function listSponsorProfile(params = "") {
+  return apiRequest<{ data: SponsorProfileRow[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/sponsor-profile${params}`,
+  );
+}
+
+export async function getSponsorProfileOptions() {
+  return apiRequest<{ data: SponsorProfileOptions }>(
+    "/api/student-finance/sponsor-profile/options",
+  );
+}
+
+// Student Finance > Sponsor > Invoice Generation (PAGEID 1218 / MENUID 1491).
+// Legacy BL `V2_SFSI_API` (?listing=2).
+export async function listSponsorInvoiceGeneration(params = "") {
+  return apiRequest<{
+    data: SponsorInvoiceGenerationRow[];
+    meta: Record<string, unknown> & { footer?: SponsorInvoiceGenerationFooter; totalStudent?: number };
+  }>(`/api/student-finance/sponsor-invoice-generation${params}`);
+}
+
+export async function getSponsorInvoiceGenerationOptions() {
+  return apiRequest<{ data: SponsorInvoiceGenerationOptions }>(
+    "/api/student-finance/sponsor-invoice-generation/options",
+  );
+}
+
+// Student Finance > Sponsor > Student Journal Approval (PAGEID 1954 / MENUID 2390).
+// Legacy BL `MZ_BL_SF_APPROVAL`.
+export async function getStudentJournalApprovalDetail(id: number) {
+  return apiRequest<{ data: StudentJournalApprovalDetail }>(
+    `/api/student-finance/student-journal-approval/${id}`,
+  );
+}
+
+export async function listStudentJournalApprovalCredit(id: number, params = "") {
+  return apiRequest<{
+    data: StudentJournalApprovalRow[];
+    meta: Record<string, unknown> & { footer?: StudentJournalApprovalFooter };
+  }>(`/api/student-finance/student-journal-approval/${id}/credit${params}`);
+}
+
+export async function listStudentJournalApprovalDebit(id: number, params = "") {
+  return apiRequest<{
+    data: StudentJournalApprovalRow[];
+    meta: Record<string, unknown> & { footer?: StudentJournalApprovalFooter };
+  }>(`/api/student-finance/student-journal-approval/${id}/debit${params}`);
 }

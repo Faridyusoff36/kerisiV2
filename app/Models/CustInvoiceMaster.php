@@ -11,9 +11,6 @@ use Illuminate\Database\Eloquent\Model;
  *  - AR > Debtor to compute the outstanding balance sub-query
  *    (SUM(cim_bal_amt) WHERE cim_status='APPROVE' AND cim_cust_id=debtor
  *     AND cim_bal_amt > 0 AND cim_system_id IN ('AR_INV')).
- *  - Student Finance > Manual Invoice Listing (PAGEID 2389 / MENUID 2897)
- *    where rows are scoped to cim_system_id='STUD_INV' AND cim_invoice_type='12'
- *    (legacy BL DT_SF_MANUAL_INV_LISTING).
  * DB_SECOND_DATABASE.
  */
 class CustInvoiceMaster extends Model
@@ -58,6 +55,7 @@ class CustInvoiceMaster extends Model
     {
         return [
             'cim_invoice_date' => 'datetime',
+            'cim_extended_field' => 'array',
             'cim_total_amt' => 'decimal:2',
             'cim_bal_amt' => 'decimal:2',
             'cim_crnote_amt' => 'decimal:2',

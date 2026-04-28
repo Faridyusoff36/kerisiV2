@@ -1,17 +1,18 @@
 <script setup lang="ts">
 /**
- * Student Finance / Manual Invoice Listing (PAGEID 2389, MENUID 2897)
+ * Student Finance / Manual Invoice Listing (PAGEID 2343, MENUID 2897)
  *
  * Source: FIMS BL `DT_SF_MANUAL_INV_LISTING`. Datatable scoped to
  * cim_system_id='STUD_INV' AND cim_invoice_type='12' with smart filter
  * (Invoice Date dd/mm/yyyy substring / Debtor Type / Status) and a
  * grand-total footer for the Amount column.
  *
- * The Manual Invoice Form (MENUID 2898) is NOT migrated yet; View/Edit
- * buttons render disabled. Delete is only allowed for DRAFT invoices
+ * Manual Invoice Form (MENUID 2898): View opens read-only; Edit for DRAFT
+ * navigates with `?edit=1`. Delete is only allowed for DRAFT invoices
  * (same gate server-side and client-side as the legacy dt_js).
  */
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import {
   Download,
   Eye,
@@ -20,6 +21,7 @@ import {
   Filter,
   MoreVertical,
   Pencil,
+  Plus,
   Search,
   Trash2,
   X,
@@ -42,7 +44,21 @@ import type {
 
 const toast = useToast();
 const { confirm } = useConfirmDialog();
+const router = useRouter();
 const datatableRef = ref<DatatableRefApi | null>(null);
+
+function openNewInvoice() {
+  router.push({ path: "/admin/kerisi/m/2898" });
+}
+
+function openViewInvoice(row: ManualInvoiceRow) {
+  router.push({ path: "/admin/kerisi/m/2898", query: { id: String(row.id) } });
+}
+
+function openEditInvoice(row: ManualInvoiceRow) {
+  if (row.status !== "DRAFT") return;
+  router.push({ path: "/admin/kerisi/m/2898", query: { id: String(row.id), edit: "1" } });
+}
 
 const rows = ref<ManualInvoiceRow[]>([]);
 const loading = ref(false);
@@ -321,11 +337,12 @@ onUnmounted(() => {
           <div class="flex items-center gap-2">
             <button
               type="button"
-              disabled
-              title="Add (Manual Invoice Form not yet migrated)"
-              class="cursor-not-allowed rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-400"
+              class="inline-flex items-center gap-1 rounded-lg border border-violet-600 bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-violet-700"
+              title="Open Manual Invoice Form (new record deferred)"
+              @click="openNewInvoice"
             >
-              + Add
+              <Plus class="h-3.5 w-3.5" />
+              New
             </button>
             <button
               type="button"
@@ -391,12 +408,14 @@ onUnmounted(() => {
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[980px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
-                  <tr class="border-b border-slate-200 text-left">
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
+              <table class="w-full min-w-[1160px] text-sm">
+                <thead class="sticky top-0 z-10 bg-violet-600 text-white shadow-sm">
+                  <tr class="text-left">
+                    <th class="whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase text-white">
+                      No
+                    </th>
                     <th
-                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"
+                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase text-white"
                       @click="toggleSort('cim_invoice_no')"
                     >
                       Invoice No
@@ -405,7 +424,7 @@ onUnmounted(() => {
                       }}</span>
                     </th>
                     <th
-                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"
+                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase text-white"
                       @click="toggleSort('cim_invoice_date')"
                     >
                       Date
@@ -414,7 +433,7 @@ onUnmounted(() => {
                       }}</span>
                     </th>
                     <th
-                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"
+                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase text-white"
                       @click="toggleSort('cim_cust_id')"
                     >
                       Debtor ID
@@ -423,7 +442,7 @@ onUnmounted(() => {
                       }}</span>
                     </th>
                     <th
-                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"
+                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase text-white"
                       @click="toggleSort('cim_cust_name')"
                     >
                       Debtor Name
@@ -431,9 +450,14 @@ onUnmounted(() => {
                         sortDir === "asc" ? "↑" : "↓"
                       }}</span>
                     </th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">Debtor Type</th>
+                    <th class="px-3 py-2 text-xs font-semibold uppercase text-white">
+                      Debtor Type
+                    </th>
+                    <th class="whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase text-white">
+                      Invoice Date
+                    </th>
                     <th
-                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"
+                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase text-white"
                       @click="toggleSort('cim_status')"
                     >
                       Status
@@ -442,7 +466,7 @@ onUnmounted(() => {
                       }}</span>
                     </th>
                     <th
-                      class="cursor-pointer whitespace-nowrap px-3 py-2 text-right text-xs font-semibold uppercase"
+                      class="cursor-pointer whitespace-nowrap px-3 py-2 text-right text-xs font-semibold uppercase text-white"
                       @click="toggleSort('cim_total_amt')"
                     >
                       Amount
@@ -450,17 +474,20 @@ onUnmounted(() => {
                         sortDir === "asc" ? "↑" : "↓"
                       }}</span>
                     </th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">Action</th>
+                    <th class="whitespace-nowrap px-3 py-2 text-center text-xs font-semibold uppercase text-white">
+                      Bulk
+                    </th>
+                    <th class="px-3 py-2 text-xs font-semibold uppercase text-white">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="loading">
-                    <td colspan="9" class="px-3 py-6 text-center text-sm text-slate-500">
+                    <td colspan="11" class="px-3 py-6 text-center text-sm text-slate-500">
                       Loading...
                     </td>
                   </tr>
                   <tr v-else-if="rows.length === 0">
-                    <td colspan="9" class="px-3 py-6 text-center text-sm text-slate-500">
+                    <td colspan="11" class="px-3 py-6 text-center text-sm text-slate-500">
                       No records found.
                     </td>
                   </tr>
@@ -477,6 +504,9 @@ onUnmounted(() => {
                     <td class="px-3 py-2">{{ row.debtorId ?? "-" }}</td>
                     <td class="px-3 py-2">{{ row.debtorName ?? "-" }}</td>
                     <td class="px-3 py-2">{{ row.debtorTypeLabel }}</td>
+                    <td class="whitespace-nowrap px-3 py-2 text-xs text-slate-700">
+                      {{ row.invoiceDateTime ?? row.invoiceDate ?? "—" }}
+                    </td>
                     <td class="px-3 py-2">
                       <span
                         class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
@@ -488,21 +518,34 @@ onUnmounted(() => {
                     <td class="px-3 py-2 text-right tabular-nums">
                       {{ currencyMyr(row.totalAmt) }}
                     </td>
+                    <td class="px-3 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        disabled
+                        class="h-4 w-4 rounded border-slate-300 text-violet-600"
+                        aria-label="Select row"
+                      />
+                    </td>
                     <td class="px-3 py-2">
                       <div class="flex items-center gap-1">
                         <button
                           type="button"
-                          disabled
-                          title="View (Manual Invoice Form not yet migrated)"
-                          class="cursor-not-allowed rounded p-1 text-slate-300"
+                          title="View"
+                          class="rounded p-1 text-slate-500 hover:bg-slate-100"
+                          @click="openViewInvoice(row)"
                         >
                           <Eye class="h-3.5 w-3.5" />
                         </button>
                         <button
                           type="button"
-                          disabled
-                          title="Edit (Manual Invoice Form not yet migrated)"
-                          class="cursor-not-allowed rounded p-1 text-slate-300"
+                          title="Edit (DRAFT only)"
+                          :disabled="row.status !== 'DRAFT'"
+                          :class="
+                            row.status === 'DRAFT'
+                              ? 'rounded p-1 text-slate-500 hover:bg-slate-100'
+                              : 'cursor-not-allowed rounded p-1 text-slate-300'
+                          "
+                          @click="openEditInvoice(row)"
                         >
                           <Pencil class="h-3.5 w-3.5" />
                         </button>
@@ -529,12 +572,13 @@ onUnmounted(() => {
                 </tbody>
                 <tfoot v-if="rows.length > 0">
                   <tr class="border-t border-slate-200 bg-slate-50 font-semibold">
-                    <td colspan="7" class="px-3 py-2 text-right text-xs uppercase text-slate-600">
+                    <td colspan="8" class="px-3 py-2 text-right text-xs uppercase text-slate-600">
                       Grand Total
                     </td>
                     <td class="px-3 py-2 text-right tabular-nums">
                       {{ currencyMyr(grandTotal) }}
                     </td>
+                    <td></td>
                     <td></td>
                   </tr>
                 </tfoot>

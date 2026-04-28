@@ -6,6 +6,11 @@ use App\Http\Controllers\Api\AccountBankUpdatedController;
 use App\Http\Controllers\Api\AccountCodeController;
 use App\Http\Controllers\Api\AccountCodePpiController;
 use App\Http\Controllers\Api\ActivityCodeController;
+use App\Http\Controllers\Api\AdvancePaymentController;
+use App\Http\Controllers\Api\SponsorInvoiceGenerationController;
+use App\Http\Controllers\Api\SponsorProfileController;
+use App\Http\Controllers\Api\SponsorPtptnController;
+use App\Http\Controllers\Api\StudentJournalApprovalController;
 use App\Http\Controllers\Api\AgRateController;
 use App\Http\Controllers\Api\AssetInventoryListController;
 use App\Http\Controllers\Api\AuditLogController;
@@ -70,8 +75,8 @@ use App\Http\Controllers\Api\ListOfAccrualController;
 use App\Http\Controllers\Api\ListOfCurrencyController;
 use App\Http\Controllers\Api\ListOfDepositController;
 use App\Http\Controllers\Api\ListOfInvestmentsController;
-use App\Http\Controllers\Api\ManualInvoiceListingController;
 use App\Http\Controllers\Api\ManualJournalListingController;
+use App\Http\Controllers\Api\ManualInvoiceListingController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\OfferedStudentController;
 use App\Http\Controllers\Api\PageController;
@@ -370,17 +375,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/student-finance/ledger/options', [LedgerController::class, 'options']);
     Route::get('/student-finance/ledger', [LedgerController::class, 'index']);
 
-    // Student Finance > Manual Invoice Listing (PAGEID 2389 / MENUID 2897).
-    // Legacy BL DT_SF_MANUAL_INV_LISTING — list + smart filter + grand-total
-    // footer. Delete cascades cust_invoice_details → cust_invoice_master and
-    // is gated to DRAFT invoices (matching the legacy dt_js guard). The
-    // Manual Invoice Form (MENUID 2898) is NOT migrated yet so View/Edit
-    // render disabled on the frontend.
-    Route::get('/student-finance/manual-invoice/options', [ManualInvoiceListingController::class, 'options']);
-    Route::get('/student-finance/manual-invoice', [ManualInvoiceListingController::class, 'index']);
-    Route::delete('/student-finance/manual-invoice/{id}', [ManualInvoiceListingController::class, 'destroy'])
-        ->whereNumber('id');
-
     // Student Finance > Bank Account Update (PAGEID 977 / MENUID 1081).
     // Legacy BL DT_BANK_ACC_UPDATE — list + smart filter across
     // student + stud_account_application + bank_master + academic_calendar.
@@ -399,6 +393,67 @@ Route::middleware('auth:sanctum')->group(function () {
     // a `printout` field.
     Route::get('/student-finance/offered/options', [OfferedStudentController::class, 'options']);
     Route::get('/student-finance/offered', [OfferedStudentController::class, 'index']);
+
+    // Student Finance > Sponsor > Advance Payment (PAGEID 1669 / MENUID 2020).
+    // Legacy BL `V2_SAP_LIST_API` — read-only datatable joining
+    // deposit_master + deposit_details + lookup_parameter_main, with
+    // computed `advance_amount` (CR-DT) and `invoice_balance` (sponsor
+    // amounts + outstanding cust_invoice_master.cim_bal_amt). Smart-filter
+    // keys mirror the legacy contract (vcs_vendor_code, dpm_vendor_name,
+    // advance_amount_from/to, invoice_balance_from/to). The legacy action
+    // buttons (Knockoff Invoice MENUID 2021, Transfer to Student MENUID 2354)
+    // deep-link to pages NOT yet migrated; the frontend renders them
+    // disabled until those editors are ported. CSV/Excel/PDF exports are
+    // surfaced because the legacy COMPONENT_JS does not declare a
+    // `printout` field.
+    Route::get('/student-finance/advance-payment/options', [AdvancePaymentController::class, 'options']);
+    Route::get('/student-finance/advance-payment', [AdvancePaymentController::class, 'index']);
+
+    // Student Finance > Sponsor > PTPTN (PAGEID 1231 / MENUID 1507).
+    // Legacy BL `V2_PTPTN_API` (?listing=1) — read-only datatable scoped
+    // to spn_sponsor_type='05' joining student × stud_sponsor × sponsor.
+    // The legacy COMPONENT_JS hides the Action column (View link to
+    // legacy menuID=1479 Sponsor form) so no Action column is exposed
+    // here either.
+    Route::get('/student-finance/sponsor-ptptn/options', [SponsorPtptnController::class, 'options']);
+    Route::get('/student-finance/sponsor-ptptn', [SponsorPtptnController::class, 'index']);
+
+    // Student Finance > Sponsor > Profile (PAGEID 845 / MENUID 1025).
+    // Legacy BL `V2_SFSP_SPONSOR_API` — read-only datatable + smart
+    // filter on the `sponsor` master with derived JSON fields
+    // (spn_extended_field->>'$.spn_status_desc' etc.) and a hasChild
+    // count from stud_sponsor. Edit/View/Assign-Student deep links
+    // (legacy menuID=1068 / 1478) are NOT migrated; the frontend
+    // renders those Action buttons as disabled.
+    Route::get('/student-finance/sponsor-profile/options', [SponsorProfileController::class, 'options']);
+    Route::get('/student-finance/sponsor-profile', [SponsorProfileController::class, 'index']);
+
+    // Student Finance > Sponsor > Invoice Generation (PAGEID 1218 / MENUID 1491).
+    // Legacy BL `V2_SFSI_API` (?listing=2 + ?get_sponsorAmt=1 +
+    // ?generateInvoice=1). Top filter (Sponsor / Program Level /
+    // Semester) drives the read-only listing of students with
+    // outstanding sponsor amount; smart filter overlays additional
+    // matric/name/status/range constraints. The Generate action calls
+    // CALL DB2.create_invoice_sponsor SP which is NOT migrated; the
+    // frontend renders the Generate button disabled with a
+    // "not migrated" tooltip until the SP is ported.
+    Route::get('/student-finance/sponsor-invoice-generation/options', [SponsorInvoiceGenerationController::class, 'options']);
+    Route::get('/student-finance/sponsor-invoice-generation', [SponsorInvoiceGenerationController::class, 'index']);
+
+    // Student Finance > Sponsor > Student Journal Approval (PAGEID 1954 / MENUID 2390).
+    // Legacy BL `MZ_BL_SF_APPROVAL` (?details=1 + ?dt_listing=1 with
+    // dt_credit_debit=CR/DT). Read-only master form (manual_journal_master)
+    // + two read-only datatables (manual_journal_details split CR/DT).
+    // The legacy Approve/Reject form calls CALL DB2.workflowUpdate SP
+    // which is NOT migrated; the Process panel is rendered on the
+    // frontend as disabled with an explanatory note until the workflow
+    // engine is ported.
+    Route::get('/student-finance/student-journal-approval/{id}', [StudentJournalApprovalController::class, 'show'])
+        ->whereNumber('id');
+    Route::get('/student-finance/student-journal-approval/{id}/credit', [StudentJournalApprovalController::class, 'credit'])
+        ->whereNumber('id');
+    Route::get('/student-finance/student-journal-approval/{id}/debit', [StudentJournalApprovalController::class, 'debit'])
+        ->whereNumber('id');
 
     // Student Finance > Invoice (PAGEID 828 / MENUID 1023). Legacy BLs
     // `DT_SF_INVOICE` (main listing scoped to cim_cust_type IN ('A','E')
@@ -426,6 +481,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/student-finance/invoice-generation/generate', [StudentInvoiceGenerationController::class, 'generate']);
     Route::post('/student-finance/invoice-generation/export/csv', [StudentInvoiceGenerationController::class, 'exportCsv']);
     Route::post('/student-finance/invoice-generation/export/match-csv', [StudentInvoiceGenerationController::class, 'exportMatchCsv']);
+
+    // Student Finance > Manual Invoice Listing (PAGEID 2343 / MENUID 2897) +
+    // Manual Invoice Form (MENUID 2898). Legacy BL `DT_SF_MANUAL_INV_LISTING`.
+    Route::get('/student-finance/manual-invoice/options', [ManualInvoiceListingController::class, 'options']);
+    Route::get('/student-finance/manual-invoice', [ManualInvoiceListingController::class, 'index']);
+    Route::post('/student-finance/manual-invoice/{id}/lines', [ManualInvoiceListingController::class, 'storeLine'])
+        ->whereNumber('id');
+    Route::delete('/student-finance/manual-invoice/{id}/lines/{lineId}', [ManualInvoiceListingController::class, 'destroyLine'])
+        ->whereNumber('id')
+        ->whereNumber('lineId');
+    Route::get('/student-finance/manual-invoice/{id}', [ManualInvoiceListingController::class, 'show'])
+        ->whereNumber('id');
+    Route::delete('/student-finance/manual-invoice/{id}', [ManualInvoiceListingController::class, 'destroy'])
+        ->whereNumber('id');
 
     // Investment > List Of Accrual (PAGEID 1548 / MENUID 1877). Legacy BL
     // API_LIST_OF_ACCRUAL (action=listing_all_dt) — read-only datatable
