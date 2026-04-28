@@ -1,0 +1,106 @@
+{
+  "PAGEID": 845,
+  "MENUID": 1025,
+  "Menu": "Student Finance>Sponsor>Profile",
+  "PAGENAME": "page_828",
+  "PAGETITLE": "Sponsor",
+  "PAGEBREADCRUMBS": "Student Finance / Sponsor / Profile",
+  "components": [
+    {
+      "COMPONENTID": 3211,
+      "COMPONENTTITLE": "List of Sponsor",
+      "COMPONENTTYPE": "datatable",
+      "API_URL": "\"api/V2_SFSP_SPONSOR_API\"",
+      "API_BL_NAME": null,
+      "BL_preprocess_total": 1,
+      "BL_onload_total": 4,
+      "COMPONENT_JS": "//=================================================== declare awal\r\nvar labelModal = ['Fund Type Add', 'Fund Type Edit'];\r\ntargetedID     = ''\r\n\r\n// // ============================================================= autosuggest =====================================\r\n// $('#fty_fund_typesm').autoSuggest({ // tah knpe tak detect plak\r\n// \turl: 'api/ANIS_FUND_TYPE&autoSuggestfundtype=1'\r\n// })\r\n\r\n// =============================================================== add button ====================================\r\n$(document).ready(function(){\r\n\t\r\n\t$(\"#Fund_Type\").closest(\".card\").append(\r\n    \t\"<div class='text-right'>\"+\r\n    \t    \"<div class='btn btn-primary' id='Fund_Type_add'><i class='fas fa-plus align-middle'></i><span class='align-middle ml-1'>Add</span></div>\"+\r\n    \t\"</div>\"\r\n\t);\r\n});\r\n\r\n//================================================== function process crud =================================================\r\nwindow['saveItem'] = function save (){\r\n\t//$('#Fund_type_modal :input:not(#fty_status_modal, #fty_fund_ID, #fty_remark_modal)').attr('required',true);\r\n\tif(formValidate('#Fund_type_modal')){\r\n\t\t$.ajax({\r\n\t\t\ttype: \"POST\",\r\n\t\t\tdataType: 'json',\r\n\t\t\turl: \"api/ANIS_FUND_TYPE?FT_process=1\",\r\n\t\t\tdata : $('#Fund_type_modal :input').serializeJson(),\r\n\t\t\tsuccess: function(data){\r\n\t\t\t\tif(data.status==\"ok\"){\r\n\t\t\t\t\tshowModal({\r\n\t\t\t\t\t\ttype: \"alert\",\r\n\t\t\t\t\t\tcontent: LANG_INSERT_SUCCESS, \r\n\t\t\t\t\t\tsize: \"sm\",\r\n\t\t\t\t\t});\r\n\t\t\t\t\t$('#Fund_Type').DataTable().ajax.reload()\r\n\t\t\t\t\t$('#Fund_type_modal').modal(\"hide\");\r\n\t\t\t\t}\r\n\t\t\t\telse if(data.status==\"ko\"){\r\n\t\t\t\t\tshowModal({\r\n\t\t\t\t\t\ttype: \"alert\",\r\n\t\t\t\t\t\tcontent: data.errorMessage || data.message || LANG_PROCESS_ERROR,  \r\n\t\t\t\t\t\tsize: \"sm\"\r\n\t\t\t\t\t});    \r\n\t\t\t\t}\r\n\t\t\t}\r\n\t\t});\r\n\t}\r\n\telse{\r\n\t\tshowModal({\r\n\t\t\ttype: \"alert\",\r\n\t\t\tcontent: LANG_VALIDATE_VALUEMISSING,\r\n\t\t\tsize: \"sm\"\r\n\t\t});    \r\n\t}\r\n}\r\n\r\n//================================================== onclick add\r\n//$('#Fund_Type_add').click(function(){\r\n$(document).on('click', '#Fund_Type_add', function(){\r\n\r\n\t$('#fty_status_modal').val('1').change();\r\n\t//$('#Fund_type_modal :input:not(#fty_status_modal)').attr('required',false);\r\n\t$('#Fund_type_modal :input:not(#fty_status_modal)').val('').change();\r\n\t$('#inputLabel_fty_fund_ID, #inputArea_fty_fund_ID').hide();\r\n\t$('#Fund_type_modal').find('.modal-header').text(labelModal[i]);\r\n\t$('#Fund_type_modal').modal('show');\r\n})\r\n\r\n//=============================================onclick edit (utk edit button)\r\nedit = function (targetID){\r\n\t\r\n\t$.get(\"api/ANIS_FUND_TYPE?FT_modal=form&id=\" + targetID, function (data) {\r\n\r\n\t\t$('#inputLabel_fty_fund_ID, #inputArea_fty_fund_ID').hide();\r\n\t\t$('#fty_fund_ID').val(data.ID);\r\n\t\t$('#fty_fund_type_modal').val(data.TYPE);\r\n\t\t$('#fty_fund_desc_modal').val(data.DESCRIPTION);\r\n\t\t$('#fty_fund_desc_eng_modal\t').val(data.DESCRIPTIONENG);\r\n\t\t$('#fty_basis_modal').val(data.BASIS);\r\n\t\t$('#fty_remark_modal').val(data.REMARK);\r\n\t\t$('#fty_status_modal').val(data.STATUS).change();\r\n\r\n\t\t$('#Fund_type_modal').find('.modal-header').text(labelModal[1]);\r\n\t\t$('#Fund_type_modal').modal('show');\r\n\t});\r\n}\r\n\r\n//maz tambah\r\nif(PROJECT_TYPE != 'uum'){\r\n\r\n\t$(\"#listOfFundType\").closest(\".card\").append(\r\n    \t`<div class='text-right mt-2'>\r\n\t\t\t<button type='button' class='btn btn-primary' id='btnDownloadCSV' onclick='listing.download()'>\r\n\t\t\t<i class='fas fa-download align-middle'></i>\r\n\t\t\t\t<span class='align-middle ml-1'>Download CSV</span>\r\n\t\t\t</button>\r\n\t\t\t<button type='button' class='btn btn-primary' id='btnDownloadPDF' onclick='listing.downloadPDF()'>\r\n\t\t\t<i class='fas fa-download align-middle'></i>\r\n\t\t\t\t<span class='align-middle ml-1'>Download PDF</span>\r\n\t\t\t</button>\r\n\t\t</div>`\r\n\t);\r\n\r\n\twindow['listing'] = {\r\n\t\tdownload: function () {\r\n\t\t\tconst data1 = $('#ActivityFilter :input').serializeJson()\r\n\t\t\tconst data2 = $('#listOfFundTypeSmartFilter :input').serializeJson()\r\n\t\t\tvar data = Object.assign({}, data1, data2)\r\n\t\t\tdata.search = $('[type=\"search\"]').val()\r\n\t\t\tdata.sort = listOfFundType.order()['0']\r\n\t\t\twindow.post('api/NAD_API_FUNDTYPE_LISTING?download=1', data, '_BLANK');\r\n\t\t},\r\n\t\tdownloadPDF:function(){\r\n\t\t\twindow.post('custom/report/senarai/GeneralLedger/fundTypeList.php', {\r\n\t\t\t\tsearch: $('[type=\"search\"]').val(),\r\n\t\t\t\tfty_status: $('#fty_status').val(),\r\n\t\t\t\tsort: listOfFundType.order()['0']\r\n\t\t\t}, '_BLANK')\r\n\t\t},\r\n \t }\r\n}",
+      "BL_DETAILS": null,
+      "DT_COLS": "{\"dt_bi\": [\"No\", \"Sponsor\", \"Contact Person\", \"Email\", \"Status\", \"Status of Invoice\", \"Action\"], \"dt_bm\": [\"No\", \"Penaja\", \"Contact Person\", \"e-Mel\", \"Status\", \"Status of Invoice\", \"Tindakan\"], \"dt_js\": [\"return row.index\", \"\", \"var cp = ''\\r\\n\\r\\nif(row.spn_contact_person) cp += '<div class=\\\"text-nowrap aaa\\\"><i class=\\\"fas fa-user mr-2\\\"></i>'+row.spn_contact_person+'</div>'\\r\\nif(row.spn_contact_no) cp += '<div class=\\\"text-nowrap bbb\\\"><i class=\\\"fas fa-phone mr-2\\\"></i>'+row.spn_contact_no+'</div>'\\r\\n\\r\\nif(row.spn_contact_person2) cp += '<div class=\\\"text-nowrap aaa\\\"><i class=\\\"fas fa-user mr-2\\\"></i>'+row.spn_contact_person2+'</div>'\\r\\nif(row.spn_contact_no2) cp += '<div class=\\\"text-nowrap bbb\\\"><i class=\\\"fas fa-phone mr-2\\\"></i>'+row.spn_contact_no2+'</div>'\\r\\n\\r\\nif(row.spn_contact_person3) cp += '<div class=\\\"text-nowrap aaa\\\"><i class=\\\"fas fa-user mr-2\\\"></i>'+row.spn_contact_person3+'</div>'\\r\\nif(row.spn_contact_no3) cp += '<div class=\\\"text-nowrap bbb\\\"><i class=\\\"fas fa-phone mr-2\\\"></i>'+row.spn_contact_no3+'</div>'\\r\\n\\r\\nreturn `\\r\\n\\t<style>.aaa + .aaa, .bbb + .aaa {margin-top: 5px}</style>\\r\\n\\t${cp}\\r\\n`\", \"\", \"\", \"\", \"return ''+\\r\\n'<a data-toggle=\\\"tooltip\\\" title=\\\"Edit\\\" href=\\\"'+row.edit+'\\\" '+(row.hasChild?'disabled':'')+'><i class=\\\"fas fa-edit\\\"></i></a>'+\\r\\n'<a data-toggle=\\\"tooltip\\\" title=\\\"View\\\" href=\\\"'+row.view+'\\\"><i class=\\\"fas fa-eye\\\"></i></a>'+\\r\\n'<a data-toggle=\\\"tooltip\\\" title=\\\"Delete\\\" '+(row.hasChild?'disabled':'')+' onclick=\\\"listing.delete(this)\\\"><i class=\\\"fas fa-trash-alt\\\"></i></a>'+\\r\\n'<a data-toggle=\\\"tooltip\\\" title=\\\"Assign Student\\\" href=\\\"'+row.student+'\\\"><i class=\\\"fas fa-users\\\"></i></a>'\"], \"dt_key\": [\"\", \"sponsor\", \"\", \"email\", \"sponStatus\", \"statusOfInvoice\", \"\"], \"dt_ajax\": \"api/V2_SFSP_SPONSOR_API\", \"dt_post\": null, \"dt_sort\": [\"unsortable\", \"asc\", \"unsortable\", \"unsortable\", \"default\", \"default\", \"unsortable\"], \"dt_bInfo\": \"true\", \"dt_class\": [\"\", \"\", \"\", \"\", \"\", \"\", \"action-column\"], \"dt_print\": \"false\", \"dt_filter\": \"smart\", \"dt_bPaginate\": \"true\", \"dt_pageLength\": \"10\", \"dt_bLengthChange\": \"true\"}",
+      "items": [
+        {
+          "Form_Item_Title": null,
+          "Form_Item_Type": null,
+          "Form_Item_css_class": null,
+          "Form_Item_additional_attribute": null,
+          "Form_Item_default": null,
+          "Form_Item_lookup_query": null,
+          "Form_Item_isDisable": null
+        }
+      ]
+    },
+    {
+      "COMPONENTID": 2596,
+      "COMPONENTTITLE": "sponsor form",
+      "COMPONENTTYPE": "custom",
+      "API_URL": null,
+      "API_BL_NAME": null,
+      "BL_preprocess_total": 1,
+      "BL_onload_total": 4,
+      "COMPONENT_JS": "//=================================================== declare awal\r\nvar labelModal = ['Fund Type Add', 'Fund Type Edit'];\r\ntargetedID     = ''\r\n\r\n// // ============================================================= autosuggest =====================================\r\n// $('#fty_fund_typesm').autoSuggest({ // tah knpe tak detect plak\r\n// \turl: 'api/ANIS_FUND_TYPE&autoSuggestfundtype=1'\r\n// })\r\n\r\n// =============================================================== add button ====================================\r\n$(document).ready(function(){\r\n\t\r\n\t$(\"#Fund_Type\").closest(\".card\").append(\r\n    \t\"<div class='text-right'>\"+\r\n    \t    \"<div class='btn btn-primary' id='Fund_Type_add'><i class='fas fa-plus align-middle'></i><span class='align-middle ml-1'>Add</span></div>\"+\r\n    \t\"</div>\"\r\n\t);\r\n});\r\n\r\n//================================================== function process crud =================================================\r\nwindow['saveItem'] = function save (){\r\n\t//$('#Fund_type_modal :input:not(#fty_status_modal, #fty_fund_ID, #fty_remark_modal)').attr('required',true);\r\n\tif(formValidate('#Fund_type_modal')){\r\n\t\t$.ajax({\r\n\t\t\ttype: \"POST\",\r\n\t\t\tdataType: 'json',\r\n\t\t\turl: \"api/ANIS_FUND_TYPE?FT_process=1\",\r\n\t\t\tdata : $('#Fund_type_modal :input').serializeJson(),\r\n\t\t\tsuccess: function(data){\r\n\t\t\t\tif(data.status==\"ok\"){\r\n\t\t\t\t\tshowModal({\r\n\t\t\t\t\t\ttype: \"alert\",\r\n\t\t\t\t\t\tcontent: LANG_INSERT_SUCCESS, \r\n\t\t\t\t\t\tsize: \"sm\",\r\n\t\t\t\t\t});\r\n\t\t\t\t\t$('#Fund_Type').DataTable().ajax.reload()\r\n\t\t\t\t\t$('#Fund_type_modal').modal(\"hide\");\r\n\t\t\t\t}\r\n\t\t\t\telse if(data.status==\"ko\"){\r\n\t\t\t\t\tshowModal({\r\n\t\t\t\t\t\ttype: \"alert\",\r\n\t\t\t\t\t\tcontent: data.errorMessage || data.message || LANG_PROCESS_ERROR,  \r\n\t\t\t\t\t\tsize: \"sm\"\r\n\t\t\t\t\t});    \r\n\t\t\t\t}\r\n\t\t\t}\r\n\t\t});\r\n\t}\r\n\telse{\r\n\t\tshowModal({\r\n\t\t\ttype: \"alert\",\r\n\t\t\tcontent: LANG_VALIDATE_VALUEMISSING,\r\n\t\t\tsize: \"sm\"\r\n\t\t});    \r\n\t}\r\n}\r\n\r\n//================================================== onclick add\r\n//$('#Fund_Type_add').click(function(){\r\n$(document).on('click', '#Fund_Type_add', function(){\r\n\r\n\t$('#fty_status_modal').val('1').change();\r\n\t//$('#Fund_type_modal :input:not(#fty_status_modal)').attr('required',false);\r\n\t$('#Fund_type_modal :input:not(#fty_status_modal)').val('').change();\r\n\t$('#inputLabel_fty_fund_ID, #inputArea_fty_fund_ID').hide();\r\n\t$('#Fund_type_modal').find('.modal-header').text(labelModal[i]);\r\n\t$('#Fund_type_modal').modal('show');\r\n})\r\n\r\n//=============================================onclick edit (utk edit button)\r\nedit = function (targetID){\r\n\t\r\n\t$.get(\"api/ANIS_FUND_TYPE?FT_modal=form&id=\" + targetID, function (data) {\r\n\r\n\t\t$('#inputLabel_fty_fund_ID, #inputArea_fty_fund_ID').hide();\r\n\t\t$('#fty_fund_ID').val(data.ID);\r\n\t\t$('#fty_fund_type_modal').val(data.TYPE);\r\n\t\t$('#fty_fund_desc_modal').val(data.DESCRIPTION);\r\n\t\t$('#fty_fund_desc_eng_modal\t').val(data.DESCRIPTIONENG);\r\n\t\t$('#fty_basis_modal').val(data.BASIS);\r\n\t\t$('#fty_remark_modal').val(data.REMARK);\r\n\t\t$('#fty_status_modal').val(data.STATUS).change();\r\n\r\n\t\t$('#Fund_type_modal').find('.modal-header').text(labelModal[1]);\r\n\t\t$('#Fund_type_modal').modal('show');\r\n\t});\r\n}\r\n\r\n//maz tambah\r\nif(PROJECT_TYPE != 'uum'){\r\n\r\n\t$(\"#listOfFundType\").closest(\".card\").append(\r\n    \t`<div class='text-right mt-2'>\r\n\t\t\t<button type='button' class='btn btn-primary' id='btnDownloadCSV' onclick='listing.download()'>\r\n\t\t\t<i class='fas fa-download align-middle'></i>\r\n\t\t\t\t<span class='align-middle ml-1'>Download CSV</span>\r\n\t\t\t</button>\r\n\t\t\t<button type='button' class='btn btn-primary' id='btnDownloadPDF' onclick='listing.downloadPDF()'>\r\n\t\t\t<i class='fas fa-download align-middle'></i>\r\n\t\t\t\t<span class='align-middle ml-1'>Download PDF</span>\r\n\t\t\t</button>\r\n\t\t</div>`\r\n\t);\r\n\r\n\twindow['listing'] = {\r\n\t\tdownload: function () {\r\n\t\t\tconst data1 = $('#ActivityFilter :input').serializeJson()\r\n\t\t\tconst data2 = $('#listOfFundTypeSmartFilter :input').serializeJson()\r\n\t\t\tvar data = Object.assign({}, data1, data2)\r\n\t\t\tdata.search = $('[type=\"search\"]').val()\r\n\t\t\tdata.sort = listOfFundType.order()['0']\r\n\t\t\twindow.post('api/NAD_API_FUNDTYPE_LISTING?download=1', data, '_BLANK');\r\n\t\t},\r\n\t\tdownloadPDF:function(){\r\n\t\t\twindow.post('custom/report/senarai/GeneralLedger/fundTypeList.php', {\r\n\t\t\t\tsearch: $('[type=\"search\"]').val(),\r\n\t\t\t\tfty_status: $('#fty_status').val(),\r\n\t\t\t\tsort: listOfFundType.order()['0']\r\n\t\t\t}, '_BLANK')\r\n\t\t},\r\n \t }\r\n}",
+      "BL_DETAILS": null,
+      "DT_COLS": null,
+      "items": [
+        {
+          "Form_Item_Title": null,
+          "Form_Item_Type": null,
+          "Form_Item_css_class": null,
+          "Form_Item_additional_attribute": null,
+          "Form_Item_default": null,
+          "Form_Item_lookup_query": null,
+          "Form_Item_isDisable": null
+        }
+      ]
+    },
+    {
+      "COMPONENTID": 3311,
+      "COMPONENTTITLE": "Smart Filter",
+      "COMPONENTTYPE": "form (Smart Filter)",
+      "API_URL": null,
+      "API_BL_NAME": null,
+      "BL_preprocess_total": 1,
+      "BL_onload_total": 4,
+      "COMPONENT_JS": "//=================================================== declare awal\r\nvar labelModal = ['Fund Type Add', 'Fund Type Edit'];\r\ntargetedID     = ''\r\n\r\n// // ============================================================= autosuggest =====================================\r\n// $('#fty_fund_typesm').autoSuggest({ // tah knpe tak detect plak\r\n// \turl: 'api/ANIS_FUND_TYPE&autoSuggestfundtype=1'\r\n// })\r\n\r\n// =============================================================== add button ====================================\r\n$(document).ready(function(){\r\n\t\r\n\t$(\"#Fund_Type\").closest(\".card\").append(\r\n    \t\"<div class='text-right'>\"+\r\n    \t    \"<div class='btn btn-primary' id='Fund_Type_add'><i class='fas fa-plus align-middle'></i><span class='align-middle ml-1'>Add</span></div>\"+\r\n    \t\"</div>\"\r\n\t);\r\n});\r\n\r\n//================================================== function process crud =================================================\r\nwindow['saveItem'] = function save (){\r\n\t//$('#Fund_type_modal :input:not(#fty_status_modal, #fty_fund_ID, #fty_remark_modal)').attr('required',true);\r\n\tif(formValidate('#Fund_type_modal')){\r\n\t\t$.ajax({\r\n\t\t\ttype: \"POST\",\r\n\t\t\tdataType: 'json',\r\n\t\t\turl: \"api/ANIS_FUND_TYPE?FT_process=1\",\r\n\t\t\tdata : $('#Fund_type_modal :input').serializeJson(),\r\n\t\t\tsuccess: function(data){\r\n\t\t\t\tif(data.status==\"ok\"){\r\n\t\t\t\t\tshowModal({\r\n\t\t\t\t\t\ttype: \"alert\",\r\n\t\t\t\t\t\tcontent: LANG_INSERT_SUCCESS, \r\n\t\t\t\t\t\tsize: \"sm\",\r\n\t\t\t\t\t});\r\n\t\t\t\t\t$('#Fund_Type').DataTable().ajax.reload()\r\n\t\t\t\t\t$('#Fund_type_modal').modal(\"hide\");\r\n\t\t\t\t}\r\n\t\t\t\telse if(data.status==\"ko\"){\r\n\t\t\t\t\tshowModal({\r\n\t\t\t\t\t\ttype: \"alert\",\r\n\t\t\t\t\t\tcontent: data.errorMessage || data.message || LANG_PROCESS_ERROR,  \r\n\t\t\t\t\t\tsize: \"sm\"\r\n\t\t\t\t\t});    \r\n\t\t\t\t}\r\n\t\t\t}\r\n\t\t});\r\n\t}\r\n\telse{\r\n\t\tshowModal({\r\n\t\t\ttype: \"alert\",\r\n\t\t\tcontent: LANG_VALIDATE_VALUEMISSING,\r\n\t\t\tsize: \"sm\"\r\n\t\t});    \r\n\t}\r\n}\r\n\r\n//================================================== onclick add\r\n//$('#Fund_Type_add').click(function(){\r\n$(document).on('click', '#Fund_Type_add', function(){\r\n\r\n\t$('#fty_status_modal').val('1').change();\r\n\t//$('#Fund_type_modal :input:not(#fty_status_modal)').attr('required',false);\r\n\t$('#Fund_type_modal :input:not(#fty_status_modal)').val('').change();\r\n\t$('#inputLabel_fty_fund_ID, #inputArea_fty_fund_ID').hide();\r\n\t$('#Fund_type_modal').find('.modal-header').text(labelModal[i]);\r\n\t$('#Fund_type_modal').modal('show');\r\n})\r\n\r\n//=============================================onclick edit (utk edit button)\r\nedit = function (targetID){\r\n\t\r\n\t$.get(\"api/ANIS_FUND_TYPE?FT_modal=form&id=\" + targetID, function (data) {\r\n\r\n\t\t$('#inputLabel_fty_fund_ID, #inputArea_fty_fund_ID').hide();\r\n\t\t$('#fty_fund_ID').val(data.ID);\r\n\t\t$('#fty_fund_type_modal').val(data.TYPE);\r\n\t\t$('#fty_fund_desc_modal').val(data.DESCRIPTION);\r\n\t\t$('#fty_fund_desc_eng_modal\t').val(data.DESCRIPTIONENG);\r\n\t\t$('#fty_basis_modal').val(data.BASIS);\r\n\t\t$('#fty_remark_modal').val(data.REMARK);\r\n\t\t$('#fty_status_modal').val(data.STATUS).change();\r\n\r\n\t\t$('#Fund_type_modal').find('.modal-header').text(labelModal[1]);\r\n\t\t$('#Fund_type_modal').modal('show');\r\n\t});\r\n}\r\n\r\n//maz tambah\r\nif(PROJECT_TYPE != 'uum'){\r\n\r\n\t$(\"#listOfFundType\").closest(\".card\").append(\r\n    \t`<div class='text-right mt-2'>\r\n\t\t\t<button type='button' class='btn btn-primary' id='btnDownloadCSV' onclick='listing.download()'>\r\n\t\t\t<i class='fas fa-download align-middle'></i>\r\n\t\t\t\t<span class='align-middle ml-1'>Download CSV</span>\r\n\t\t\t</button>\r\n\t\t\t<button type='button' class='btn btn-primary' id='btnDownloadPDF' onclick='listing.downloadPDF()'>\r\n\t\t\t<i class='fas fa-download align-middle'></i>\r\n\t\t\t\t<span class='align-middle ml-1'>Download PDF</span>\r\n\t\t\t</button>\r\n\t\t</div>`\r\n\t);\r\n\r\n\twindow['listing'] = {\r\n\t\tdownload: function () {\r\n\t\t\tconst data1 = $('#ActivityFilter :input').serializeJson()\r\n\t\t\tconst data2 = $('#listOfFundTypeSmartFilter :input').serializeJson()\r\n\t\t\tvar data = Object.assign({}, data1, data2)\r\n\t\t\tdata.search = $('[type=\"search\"]').val()\r\n\t\t\tdata.sort = listOfFundType.order()['0']\r\n\t\t\twindow.post('api/NAD_API_FUNDTYPE_LISTING?download=1', data, '_BLANK');\r\n\t\t},\r\n\t\tdownloadPDF:function(){\r\n\t\t\twindow.post('custom/report/senarai/GeneralLedger/fundTypeList.php', {\r\n\t\t\t\tsearch: $('[type=\"search\"]').val(),\r\n\t\t\t\tfty_status: $('#fty_status').val(),\r\n\t\t\t\tsort: listOfFundType.order()['0']\r\n\t\t\t}, '_BLANK')\r\n\t\t},\r\n \t }\r\n}",
+      "BL_DETAILS": null,
+      "DT_COLS": null,
+      "items": [
+        {
+          "Form_Item_Title": "Sponsor",
+          "Form_Item_Type": "text",
+          "Form_Item_css_class": "",
+          "Form_Item_additional_attribute": "",
+          "Form_Item_default": "",
+          "Form_Item_lookup_query": "",
+          "Form_Item_isDisable": null
+        },
+        {
+          "Form_Item_Title": "Country",
+          "Form_Item_Type": "text",
+          "Form_Item_css_class": "",
+          "Form_Item_additional_attribute": "",
+          "Form_Item_default": "",
+          "Form_Item_lookup_query": "",
+          "Form_Item_isDisable": null
+        },
+        {
+          "Form_Item_Title": "Email",
+          "Form_Item_Type": "text",
+          "Form_Item_css_class": "",
+          "Form_Item_additional_attribute": "",
+          "Form_Item_default": "",
+          "Form_Item_lookup_query": "",
+          "Form_Item_isDisable": null
+        },
+        {
+          "Form_Item_Title": "Status",
+          "Form_Item_Type": "dropdown",
+          "Form_Item_css_class": null,
+          "Form_Item_additional_attribute": null,
+          "Form_Item_default": null,
+          "Form_Item_lookup_query": "SELECT 1 flc_id, 'ACTIVE' flc_name\nUNION\nSELECT 0 flc_id, 'INACTIVE' flc_name",
+          "Form_Item_isDisable": null
+        }
+      ]
+    }
+  ]
+}

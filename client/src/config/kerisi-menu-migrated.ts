@@ -3454,11 +3454,6 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
             to: "/admin/kerisi/m/1025"
           },
           {
-            menuId: 1150,
-            label: "PTPTN (Masri)",
-            to: "/admin/kerisi/m/1150"
-          },
-          {
             menuId: 1491,
             label: "Invoice Generation",
             to: "/admin/kerisi/m/1491"

@@ -1,21 +1,40 @@
 <?php
 
+use App\Enums\Permission;
 use App\Http\Controllers\Api\AccountBankByPayeeController;
 use App\Http\Controllers\Api\AccountBankUpdatedController;
 use App\Http\Controllers\Api\AccountCodeController;
 use App\Http\Controllers\Api\AccountCodePpiController;
 use App\Http\Controllers\Api\ActivityCodeController;
+use App\Http\Controllers\Api\AdvancePaymentController;
+use App\Http\Controllers\Api\SponsorInvoiceGenerationController;
+use App\Http\Controllers\Api\SponsorProfileController;
+use App\Http\Controllers\Api\SponsorPtptnController;
+use App\Http\Controllers\Api\StudentJournalApprovalController;
+use App\Http\Controllers\Api\AgRateController;
+use App\Http\Controllers\Api\AssetInventoryListController;
 use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\AuditSystemTransactionController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AuthorizedReceiptingController;
 use App\Http\Controllers\Api\AuthorizedReceiptingFormController;
 use App\Http\Controllers\Api\BankAccountController;
+use App\Http\Controllers\Api\BankAccountUpdateController;
 use App\Http\Controllers\Api\BankMasterController;
 use App\Http\Controllers\Api\BankSetupController;
 use App\Http\Controllers\Api\BudgetClosingController;
+use App\Http\Controllers\Api\BudgetCodeController;
 use App\Http\Controllers\Api\BudgetInitialController;
+use App\Http\Controllers\Api\BudgetPlanningListController;
+use App\Http\Controllers\Api\BudgetPlanningNewController;
+use App\Http\Controllers\Api\BudgetPlanningScheduleController;
 use App\Http\Controllers\Api\BudgetMonitoringController;
+use App\Http\Controllers\Api\LaporanBelanjawanController;
+use App\Http\Controllers\Api\QuarterBudgetController;
+use App\Http\Controllers\Api\StructureBudgetListController;
+use App\Http\Controllers\Api\TotalAllocationReportController;
 use App\Http\Controllers\Api\BudgetMovementController;
+use App\Http\Controllers\Api\BudgetNotExistsController;
 use App\Http\Controllers\Api\CascadeStructureController;
 use App\Http\Controllers\Api\CashbookListController;
 use App\Http\Controllers\Api\CashbookPtjController;
@@ -38,47 +57,60 @@ use App\Http\Controllers\Api\DiscountNoteController;
 use App\Http\Controllers\Api\DiscountNoteFormController;
 use App\Http\Controllers\Api\FundTypeController;
 use App\Http\Controllers\Api\GeneralLedgerListingController;
-use App\Http\Controllers\Api\ManualJournalListingController;
+use App\Http\Controllers\Api\GlYearMonthController;
+use App\Http\Controllers\Api\IntegrationActivityController;
+use App\Http\Controllers\Api\IntegrationCostCentreController;
+use App\Http\Controllers\Api\IntegrationProfileController;
+use App\Http\Controllers\Api\IntegrationPtjController;
+use App\Http\Controllers\Api\InvestmentAccrualController;
+use App\Http\Controllers\Api\InvestmentGenerateScheduleController;
+use App\Http\Controllers\Api\InvestmentMonitoringController;
+use App\Http\Controllers\Api\InvestmentToBeWithdrawnController;
 use App\Http\Controllers\Api\InvoiceBalanceController;
+use App\Http\Controllers\Api\InvoiceController;
+use App\Http\Controllers\Api\JournalListingController;
+use App\Http\Controllers\Api\LedgerController;
 use App\Http\Controllers\Api\LetterPhraseController;
+use App\Http\Controllers\Api\ListOfAccrualController;
+use App\Http\Controllers\Api\ListOfCurrencyController;
 use App\Http\Controllers\Api\ListOfDepositController;
+use App\Http\Controllers\Api\ListOfInvestmentsController;
+use App\Http\Controllers\Api\ManualJournalListingController;
+use App\Http\Controllers\Api\ManualInvoiceListingController;
 use App\Http\Controllers\Api\MediaController;
+use App\Http\Controllers\Api\OfferedStudentController;
 use App\Http\Controllers\Api\PageController;
-use App\Http\Controllers\Api\PostingToTbController;
 use App\Http\Controllers\Api\PayeeRegistrationController;
 use App\Http\Controllers\Api\PettyCashApplicationListController;
 use App\Http\Controllers\Api\PettyCashBillController;
-use App\Http\Controllers\Api\PettyCashClaimFormController;
 use App\Http\Controllers\Api\PettyCashByPtjController;
+use App\Http\Controllers\Api\PettyCashClaimFormController;
 use App\Http\Controllers\Api\PettyCashConfirmPaymentController;
 use App\Http\Controllers\Api\PettyCashRecoupController;
 use App\Http\Controllers\Api\PettyCashReleasePaidController;
 use App\Http\Controllers\Api\PettyCashRequestListController;
 use App\Http\Controllers\Api\PettyCashVoucherListController;
 use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\PostingToTbController;
+use App\Http\Controllers\Api\ProjectMonitoringController;
 use App\Http\Controllers\Api\PtjCodeController;
+use App\Http\Controllers\Api\PtptnDataController;
 use App\Http\Controllers\Api\PublicController;
 use App\Http\Controllers\Api\RoleController;
-use App\Http\Controllers\Api\GlYearMonthController;
-use App\Http\Controllers\Api\JournalListingController;
-use App\Http\Controllers\Api\BankAccountUpdateController;
-use App\Http\Controllers\Api\LedgerController;
-use App\Http\Controllers\Api\InvestmentAccrualController;
-use App\Http\Controllers\Api\InvestmentGenerateScheduleController;
-use App\Http\Controllers\Api\InvestmentMonitoringController;
-use App\Http\Controllers\Api\InvestmentToBeWithdrawnController;
-use App\Http\Controllers\Api\ListOfAccrualController;
-use App\Http\Controllers\Api\ListOfInvestmentsController;
-use App\Http\Controllers\Api\ManualInvoiceListingController;
-use App\Http\Controllers\Api\SummaryListInvestmentsController;
-use App\Http\Controllers\Api\PtptnDataController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SetupBudgetStructureSearchController;
+use App\Http\Controllers\Api\SponsorLetterController;
+use App\Http\Controllers\Api\StaffProfileController;
 use App\Http\Controllers\Api\StatusPoPrController;
+use App\Http\Controllers\Api\StudentInvoiceGenerationController;
+use App\Http\Controllers\Api\SummaryListInvestmentsController;
 use App\Http\Controllers\Api\TenderQuotationController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UtilityRegistrationController;
 use App\Http\Controllers\Api\VcTncController;
+use App\Http\Controllers\Api\VendorFinancialStatusController;
+use App\Http\Controllers\Api\VendorPortalController;
+use App\Http\Controllers\Api\VendorPoStatusController;
 use App\Http\Controllers\Api\VendorRegistrationFeeHistoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -173,6 +205,77 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/budget/closing/options', [BudgetClosingController::class, 'options']);
     Route::post('/budget/closing/process', [BudgetClosingController::class, 'process']);
     Route::post('/budget/closing/reverse', [BudgetClosingController::class, 'reverse']);
+
+    // FIMS Budget Setup > Budget Code (PAGEID 1475 / MENUID 1796).
+    // Legacy BL: MM_API_BUDGET_SETUP_BUDGETCODE — datatable + popup modal CRUD
+    // backed by the `lkp_budget_code` table. Level + budget_code are immutable
+    // once created (matches saveItem path on the legacy BL).
+    Route::get('/budget/budget-code/options', [BudgetCodeController::class, 'options']);
+    Route::get('/budget/budget-code', [BudgetCodeController::class, 'index']);
+    Route::get('/budget/budget-code/{id}', [BudgetCodeController::class, 'show'])->whereNumber('id');
+    Route::post('/budget/budget-code', [BudgetCodeController::class, 'store']);
+    Route::put('/budget/budget-code/{id}', [BudgetCodeController::class, 'update'])->whereNumber('id');
+
+    // FIMS Budget Setup > Budget Planning Schedule (PAGEID 2872 / MENUID 3456).
+    // Legacy BL: SNA_API_BUDGET_SETUP_BDGPLANNINGSCHEDULE — top filter (Year)
+    // + datatable + popup-modal CRUD on `budget_planning_schedule`.
+    Route::get('/budget/planning-schedule/options', [BudgetPlanningScheduleController::class, 'options']);
+    Route::get('/budget/planning-schedule', [BudgetPlanningScheduleController::class, 'index']);
+    Route::get('/budget/planning-schedule/{id}', [BudgetPlanningScheduleController::class, 'show'])->whereNumber('id');
+    Route::post('/budget/planning-schedule', [BudgetPlanningScheduleController::class, 'store']);
+    Route::put('/budget/planning-schedule/{id}', [BudgetPlanningScheduleController::class, 'update'])->whereNumber('id');
+    Route::delete('/budget/planning-schedule/{id}', [BudgetPlanningScheduleController::class, 'destroy'])->whereNumber('id');
+
+    // FIMS Budget Setup > Allocation (PAGEID 1035 / MENUID 1294).
+    // Legacy BL: SWS_DT_SETUP_QUARTER (read paths only). The migrated
+    // controller adds an UPDATE for the popup modal because the legacy UI
+    // does expose Year / Description / Start Date / End Date / Status edits.
+    Route::get('/budget/allocation/options', [QuarterBudgetController::class, 'options']);
+    Route::get('/budget/allocation', [QuarterBudgetController::class, 'index']);
+    Route::get('/budget/allocation/{id}', [QuarterBudgetController::class, 'show']);
+    Route::put('/budget/allocation/{id}', [QuarterBudgetController::class, 'update']);
+
+    // FIMS Budget > Structure Budget List (PAGEID 1071 / MENUID 1334).
+    // Legacy BL: SWS_DT_SETUP_BUDGETSTRUCTURELIST — read-only listing across
+    // structure_budget × budget × activity_type × organization_unit ×
+    // costcentre × lkp_budget_code with top + smart filters.
+    Route::get('/budget/structure-list/options', [StructureBudgetListController::class, 'options']);
+    Route::get('/budget/structure-list', [StructureBudgetListController::class, 'index']);
+
+    // FIMS Budget Planning suite (shared list controller, scoped by ?scope=).
+    //   yearly       — PAGEID 2056 / MENUID 2506  Dasar Sedia Ada
+    //   allocation_2 — PAGEID 2489 / MENUID 3012  Allocation 2 List
+    //   allocation_3 — PAGEID 2490 / MENUID 3013  Allocation 3 List
+    //   one_off      — PAGEID 2635 / MENUID 3196  Dasar Baru / One Off
+    //   to_initial   — PAGEID 2713 / MENUID 3279  Planning to Initial
+    Route::get('/budget/planning-list/options', [BudgetPlanningListController::class, 'options']);
+    Route::get('/budget/planning-list', [BudgetPlanningListController::class, 'index']);
+    Route::delete('/budget/planning-list/{id}', [BudgetPlanningListController::class, 'destroy'])->whereNumber('id');
+    Route::post('/budget/planning-list/{id}/duplicate', [BudgetPlanningListController::class, 'duplicate'])->whereNumber('id');
+
+    // FIMS Budget > Planning > New Application (PAGEID 1236 / MENUID 1516).
+    // Legacy form (`api/CH9_BUDGET_PLANNING?fn=...`). The legacy BL did not
+    // ship as JSON metadata, so this endpoint group is derived from the
+    // visible Planning Info / Account Activity / Review File / Remark
+    // popup contract and creates DRAFT rows on
+    // budget_planning_master + budget_planning_details.
+    Route::get('/budget/planning-new/options', [BudgetPlanningNewController::class, 'options']);
+    Route::get('/budget/planning-new/accounts', [BudgetPlanningNewController::class, 'accounts']);
+    Route::post('/budget/planning-new', [BudgetPlanningNewController::class, 'store']);
+
+    // FIMS Budget > Reports > Total Allocation Report (PAGEID 1626 / MENUID 1968).
+    // Legacy BL: SWS_DT_REPORT_TOTAL_ALLOCATION — read-only report joining
+    // budget × structure_budget aggregated for initial + topup + virement.
+    Route::get('/budget/report/total-allocation/options', [TotalAllocationReportController::class, 'options']);
+    Route::get('/budget/report/total-allocation', [TotalAllocationReportController::class, 'index']);
+
+    // FIMS Budget > Reports > Laporan Belanjawan (PAGEID 2873 / MENUID 3457).
+    // Legacy BL: YUS_BELANJAWAN_REPO_API — read-only report with full ledger
+    // breakdown (opening / initial / additional / virement / topup /
+    // allocated / locked / pre_request / request / commit / expenses /
+    // balance / expenses_percentage).
+    Route::get('/budget/report/laporan-belanjawan/options', [LaporanBelanjawanController::class, 'options']);
+    Route::get('/budget/report/laporan-belanjawan', [LaporanBelanjawanController::class, 'index']);
 
     // FIMS Cashbook (Bank Setup / Bank Master / Bank Account / List Of Cashbook)
     // — see app/Http/Controllers/Api/{BankSetupController,BankMasterController,
@@ -272,17 +375,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/student-finance/ledger/options', [LedgerController::class, 'options']);
     Route::get('/student-finance/ledger', [LedgerController::class, 'index']);
 
-    // Student Finance > Manual Invoice Listing (PAGEID 2389 / MENUID 2897).
-    // Legacy BL DT_SF_MANUAL_INV_LISTING — list + smart filter + grand-total
-    // footer. Delete cascades cust_invoice_details → cust_invoice_master and
-    // is gated to DRAFT invoices (matching the legacy dt_js guard). The
-    // Manual Invoice Form (MENUID 2898) is NOT migrated yet so View/Edit
-    // render disabled on the frontend.
-    Route::get('/student-finance/manual-invoice/options', [ManualInvoiceListingController::class, 'options']);
-    Route::get('/student-finance/manual-invoice', [ManualInvoiceListingController::class, 'index']);
-    Route::delete('/student-finance/manual-invoice/{id}', [ManualInvoiceListingController::class, 'destroy'])
-        ->whereNumber('id');
-
     // Student Finance > Bank Account Update (PAGEID 977 / MENUID 1081).
     // Legacy BL DT_BANK_ACC_UPDATE — list + smart filter across
     // student + stud_account_application + bank_master + academic_calendar.
@@ -290,6 +382,119 @@ Route::middleware('auth:sanctum')->group(function () {
     // is NOT migrated yet.
     Route::get('/student-finance/bank-account-update/options', [BankAccountUpdateController::class, 'options']);
     Route::get('/student-finance/bank-account-update', [BankAccountUpdateController::class, 'index']);
+
+    // Student Finance > List of Offered (PAGEID 2181 / MENUID 2636).
+    // Legacy BL `MZ_BL_SF_OFFEREDLIST` — read-only datatable joining
+    // offered_student against receipt_master / receipt_batch_* /
+    // manual_journal_* to surface whichever payment channel actually
+    // settled the offer fee. Smart filter keys mirror the legacy
+    // contract (ost_program_level, ost_offered_semester); CSV/Excel/PDF
+    // exports are added because the legacy COMPONENT_JS does not declare
+    // a `printout` field.
+    Route::get('/student-finance/offered/options', [OfferedStudentController::class, 'options']);
+    Route::get('/student-finance/offered', [OfferedStudentController::class, 'index']);
+
+    // Student Finance > Sponsor > Advance Payment (PAGEID 1669 / MENUID 2020).
+    // Legacy BL `V2_SAP_LIST_API` — read-only datatable joining
+    // deposit_master + deposit_details + lookup_parameter_main, with
+    // computed `advance_amount` (CR-DT) and `invoice_balance` (sponsor
+    // amounts + outstanding cust_invoice_master.cim_bal_amt). Smart-filter
+    // keys mirror the legacy contract (vcs_vendor_code, dpm_vendor_name,
+    // advance_amount_from/to, invoice_balance_from/to). The legacy action
+    // buttons (Knockoff Invoice MENUID 2021, Transfer to Student MENUID 2354)
+    // deep-link to pages NOT yet migrated; the frontend renders them
+    // disabled until those editors are ported. CSV/Excel/PDF exports are
+    // surfaced because the legacy COMPONENT_JS does not declare a
+    // `printout` field.
+    Route::get('/student-finance/advance-payment/options', [AdvancePaymentController::class, 'options']);
+    Route::get('/student-finance/advance-payment', [AdvancePaymentController::class, 'index']);
+
+    // Student Finance > Sponsor > PTPTN (PAGEID 1231 / MENUID 1507).
+    // Legacy BL `V2_PTPTN_API` (?listing=1) — read-only datatable scoped
+    // to spn_sponsor_type='05' joining student × stud_sponsor × sponsor.
+    // The legacy COMPONENT_JS hides the Action column (View link to
+    // legacy menuID=1479 Sponsor form) so no Action column is exposed
+    // here either.
+    Route::get('/student-finance/sponsor-ptptn/options', [SponsorPtptnController::class, 'options']);
+    Route::get('/student-finance/sponsor-ptptn', [SponsorPtptnController::class, 'index']);
+
+    // Student Finance > Sponsor > Profile (PAGEID 845 / MENUID 1025).
+    // Legacy BL `V2_SFSP_SPONSOR_API` — read-only datatable + smart
+    // filter on the `sponsor` master with derived JSON fields
+    // (spn_extended_field->>'$.spn_status_desc' etc.) and a hasChild
+    // count from stud_sponsor. Edit/View/Assign-Student deep links
+    // (legacy menuID=1068 / 1478) are NOT migrated; the frontend
+    // renders those Action buttons as disabled.
+    Route::get('/student-finance/sponsor-profile/options', [SponsorProfileController::class, 'options']);
+    Route::get('/student-finance/sponsor-profile', [SponsorProfileController::class, 'index']);
+
+    // Student Finance > Sponsor > Invoice Generation (PAGEID 1218 / MENUID 1491).
+    // Legacy BL `V2_SFSI_API` (?listing=2 + ?get_sponsorAmt=1 +
+    // ?generateInvoice=1). Top filter (Sponsor / Program Level /
+    // Semester) drives the read-only listing of students with
+    // outstanding sponsor amount; smart filter overlays additional
+    // matric/name/status/range constraints. The Generate action calls
+    // CALL DB2.create_invoice_sponsor SP which is NOT migrated; the
+    // frontend renders the Generate button disabled with a
+    // "not migrated" tooltip until the SP is ported.
+    Route::get('/student-finance/sponsor-invoice-generation/options', [SponsorInvoiceGenerationController::class, 'options']);
+    Route::get('/student-finance/sponsor-invoice-generation', [SponsorInvoiceGenerationController::class, 'index']);
+
+    // Student Finance > Sponsor > Student Journal Approval (PAGEID 1954 / MENUID 2390).
+    // Legacy BL `MZ_BL_SF_APPROVAL` (?details=1 + ?dt_listing=1 with
+    // dt_credit_debit=CR/DT). Read-only master form (manual_journal_master)
+    // + two read-only datatables (manual_journal_details split CR/DT).
+    // The legacy Approve/Reject form calls CALL DB2.workflowUpdate SP
+    // which is NOT migrated; the Process panel is rendered on the
+    // frontend as disabled with an explanatory note until the workflow
+    // engine is ported.
+    Route::get('/student-finance/student-journal-approval/{id}', [StudentJournalApprovalController::class, 'show'])
+        ->whereNumber('id');
+    Route::get('/student-finance/student-journal-approval/{id}/credit', [StudentJournalApprovalController::class, 'credit'])
+        ->whereNumber('id');
+    Route::get('/student-finance/student-journal-approval/{id}/debit', [StudentJournalApprovalController::class, 'debit'])
+        ->whereNumber('id');
+
+    // Student Finance > Invoice (PAGEID 828 / MENUID 1023). Legacy BLs
+    // `DT_SF_INVOICE` (main listing scoped to cim_cust_type IN ('A','E')
+    // and cim_system_id IS NULL OR IN ('STUD_INV','SF_SPON_INV'), with
+    // an EXISTS guard requiring at least one cust_invoice_details row of
+    // cid_transaction_type='DT') plus `DT_DEBIT_LIST` for the per-invoice
+    // debit detail drilldown (`{id}/details`). Read-only — the legacy
+    // Invoice Form (menuID 1062) and bulk download / cancel SP are NOT
+    // migrated; the frontend renders View / Edit / Delete buttons disabled.
+    Route::get('/student-finance/invoice/options', [InvoiceController::class, 'options']);
+    Route::get('/student-finance/invoice', [InvoiceController::class, 'index']);
+    Route::get('/student-finance/invoice/{id}/details', [InvoiceController::class, 'details'])
+        ->whereNumber('id');
+
+    // Student Finance > Invoice Generation (PAGEID 970 / MENUID 1231).
+    // Legacy BL `CALL_PROC_STUDENT_INVOICE` exposes 4 actions:
+    //   - find=1     -> /search        (CALL invoiceCheckingByBatch + paginate temp_stud_listing_match)
+    //   - csv=1      -> /export/csv    (legacy listing CSV by uniqueKey)
+    //   - match=1    -> /export/match-csv (post-generate match CSV by uniqueKey)
+    //   - generate=1 -> /generate      (CALL invoiceCreationByBatch + wf_task URL rewrite)
+    // Options endpoint feeds the Search Parameter dropdowns
+    // (semester / programLevel / studentType / feeType / intakeCase).
+    Route::get('/student-finance/invoice-generation/options', [StudentInvoiceGenerationController::class, 'options']);
+    Route::post('/student-finance/invoice-generation/search', [StudentInvoiceGenerationController::class, 'search']);
+    Route::post('/student-finance/invoice-generation/generate', [StudentInvoiceGenerationController::class, 'generate']);
+    Route::post('/student-finance/invoice-generation/export/csv', [StudentInvoiceGenerationController::class, 'exportCsv']);
+    Route::post('/student-finance/invoice-generation/export/match-csv', [StudentInvoiceGenerationController::class, 'exportMatchCsv']);
+
+    // Student Finance > Manual Invoice Listing (PAGEID 2343 / MENUID 2897) +
+    // Manual Invoice Form (MENUID 2898). Legacy BL `DT_SF_MANUAL_INV_LISTING`.
+    Route::get('/student-finance/manual-invoice/options', [ManualInvoiceListingController::class, 'options']);
+    Route::get('/student-finance/manual-invoice', [ManualInvoiceListingController::class, 'index']);
+    Route::post('/student-finance/manual-invoice/{id}/lines', [ManualInvoiceListingController::class, 'storeLine'])
+        ->whereNumber('id');
+    Route::delete('/student-finance/manual-invoice/{id}/lines/{lineId}', [ManualInvoiceListingController::class, 'destroyLine'])
+        ->whereNumber('id')
+        ->whereNumber('lineId');
+    Route::get('/student-finance/manual-invoice/{id}', [ManualInvoiceListingController::class, 'show'])
+        ->whereNumber('id');
+    Route::delete('/student-finance/manual-invoice/{id}', [ManualInvoiceListingController::class, 'destroy'])
+        ->whereNumber('id');
 
     // Investment > List Of Accrual (PAGEID 1548 / MENUID 1877). Legacy BL
     // API_LIST_OF_ACCRUAL (action=listing_all_dt) — read-only datatable
@@ -590,6 +795,75 @@ Route::middleware('auth:sanctum')->group(function () {
     // joins embedded in BL NF_BL_PURCHASING_VENDOR_PORTAL_TENDER.
     Route::get('/portal/vendor/registration-fees', [VendorRegistrationFeeHistoryController::class, 'index']);
 
+    // Vendor Portal > Purchase Order Status (PAGEID 1664 / MENUID 2015).
+    // Legacy BL: NF_BL_VENDOR_PO_STATUS (?PurchaseOrder_dt=1). Read-only
+    // datatable scoped to the authenticated vendor's vcs_vendor_code.
+    Route::get('/portal/vendor/po-status', [VendorPoStatusController::class, 'index']);
+
+    // Vendor Portal > Financial Status (PAGEID 1714 / MENUID 2072). Legacy BL
+    // NF_BL_PURCHASING_FINANCIAL_STATUS exposes three vendor-scoped tables.
+    Route::get('/portal/vendor/financial-status/billings', [VendorFinancialStatusController::class, 'billings']);
+    Route::get('/portal/vendor/financial-status/vouchers', [VendorFinancialStatusController::class, 'vouchers']);
+    Route::get('/portal/vendor/financial-status/payments', [VendorFinancialStatusController::class, 'payments']);
+
+    // Vendor Portal > Vendor Portal (PAGEID 1622 / MENUID 1961). Legacy BL
+    // NF_BL_PURCHASING_PORTAL_VENDOR + onload NF_JS_PURCHASING_PORTAL_VENDOR.
+    // Phase 2a ships the editable master profile (`PUT /profile` mirrors
+    // the legacy `?detail_process=1` direct-edit branch) + the lookup
+    // option sets the master form needs. Sub-table CRUD (Phase 2b) and
+    // the `temp_vend_*` renewal/dropzone/submit workflow (Phase 2c)
+    // remain deferred — see VendorPortalController doc.
+    Route::get('/portal/vendor/profile', [VendorPortalController::class, 'profile']);
+    Route::put('/portal/vendor/profile', [VendorPortalController::class, 'update']);
+    Route::get('/portal/vendor/lookups', [VendorPortalController::class, 'lookups']);
+    Route::get('/portal/vendor/categories', [VendorPortalController::class, 'categories']);
+    Route::get('/portal/vendor/accounts', [VendorPortalController::class, 'accounts']);
+    Route::get('/portal/vendor/addresses', [VendorPortalController::class, 'addresses']);
+    Route::get('/portal/vendor/jobscopes', [VendorPortalController::class, 'jobscopes']);
+    Route::get('/portal/vendor/ssm-licences', [VendorPortalController::class, 'ssmLicences']);
+    Route::get('/portal/vendor/mof-licences', [VendorPortalController::class, 'mofLicences']);
+    Route::get('/portal/vendor/other-licences', [VendorPortalController::class, 'otherLicences']);
+
+    // Portal > List of Letter (PAGEID 2330 / MENUID 2823). Legacy BL
+    // IKA_LETTER_LIST_API — sponsor letter catalog + per-student history.
+    // Download / PDF generation deferred (see SponsorLetterController).
+    Route::get('/portal/letter/catalog', [SponsorLetterController::class, 'listSurat']);
+    Route::get('/portal/letter/history', [SponsorLetterController::class, 'listHistory']);
+    Route::post('/portal/letter/{letterId}/download', [SponsorLetterController::class, 'download']);
+
+    // Portal > Staff Profile (PAGEID 1581 / MENUID 1914). Legacy BL
+    // API_PORTAL_SALARYPROFILEINFORMATION (?master, ?detailAddress,
+    // ?saveAddress, ?updateMaritalStatus, ?all_children, ?family_spouse,
+    // ?family_children). Spouse / children detail forms (MENUIDs
+    // 3301 / 3305) are out of scope; see StaffProfileController doc.
+    Route::get('/portal/staff-profile', [StaffProfileController::class, 'master']);
+    Route::get('/portal/staff-profile/options', [StaffProfileController::class, 'options']);
+    Route::get('/portal/staff-profile/address', [StaffProfileController::class, 'addressShow']);
+    Route::put('/portal/staff-profile/address', [StaffProfileController::class, 'addressUpdate']);
+    Route::put('/portal/staff-profile/marital-status', [StaffProfileController::class, 'maritalUpdate']);
+    Route::get('/portal/staff-profile/children', [StaffProfileController::class, 'children']);
+    Route::get('/portal/staff-profile/spouses', [StaffProfileController::class, 'spouses']);
+    Route::get('/portal/staff-profile/spouses/{seq}/children', [StaffProfileController::class, 'spouseChildren']);
+
+    // Asset > List of Asset (PAGEID 1271 / MENUID 1548). Legacy BL
+    // API_ASSET_INVENTORY_LISTOFASSET (?dt_listingAssetInventory=1).
+    // Read-only listing of asset_inventory_main with a smart filter; the
+    // legacy autosuggest + RBAC scoping endpoints are deferred.
+    Route::get('/asset/list-of-asset', [AssetInventoryListController::class, 'index']);
+
+    // Project Monitoring (MENUID 1544 List of Project, MENUID 2065 Updated
+    // Balance). MENUID 1544 is a datatable; MENUID 2065 is a form (Project ID
+    // autosuggest + Information card + Cash Balance card + Save). The legacy
+    // server-side BL `SNA_API_UPDATEDBALANCE_PM` is not present in this
+    // repository — the Save endpoint returns 501 NOT_IMPLEMENTED and
+    // search/show return null for the deferred Cash-Balance fields. See
+    // ProjectMonitoringController docblock.
+    Route::get('/project-monitoring/projects', [ProjectMonitoringController::class, 'projects']);
+    Route::get('/project-monitoring/updated-balance/search', [ProjectMonitoringController::class, 'searchProjects']);
+    Route::get('/project-monitoring/updated-balance/{cpaProjectNo}', [ProjectMonitoringController::class, 'showBalance'])
+        ->where('cpaProjectNo', '.*');
+    Route::post('/project-monitoring/updated-balance', [ProjectMonitoringController::class, 'saveBalance']);
+
     Route::get('/setup/cascade-structure/options', [CascadeStructureController::class, 'options']);
     Route::get('/setup/cascade-structure', [CascadeStructureController::class, 'index']);
     Route::get('/setup/cascade-structure/{id}', [CascadeStructureController::class, 'show']);
@@ -655,6 +929,69 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/audit-logs', [AuditLogController::class, 'index']);
 
+    // Audit Trail > System Transaction (PAGEID 3 / MENUID 5).
+    // Legacy BL: V2_AUDIT_SYSTEM_TRANSACTION_API. Read-only listing of the
+    // legacy `fims_audit.system_transaction` ledger over `mysql_secondary`.
+    Route::prefix('audit/system-transactions')
+        ->middleware('permission:'.Permission::AUDIT_READ)
+        ->group(function () {
+            Route::get('/options', [AuditSystemTransactionController::class, 'options']);
+            Route::get('/', [AuditSystemTransactionController::class, 'index']);
+            Route::get('/{auditId}/sql', [AuditSystemTransactionController::class, 'showSql'])
+                ->whereNumber('auditId');
+        });
+
     Route::get('/developers-guide', [DevelopersGuideController::class, 'show']);
     Route::put('/developers-guide', [DevelopersGuideController::class, 'update']);
+
+    // Setup and Maintenance > Integration > Integration - PTJ (PAGEID 1860 / MENUID 2277).
+    // Legacy BL: AS_BL_SM_INTEGRATIONPTJ — datatable + popup-modal promote.
+    Route::get('/integration/ptj/options', [IntegrationPtjController::class, 'options']);
+    Route::get('/integration/ptj/parents', [IntegrationPtjController::class, 'parents']);
+    Route::get('/integration/ptj', [IntegrationPtjController::class, 'index']);
+    Route::get('/integration/ptj/{id}', [IntegrationPtjController::class, 'show'])->whereNumber('id');
+    Route::post('/integration/ptj/{id}/promote', [IntegrationPtjController::class, 'promote'])->whereNumber('id');
+
+    // Setup and Maintenance > Integration > Integration - Cost center (PAGEID 1861 / MENUID 2278).
+    // Legacy BL: AS_BL_SM_INTEGRATIONCOSTCENTRE — datatable + popup-modal promote.
+    Route::get('/integration/cost-centre', [IntegrationCostCentreController::class, 'index']);
+    Route::get('/integration/cost-centre/{id}', [IntegrationCostCentreController::class, 'show'])->whereNumber('id');
+    Route::post('/integration/cost-centre/{id}/promote', [IntegrationCostCentreController::class, 'promote'])->whereNumber('id');
+
+    // Setup and Maintenance > Integration > Integration - Profile (PAGEID 2000 / MENUID 2443).
+    // Legacy BL: SNA_API_SM_INTEGRATION_PROFILE — read-only datatable + smart filter.
+    Route::get('/integration/profile', [IntegrationProfileController::class, 'index']);
+    Route::get('/integration/profile/{id}', [IntegrationProfileController::class, 'show'])->whereNumber('id');
+
+    // Setup and Maintenance > Integration > Integration - Activity (PAGEID 2003 / MENUID 2444).
+    // Legacy BL: SNA_API_SM_INTEGRATION_ACTIVITY — read-only datatable + popup view.
+    Route::get('/integration/activity', [IntegrationActivityController::class, 'index']);
+    Route::get('/integration/activity/{id}', [IntegrationActivityController::class, 'show'])->whereNumber('id');
+
+    // General Ledger > Budget Not Exists (PAGEID 2200 / MENUID 2657).
+    // Legacy BL: NAD_API_SM_REPORT_BUDGET_NOT_EXIST — read-only listing of approved
+    // posting-detail rows whose document number is not yet registered against
+    // budget_transaction.bgt_ref. Server-side CSV export is replaced by the
+    // kitchen-sink client-side CSV/Excel/PDF export buttons.
+    Route::get('/general-ledger/budget-not-exists', [BudgetNotExistsController::class, 'index']);
+
+    // Setup and Maintenance > Global > List of Currency (PAGEID 2636 / MENUID 3198).
+    // Legacy BL: QLA_API_GLOBAL_LISTOFCURRENCY — datatable + popup-modal CRUD.
+    Route::get('/global/currencies/countries', [ListOfCurrencyController::class, 'searchCountries']);
+    Route::get('/global/currencies', [ListOfCurrencyController::class, 'index']);
+    Route::get('/global/currencies/{id}', [ListOfCurrencyController::class, 'show'])->whereNumber('id');
+    Route::post('/global/currencies', [ListOfCurrencyController::class, 'store']);
+    Route::put('/global/currencies/{id}', [ListOfCurrencyController::class, 'update'])->whereNumber('id');
+    Route::delete('/global/currencies/{id}', [ListOfCurrencyController::class, 'destroy'])->whereNumber('id');
+
+    // Setup and Maintenance > Global > AG Rate (PAGEID 2647 / MENUID 3199).
+    // Legacy BL: QLA_API_GLOBAL_UPLOADCURRENCY — list grouped by year/month,
+    // delete by year/month, manual entry that fans out to per-day rows.
+    Route::get('/global/ag-rate/options', [AgRateController::class, 'options']);
+    Route::get('/global/ag-rate/currencies', [AgRateController::class, 'searchCurrencies']);
+    Route::get('/global/ag-rate/lines', [AgRateController::class, 'periodLines']);
+    Route::get('/global/ag-rate/check-exist', [AgRateController::class, 'checkExist']);
+    Route::get('/global/ag-rate', [AgRateController::class, 'index']);
+    Route::post('/global/ag-rate', [AgRateController::class, 'store']);
+    Route::delete('/global/ag-rate', [AgRateController::class, 'destroy']);
 });

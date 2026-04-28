@@ -55,4 +55,18 @@ class CustInvoiceDetails extends Model
         'updatedby',
         'updateddate',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'cid_taxamt' => 'decimal:2',
+            'cid_total_amt' => 'decimal:2',
+            'cid_crnote_amt' => 'decimal:2',
+            'cid_dnnote_amt' => 'decimal:2',
+            'cid_dcnote_amt' => 'decimal:2',
+            'cid_nett_amt' => 'decimal:2',
+            'cid_bal_amt' => 'decimal:2',
+            'cid_extended_field' => 'array',
+        ];
+    }
 }

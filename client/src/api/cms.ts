@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "@/env";
 import { apiRequest } from "./client";
 import type {
   AccountBankByPayeeGenericRow,
@@ -12,6 +13,13 @@ import type {
   AccountBankUpdatedProcessResult,
   AccountBankUpdatedVoucherRow,
   AuditLog,
+  AssetInventoryRow,
+  ProjectListRow,
+  ProjectMonitoringBalance,
+  ProjectMonitoringBalanceInput,
+  AuditSystemTransactionOptions,
+  AuditSystemTransactionRow,
+  AuditSystemTransactionSql,
   ActivityGroupRow,
   BankAccountDetail,
   BankAccountInput,
@@ -68,6 +76,12 @@ import type {
   BillsSetupRow,
   BudgetClosingOptions,
   BudgetClosingPayload,
+  AllocationInput,
+  AllocationOptions,
+  AllocationRow,
+  BudgetCodeInput,
+  BudgetCodeOptions,
+  BudgetCodeRow,
   BudgetInitialOptions,
   BudgetInitialRow,
   BudgetMonitoringOptions,
@@ -75,6 +89,16 @@ import type {
   BudgetMovementOptions,
   BudgetMovementRow,
   BudgetMovementType,
+  BudgetPlanningNewAccount,
+  BudgetPlanningNewCreated,
+  BudgetPlanningNewInput,
+  BudgetPlanningNewOptions,
+  BudgetPlanningOptions,
+  BudgetPlanningRow,
+  BudgetPlanningScope,
+  BudgetPlanningScheduleInput,
+  BudgetPlanningScheduleOptions,
+  BudgetPlanningScheduleRow,
   BudgetStructureSearchForms,
   BudgetStructureSearchOptions,
   Category,
@@ -158,10 +182,18 @@ import type {
   JournalListingLine,
   JournalListingOptions,
   JournalListingRow,
+  LaporanBelanjawanOptions,
+  LaporanBelanjawanRow,
+  LaporanBelanjawanTotals,
   ManualJournalDetail,
   ManualJournalListingPdfPayload,
   ManualJournalOptions,
   ManualJournalRow,
+  ManualInvoiceDetail,
+  ManualInvoiceFooter,
+  ManualInvoiceLineInput,
+  ManualInvoiceOptions,
+  ManualInvoiceRow,
   PostingToTbHeader,
   PostingToTbLine,
   PostingToTbOptions,
@@ -170,6 +202,8 @@ import type {
   BankAccountUpdateRow,
   LedgerOptions,
   LedgerRow,
+  OfferedStudentOptions,
+  OfferedStudentRow,
   InvestmentAccrualOptions,
   InvestmentAccrualPostResult,
   InvestmentAccrualRow,
@@ -187,14 +221,38 @@ import type {
   ListOfInvestmentRow,
   SummaryListInvestmentOptions,
   SummaryListInvestmentRow,
-  ManualInvoiceFooter,
-  ManualInvoiceOptions,
-  ManualInvoiceRow,
+  InvoiceDetails,
+  InvoiceFooter,
+  InvoiceOptions,
+  InvoiceRow,
   PtptnDataDetail,
   PtptnDataHeader,
   PtptnDataRow,
+  AdvancePaymentOptions,
+  AdvancePaymentRow,
+  SponsorInvoiceGenerationFooter,
+  SponsorInvoiceGenerationOptions,
+  SponsorInvoiceGenerationRow,
+  SponsorProfileOptions,
+  SponsorProfileRow,
+  SponsorPtptnOptions,
+  SponsorPtptnRow,
+  StudentJournalApprovalDetail,
+  StudentJournalApprovalFooter,
+  StudentJournalApprovalRow,
   StatusPoPrOptions,
   StatusPoPrRow,
+  StructureBudgetListOptions,
+  StructureBudgetListRow,
+  TotalAllocationOptions,
+  TotalAllocationRow,
+  TotalAllocationTotals,
+  StudentInvoiceGenerationGenerateInput,
+  StudentInvoiceGenerationGenerateResult,
+  StudentInvoiceGenerationOptions,
+  StudentInvoiceGenerationRow,
+  StudentInvoiceGenerationSearchInput,
+  StudentInvoiceGenerationSearchMeta,
   TenderQuotationRow,
   UtilityRegistrationDetail,
   UtilityRegistrationInput,
@@ -204,8 +262,46 @@ import type {
   VcTncDetail,
   VcTncOptions,
   VcTncRow,
+  VendorBillingRow,
+  VendorPaymentRow,
+  VendorPoStatusRow,
+  VendorPortalAccountRow,
+  VendorPortalAddressRow,
+  VendorPortalCategoryRow,
+  VendorPortalJobscopeRow,
+  VendorPortalLicenceRow,
+  VendorPortalLookups,
+  VendorPortalOtherLicenceRow,
+  VendorPortalProfile,
+  VendorPortalProfileInput,
   VendorRegistrationFeeRow,
   VendorStatusCheck,
+  VendorVoucherRow,
+  SponsorLetterCatalogRow,
+  SponsorLetterHistoryRow,
+  StaffProfileAddress,
+  StaffProfileAddressInput,
+  StaffProfileChildRow,
+  StaffProfileMaritalStatusInput,
+  StaffProfileMaster,
+  StaffProfileOptions,
+  StaffProfileSpouseRow,
+  IntegrationPtjRow,
+  IntegrationPtjPromoteInput,
+  IntegrationCostCentreRow,
+  IntegrationCostCentrePromoteInput,
+  IntegrationProfileRow,
+  IntegrationActivityRow,
+  BudgetNotExistsRow,
+  ListOfCurrencyRow,
+  ListOfCurrencyInput,
+  ListOfCurrencyUpdate,
+  CountryOption,
+  AgRateRow,
+  AgRateLine,
+  AgRateCurrencyOption,
+  AgRateOptions,
+  AgRateEntryInput,
 } from "@/types";
 import type { AdminMenuPrefs } from "@/config/admin-menu";
 
@@ -1839,7 +1935,7 @@ export async function getLedgerOptions() {
   return apiRequest<{ data: LedgerOptions }>("/api/student-finance/ledger/options");
 }
 
-// Student Finance > Manual Invoice Listing (PAGEID 2389 / MENUID 2897).
+// Student Finance > Manual Invoice Listing (PAGEID 2343 / MENUID 2897).
 // Legacy BL `DT_SF_MANUAL_INV_LISTING`.
 export async function listManualInvoices(params = "") {
   return apiRequest<{
@@ -1854,10 +1950,164 @@ export async function getManualInvoiceOptions() {
   );
 }
 
+export async function getManualInvoice(id: number) {
+  return apiRequest<{ data: ManualInvoiceDetail }>(
+    `/api/student-finance/manual-invoice/${id}`,
+  );
+}
+
+/** Insert a cust_invoice_details row (legacy +Add). Returns refreshed invoice detail. */
+export async function addManualInvoiceLine(invoiceId: number, input: ManualInvoiceLineInput) {
+  return apiRequest<{ data: ManualInvoiceDetail }>(
+    `/api/student-finance/manual-invoice/${invoiceId}/lines`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+/** Remove one line (DRAFT only). Returns refreshed invoice detail. */
+export async function removeManualInvoiceLine(invoiceId: number, lineId: number) {
+  return apiRequest<{ data: ManualInvoiceDetail }>(
+    `/api/student-finance/manual-invoice/${invoiceId}/lines/${lineId}`,
+    { method: "DELETE" },
+  );
+}
+
 export async function deleteManualInvoice(id: number) {
   return apiRequest<{ data: { success: boolean } }>(
     `/api/student-finance/manual-invoice/${id}`,
     { method: "DELETE" },
+  );
+}
+
+// Student Finance > List of Offered (PAGEID 2181 / MENUID 2636).
+// Legacy BL `MZ_BL_SF_OFFEREDLIST`.
+export async function listOfferedStudents(params = "") {
+  return apiRequest<{ data: OfferedStudentRow[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/offered${params}`,
+  );
+}
+
+export async function getOfferedStudentOptions() {
+  return apiRequest<{ data: OfferedStudentOptions }>(
+    "/api/student-finance/offered/options",
+  );
+}
+
+// Legacy BLs `DT_SF_INVOICE` (main listing) + `DT_DEBIT_LIST`
+// (per-invoice debit detail drilldown).
+export async function listInvoices(params = "") {
+  return apiRequest<{
+    data: InvoiceRow[];
+    meta: Record<string, unknown> & { footer?: InvoiceFooter };
+  }>(`/api/student-finance/invoice${params}`);
+}
+
+export async function getInvoiceOptions() {
+  return apiRequest<{ data: InvoiceOptions }>(
+    "/api/student-finance/invoice/options",
+  );
+}
+
+export async function getInvoiceDetails(id: number) {
+  return apiRequest<{ data: InvoiceDetails }>(
+    `/api/student-finance/invoice/${id}/details`,
+  );
+}
+
+// Student Finance > Invoice Generation (PAGEID 970 / MENUID 1231).
+// Maps directly to legacy CALL_PROC_STUDENT_INVOICE actions:
+//   options  -> dropdown lookups (no legacy equivalent — pure SETUP read)
+//   search   -> find=1     (CALL invoiceCheckingByBatch)
+//   generate -> generate=1 (CALL invoiceCreationByBatch + wf_task URL rewrite)
+//   exportCsv      -> csv=1   (legacy listing CSV by uniqueKey)
+//   exportMatchCsv -> match=1 (post-generate match CSV by uniqueKey)
+export async function getStudentInvoiceGenerationOptions() {
+  return apiRequest<{ data: StudentInvoiceGenerationOptions }>(
+    "/api/student-finance/invoice-generation/options",
+  );
+}
+
+export async function searchStudentInvoiceGeneration(
+  input: StudentInvoiceGenerationSearchInput,
+) {
+  return apiRequest<{
+    data: StudentInvoiceGenerationRow[];
+    meta: StudentInvoiceGenerationSearchMeta;
+  }>("/api/student-finance/invoice-generation/search", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function generateStudentInvoice(
+  input: StudentInvoiceGenerationGenerateInput,
+) {
+  return apiRequest<{ data: StudentInvoiceGenerationGenerateResult }>(
+    "/api/student-finance/invoice-generation/generate",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+// CSV exports stream binary blobs (text/csv) so they cannot reuse
+// `apiRequest`, which always parses JSON. We still respect the same
+// session/CSRF rules: cookies via `credentials: "include"` and the
+// XSRF-TOKEN cookie copied to the X-XSRF-TOKEN header. POST is used
+// instead of GET because the uniqueKey + legacy label fields drive
+// the CSV header text and that contract is too large for a query
+// string. Routes match `routes/api.php`.
+async function streamStudentInvoiceCsv(
+  path: string,
+  input: Record<string, unknown>,
+): Promise<Blob> {
+  const csrfMatch = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+  const csrfToken = csrfMatch ? decodeURIComponent(csrfMatch[1]) : "";
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/csv",
+      "X-Requested-With": "XMLHttpRequest",
+      ...(csrfToken ? { "X-XSRF-TOKEN": csrfToken } : {}),
+    },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    let message = `Export failed (${response.status})`;
+    try {
+      const payload = await response.clone().json();
+      message = payload?.error?.message ?? message;
+    } catch {
+      // Non-JSON failure — leave the generic message.
+    }
+    throw new Error(message);
+  }
+  return response.blob();
+}
+
+export async function exportStudentInvoiceGenerationCsv(input: {
+  uniqueKey: string;
+  semesterDesc?: string;
+  programLevelDesc?: string;
+  studentTypeDesc?: string;
+  feeTypeDesc?: string;
+  intakeCaseDesc?: string;
+}): Promise<Blob> {
+  return streamStudentInvoiceCsv(
+    "/api/student-finance/invoice-generation/export/csv",
+    input,
+  );
+}
+
+export async function exportStudentInvoiceGenerationMatchCsv(input: {
+  uniqueKey: string;
+}): Promise<Blob> {
+  return streamStudentInvoiceCsv(
+    "/api/student-finance/invoice-generation/export/match-csv",
+    input,
   );
 }
 
@@ -2176,4 +2426,654 @@ export async function getGlListingOptions() {
   return apiRequest<{ data: GlListingOptions }>(
     "/api/general-ledger/general-ledger-listing/options",
   );
+}
+
+// Audit Trail > System Transaction (PAGEID 3 / MENUID 5).
+// Source: FIMS BL `V2_AUDIT_SYSTEM_TRANSACTION_API`. Read-only listing of
+// the legacy `fims_audit.system_transaction` ledger.
+export async function listAuditSystemTransactions(params = "") {
+  return apiRequest<{ data: AuditSystemTransactionRow[]; meta: Record<string, unknown> }>(
+    `/api/audit/system-transactions${params}`,
+  );
+}
+
+export async function getAuditSystemTransactionOptions() {
+  return apiRequest<{ data: AuditSystemTransactionOptions }>(
+    "/api/audit/system-transactions/options",
+  );
+}
+
+export async function getAuditSystemTransactionSql(auditId: number) {
+  return apiRequest<{ data: AuditSystemTransactionSql }>(
+    `/api/audit/system-transactions/${auditId}/sql`,
+  );
+}
+
+// Vendor Portal > Purchase Order Status (PAGEID 1664 / MENUID 2015).
+// Source: FIMS BL `NF_BL_VENDOR_PO_STATUS`.
+export async function listVendorPoStatus(params = "") {
+  return apiRequest<{ data: VendorPoStatusRow[]; meta: Record<string, unknown> }>(
+    `/api/portal/vendor/po-status${params}`,
+  );
+}
+
+// Vendor Portal > Financial Status (PAGEID 1714 / MENUID 2072).
+// Source: FIMS BL `NF_BL_PURCHASING_FINANCIAL_STATUS`.
+export async function listVendorBillings(params = "") {
+  return apiRequest<{ data: VendorBillingRow[]; meta: Record<string, unknown> }>(
+    `/api/portal/vendor/financial-status/billings${params}`,
+  );
+}
+export async function listVendorVouchers(params = "") {
+  return apiRequest<{ data: VendorVoucherRow[]; meta: Record<string, unknown> }>(
+    `/api/portal/vendor/financial-status/vouchers${params}`,
+  );
+}
+export async function listVendorPayments(params = "") {
+  return apiRequest<{ data: VendorPaymentRow[]; meta: Record<string, unknown> }>(
+    `/api/portal/vendor/financial-status/payments${params}`,
+  );
+}
+
+// Portal > List of Letter (PAGEID 2330 / MENUID 2823).
+// Source: FIMS BL `IKA_LETTER_LIST_API`. Read-only catalog + history.
+export async function listSponsorLetterCatalog(params = "") {
+  return apiRequest<{ data: SponsorLetterCatalogRow[]; meta: Record<string, unknown> }>(
+    `/api/portal/letter/catalog${params}`,
+  );
+}
+export async function listSponsorLetterHistory(params = "") {
+  return apiRequest<{ data: SponsorLetterHistoryRow[]; meta: Record<string, unknown> }>(
+    `/api/portal/letter/history${params}`,
+  );
+}
+export async function downloadSponsorLetter(letterId: string) {
+  return apiRequest<{ data: { reportUrl: string } }>(
+    `/api/portal/letter/${encodeURIComponent(letterId)}/download`,
+    { method: "POST", body: JSON.stringify({}) },
+  );
+}
+
+// Asset > List of Asset (PAGEID 1271 / MENUID 1548).
+// Source: FIMS BL `API_ASSET_INVENTORY_LISTOFASSET`.
+export async function listAssetInventory(params = "") {
+  return apiRequest<{ data: AssetInventoryRow[]; meta: Record<string, unknown> }>(
+    `/api/asset/list-of-asset${params}`,
+  );
+}
+
+// Project Monitoring > List of Project (MENUID 1544).
+export async function listProjectMonitoringProjects(params = "") {
+  return apiRequest<{ data: ProjectListRow[]; meta: Record<string, unknown> }>(
+    `/api/project-monitoring/projects${params}`,
+  );
+}
+
+// Project Monitoring > Updated Balance (MENUID 2065). Form-driven:
+//   - search: autosuggest typed search (Project ID dropdown). Joined
+//             select over capital_project / fund_type / costcentre /
+//             activity_type / structure_budget / organization_unit /
+//             budget (latest bdg_year per project).
+//   - get:    same payload, scoped to a single cpa_project_no.
+//   - save:   POST {info, bal} → updates cpa_ytd_balance_amt +
+//             bdg_topup_amt in a transaction, mirroring legacy
+//             SNA_API_UPDATEDBALANCE_PM?updateAmount=1.
+export async function searchProjectMonitoringProjects(params = "") {
+  return apiRequest<{ data: ProjectMonitoringBalance[] }>(
+    `/api/project-monitoring/updated-balance/search${params}`,
+  );
+}
+
+export async function getProjectMonitoringBalance(cpaProjectNo: string) {
+  return apiRequest<{ data: ProjectMonitoringBalance }>(
+    `/api/project-monitoring/updated-balance/${encodeURIComponent(cpaProjectNo)}`,
+  );
+}
+
+export async function saveProjectMonitoringBalance(
+  input: ProjectMonitoringBalanceInput,
+) {
+  return apiRequest<{ data: { success: boolean } }>(
+    `/api/project-monitoring/updated-balance`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+// Portal > Staff Profile (PAGEID 1581 / MENUID 1914).
+// Backend: StaffProfileController.
+
+export async function getStaffProfileMaster() {
+  return apiRequest<{ data: StaffProfileMaster }>(`/api/portal/staff-profile`);
+}
+
+export async function getStaffProfileOptions() {
+  return apiRequest<{ data: StaffProfileOptions }>(
+    `/api/portal/staff-profile/options`,
+  );
+}
+
+export async function getStaffProfileAddress() {
+  return apiRequest<{ data: StaffProfileAddress }>(
+    `/api/portal/staff-profile/address`,
+  );
+}
+
+export async function updateStaffProfileAddress(
+  input: StaffProfileAddressInput,
+) {
+  return apiRequest<{ data: { success: boolean } }>(
+    `/api/portal/staff-profile/address`,
+    { method: "PUT", body: JSON.stringify(input) },
+  );
+}
+
+export async function updateStaffProfileMaritalStatus(
+  input: StaffProfileMaritalStatusInput,
+) {
+  return apiRequest<{
+    data: {
+      success: boolean;
+      maritalStatus: string;
+      maritalstatusDesc: string;
+    };
+  }>(`/api/portal/staff-profile/marital-status`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function listStaffProfileChildren(params = "") {
+  return apiRequest<{
+    data: StaffProfileChildRow[];
+    meta: Record<string, unknown>;
+  }>(`/api/portal/staff-profile/children${params}`);
+}
+
+export async function listStaffProfileSpouses(params = "") {
+  return apiRequest<{
+    data: StaffProfileSpouseRow[];
+    meta: Record<string, unknown>;
+  }>(`/api/portal/staff-profile/spouses${params}`);
+}
+
+export async function listStaffProfileSpouseChildren(seq: string, params = "") {
+  return apiRequest<{
+    data: StaffProfileChildRow[];
+    meta: Record<string, unknown>;
+  }>(
+    `/api/portal/staff-profile/spouses/${encodeURIComponent(seq)}/children${params}`,
+  );
+}
+
+// ----- Vendor Portal (PAGEID 1622 / MENUID 1961) -------------------------
+
+export async function getVendorPortalProfile(params = "") {
+  return apiRequest<{ data: VendorPortalProfile }>(`/api/portal/vendor/profile${params}`);
+}
+
+export async function updateVendorPortalProfile(
+  input: VendorPortalProfileInput,
+  params = "",
+) {
+  return apiRequest<{ data: VendorPortalProfile }>(
+    `/api/portal/vendor/profile${params}`,
+    { method: "PUT", body: JSON.stringify(input) },
+  );
+}
+
+export async function getVendorPortalLookups(params = "") {
+  return apiRequest<{ data: VendorPortalLookups }>(
+    `/api/portal/vendor/lookups${params}`,
+  );
+}
+
+export async function listVendorPortalCategories(params = "") {
+  return apiRequest<{
+    data: VendorPortalCategoryRow[];
+    meta: Record<string, unknown>;
+  }>(`/api/portal/vendor/categories${params}`);
+}
+
+export async function listVendorPortalAccounts(params = "") {
+  return apiRequest<{
+    data: VendorPortalAccountRow[];
+    meta: Record<string, unknown>;
+  }>(`/api/portal/vendor/accounts${params}`);
+}
+
+export async function listVendorPortalAddresses(params = "") {
+  return apiRequest<{
+    data: VendorPortalAddressRow[];
+    meta: Record<string, unknown>;
+  }>(`/api/portal/vendor/addresses${params}`);
+}
+
+export async function listVendorPortalJobscopes(params = "") {
+  return apiRequest<{
+    data: VendorPortalJobscopeRow[];
+    meta: Record<string, unknown>;
+  }>(`/api/portal/vendor/jobscopes${params}`);
+}
+
+export async function listVendorPortalSsmLicences(params = "") {
+  return apiRequest<{
+    data: VendorPortalLicenceRow[];
+    meta: Record<string, unknown>;
+  }>(`/api/portal/vendor/ssm-licences${params}`);
+}
+
+export async function listVendorPortalMofLicences(params = "") {
+  return apiRequest<{
+    data: VendorPortalLicenceRow[];
+    meta: Record<string, unknown>;
+  }>(`/api/portal/vendor/mof-licences${params}`);
+}
+
+export async function listVendorPortalOtherLicences(params = "") {
+  return apiRequest<{
+    data: VendorPortalOtherLicenceRow[];
+    meta: Record<string, unknown>;
+  }>(`/api/portal/vendor/other-licences${params}`);
+}
+
+// Setup and Maintenance > Integration > Integration - PTJ (PAGEID 1860 / MENUID 2277).
+export async function listIntegrationPtj(params = "") {
+  return apiRequest<{ data: IntegrationPtjRow[]; meta: Record<string, unknown> }>(
+    `/api/integration/ptj${params}`,
+  );
+}
+
+export async function getIntegrationPtjOptions() {
+  return apiRequest<{ data: { levels: { id: string; label: string }[] } }>(
+    "/api/integration/ptj/options",
+  );
+}
+
+export async function getIntegrationPtjParents(params = "") {
+  return apiRequest<{ data: { id: string; label: string }[] }>(
+    `/api/integration/ptj/parents${params}`,
+  );
+}
+
+export async function getIntegrationPtjRow(id: number) {
+  return apiRequest<{ data: IntegrationPtjRow }>(`/api/integration/ptj/${id}`);
+}
+
+export async function promoteIntegrationPtj(id: number, input: IntegrationPtjPromoteInput) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/integration/ptj/${id}/promote`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// Setup and Maintenance > Integration > Integration - Cost center (PAGEID 1861 / MENUID 2278).
+export async function listIntegrationCostCentres(params = "") {
+  return apiRequest<{ data: IntegrationCostCentreRow[]; meta: Record<string, unknown> }>(
+    `/api/integration/cost-centre${params}`,
+  );
+}
+
+export async function getIntegrationCostCentre(id: number) {
+  return apiRequest<{ data: IntegrationCostCentreRow }>(`/api/integration/cost-centre/${id}`);
+}
+
+export async function promoteIntegrationCostCentre(id: number, input: IntegrationCostCentrePromoteInput) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/integration/cost-centre/${id}/promote`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// Setup and Maintenance > Integration > Integration - Profile (PAGEID 2000 / MENUID 2443).
+export async function listIntegrationProfiles(params = "") {
+  return apiRequest<{ data: IntegrationProfileRow[]; meta: Record<string, unknown> }>(
+    `/api/integration/profile${params}`,
+  );
+}
+
+export async function getIntegrationProfile(id: number) {
+  return apiRequest<{ data: IntegrationProfileRow }>(`/api/integration/profile/${id}`);
+}
+
+// Setup and Maintenance > Integration > Integration - Activity (PAGEID 2003 / MENUID 2444).
+export async function listIntegrationActivities(params = "") {
+  return apiRequest<{ data: IntegrationActivityRow[]; meta: Record<string, unknown> }>(
+    `/api/integration/activity${params}`,
+  );
+}
+
+export async function getIntegrationActivity(id: number) {
+  return apiRequest<{ data: IntegrationActivityRow }>(`/api/integration/activity/${id}`);
+}
+
+// General Ledger > Budget Not Exists (PAGEID 2200 / MENUID 2657).
+export async function listBudgetNotExists(params = "") {
+  return apiRequest<{ data: BudgetNotExistsRow[]; meta: Record<string, unknown> }>(
+    `/api/general-ledger/budget-not-exists${params}`,
+  );
+}
+
+// Setup and Maintenance > Global > List of Currency (PAGEID 2636 / MENUID 3198).
+export async function listCurrencies(params = "") {
+  return apiRequest<{ data: ListOfCurrencyRow[]; meta: Record<string, unknown> }>(
+    `/api/global/currencies${params}`,
+  );
+}
+
+export async function searchCurrencyCountries(params = "") {
+  return apiRequest<{ data: CountryOption[] }>(`/api/global/currencies/countries${params}`);
+}
+
+export async function getCurrency(id: number) {
+  return apiRequest<{ data: ListOfCurrencyRow }>(`/api/global/currencies/${id}`);
+}
+
+export async function createCurrency(input: ListOfCurrencyInput) {
+  return apiRequest<{ data: { cymCurrencyId: number; cymCurrencyCode: string } }>(
+    "/api/global/currencies",
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+export async function updateCurrency(id: number, input: ListOfCurrencyUpdate) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/global/currencies/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteCurrency(id: number) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/global/currencies/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// Setup and Maintenance > Global > AG Rate (PAGEID 2647 / MENUID 3199).
+export async function listAgRates(params = "") {
+  return apiRequest<{ data: AgRateRow[]; meta: Record<string, unknown> }>(
+    `/api/global/ag-rate${params}`,
+  );
+}
+
+export async function getAgRateOptions() {
+  return apiRequest<{ data: AgRateOptions }>("/api/global/ag-rate/options");
+}
+
+export async function searchAgRateCurrencies(params = "") {
+  return apiRequest<{ data: AgRateCurrencyOption[] }>(`/api/global/ag-rate/currencies${params}`);
+}
+
+export async function listAgRateLines(params = "") {
+  return apiRequest<{ data: AgRateLine[] }>(`/api/global/ag-rate/lines${params}`);
+}
+
+export async function checkAgRateExist(params = "") {
+  return apiRequest<{ data: { exists: boolean } }>(`/api/global/ag-rate/check-exist${params}`);
+}
+
+export async function saveAgRateEntry(input: AgRateEntryInput) {
+  return apiRequest<{ data: { success: boolean } }>("/api/global/ag-rate", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteAgRatePeriod(year: number, month: string) {
+  const qs = new URLSearchParams({ cyd_year: String(year), cyd_month: month }).toString();
+  return apiRequest<{ data: { success: boolean } }>(`/api/global/ag-rate?${qs}`, {
+    method: "DELETE",
+  });
+}
+
+// Budget > Setup > Budget Code (PAGEID 1475 / MENUID 1796).
+export async function listBudgetCodes(params = "") {
+  return apiRequest<{ data: BudgetCodeRow[]; meta: Record<string, unknown> }>(`/api/budget/budget-code${params}`);
+}
+
+export async function getBudgetCode(id: number) {
+  return apiRequest<{ data: BudgetCodeRow }>(`/api/budget/budget-code/${id}`);
+}
+
+export async function createBudgetCode(input: BudgetCodeInput) {
+  return apiRequest<{ data: { id: number } }>("/api/budget/budget-code", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateBudgetCode(id: number, input: BudgetCodeInput) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/budget/budget-code/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function getBudgetCodeOptions() {
+  return apiRequest<{ data: BudgetCodeOptions }>("/api/budget/budget-code/options");
+}
+
+// Budget > Setup > Budget Planning Schedule (PAGEID 2872 / MENUID 3456).
+export async function listBudgetPlanningSchedules(params = "") {
+  return apiRequest<{ data: BudgetPlanningScheduleRow[]; meta: Record<string, unknown> }>(
+    `/api/budget/planning-schedule${params}`,
+  );
+}
+
+export async function getBudgetPlanningSchedule(id: number) {
+  return apiRequest<{ data: BudgetPlanningScheduleRow }>(`/api/budget/planning-schedule/${id}`);
+}
+
+export async function createBudgetPlanningSchedule(input: BudgetPlanningScheduleInput) {
+  return apiRequest<{ data: { id: number; successMessage?: string } }>("/api/budget/planning-schedule", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateBudgetPlanningSchedule(id: number, input: BudgetPlanningScheduleInput) {
+  return apiRequest<{ data: { success: boolean; successMessage?: string } }>(
+    `/api/budget/planning-schedule/${id}`,
+    { method: "PUT", body: JSON.stringify(input) },
+  );
+}
+
+export async function deleteBudgetPlanningSchedule(id: number) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/budget/planning-schedule/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function getBudgetPlanningScheduleOptions() {
+  return apiRequest<{ data: BudgetPlanningScheduleOptions }>("/api/budget/planning-schedule/options");
+}
+
+// Budget > Setup > Allocation (PAGEID 1035 / MENUID 1294).
+// Legacy BL: SWS_DT_SETUP_QUARTER + popup-modal update.
+export async function listAllocations(params = "") {
+  return apiRequest<{ data: AllocationRow[]; meta: Record<string, unknown> }>(
+    `/api/budget/allocation${params}`,
+  );
+}
+
+export async function getAllocation(id: string) {
+  return apiRequest<{ data: AllocationRow }>(`/api/budget/allocation/${encodeURIComponent(id)}`);
+}
+
+export async function updateAllocation(id: string, input: AllocationInput) {
+  return apiRequest<{ data: { qbuQuarterId: string; successMessage?: string } }>(
+    `/api/budget/allocation/${encodeURIComponent(id)}`,
+    { method: "PUT", body: JSON.stringify(input) },
+  );
+}
+
+export async function getAllocationOptions() {
+  return apiRequest<{ data: AllocationOptions }>("/api/budget/allocation/options");
+}
+
+// Budget > Structure Budget List (PAGEID 1071 / MENUID 1334).
+export async function listStructureBudgetList(params = "") {
+  return apiRequest<{ data: StructureBudgetListRow[]; meta: Record<string, unknown> }>(
+    `/api/budget/structure-list${params}`,
+  );
+}
+
+export async function getStructureBudgetListOptions() {
+  return apiRequest<{ data: StructureBudgetListOptions }>("/api/budget/structure-list/options");
+}
+
+// Budget Planning suite (shared list controller, scoped by ?scope=).
+export async function listBudgetPlanning(scope: BudgetPlanningScope, params = "") {
+  const sep = params.startsWith("?") ? "&" : params ? "&" : "?";
+  const trimmed = params.startsWith("?") ? params.slice(1) : params;
+  const query = `?scope=${encodeURIComponent(scope)}${trimmed ? sep + trimmed : ""}`;
+  return apiRequest<{
+    data: BudgetPlanningRow[];
+    meta: Record<string, unknown>;
+  }>(`/api/budget/planning-list${query}`);
+}
+
+export async function getBudgetPlanningOptions(scope: BudgetPlanningScope) {
+  return apiRequest<{ data: BudgetPlanningOptions }>(
+    `/api/budget/planning-list/options?scope=${encodeURIComponent(scope)}`,
+  );
+}
+
+export async function deleteBudgetPlanning(id: number) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/budget/planning-list/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function duplicateBudgetPlanning(id: number) {
+  return apiRequest<{
+    data: { bpmId: number; bpmPlanningNo: string | null; successMessage?: string };
+  }>(`/api/budget/planning-list/${id}/duplicate`, { method: "POST" });
+}
+
+// Budget > Planning > New Application (PAGEID 1236 / MENUID 1516).
+export async function getBudgetPlanningNewOptions() {
+  return apiRequest<{ data: BudgetPlanningNewOptions }>("/api/budget/planning-new/options");
+}
+
+export async function listBudgetPlanningNewAccounts(fund: string, activity = "") {
+  const params = new URLSearchParams({ fund });
+  if (activity) params.set("activity", activity);
+  return apiRequest<{
+    data: BudgetPlanningNewAccount[];
+    meta: { fund: string; activity: string; total: number };
+  }>(`/api/budget/planning-new/accounts?${params.toString()}`);
+}
+
+export async function createBudgetPlanningNew(input: BudgetPlanningNewInput) {
+  return apiRequest<{ data: BudgetPlanningNewCreated }>("/api/budget/planning-new", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// Budget > Reports > Total Allocation Report (PAGEID 1626 / MENUID 1968).
+export async function listTotalAllocationReport(params = "") {
+  return apiRequest<{
+    data: TotalAllocationRow[];
+    meta: Record<string, unknown> & { totals?: TotalAllocationTotals };
+  }>(`/api/budget/report/total-allocation${params}`);
+}
+
+export async function getTotalAllocationReportOptions() {
+  return apiRequest<{ data: TotalAllocationOptions }>(
+    "/api/budget/report/total-allocation/options",
+  );
+}
+
+// Budget > Reports > Laporan Belanjawan (PAGEID 2873 / MENUID 3457).
+export async function listLaporanBelanjawan(params = "") {
+  return apiRequest<{
+    data: LaporanBelanjawanRow[];
+    meta: Record<string, unknown> & { totals?: LaporanBelanjawanTotals };
+  }>(`/api/budget/report/laporan-belanjawan${params}`);
+}
+
+export async function getLaporanBelanjawanOptions() {
+  return apiRequest<{ data: LaporanBelanjawanOptions }>(
+    "/api/budget/report/laporan-belanjawan/options",
+  );
+}
+
+// Student Finance > Sponsor > Advance Payment (PAGEID 1669 / MENUID 2020).
+// Legacy BL `V2_SAP_LIST_API`.
+export async function listAdvancePayments(params = "") {
+  return apiRequest<{ data: AdvancePaymentRow[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/advance-payment${params}`,
+  );
+}
+
+export async function getAdvancePaymentOptions() {
+  return apiRequest<{ data: AdvancePaymentOptions }>(
+    "/api/student-finance/advance-payment/options",
+  );
+}
+
+// Student Finance > Sponsor > PTPTN (PAGEID 1231 / MENUID 1507).
+// Legacy BL `V2_PTPTN_API`.
+export async function listSponsorPtptn(params = "") {
+  return apiRequest<{ data: SponsorPtptnRow[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/sponsor-ptptn${params}`,
+  );
+}
+
+export async function getSponsorPtptnOptions() {
+  return apiRequest<{ data: SponsorPtptnOptions }>(
+    "/api/student-finance/sponsor-ptptn/options",
+  );
+}
+
+// Student Finance > Sponsor > Profile (PAGEID 845 / MENUID 1025).
+// Legacy BL `V2_SFSP_SPONSOR_API`.
+export async function listSponsorProfile(params = "") {
+  return apiRequest<{ data: SponsorProfileRow[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/sponsor-profile${params}`,
+  );
+}
+
+export async function getSponsorProfileOptions() {
+  return apiRequest<{ data: SponsorProfileOptions }>(
+    "/api/student-finance/sponsor-profile/options",
+  );
+}
+
+// Student Finance > Sponsor > Invoice Generation (PAGEID 1218 / MENUID 1491).
+// Legacy BL `V2_SFSI_API` (?listing=2).
+export async function listSponsorInvoiceGeneration(params = "") {
+  return apiRequest<{
+    data: SponsorInvoiceGenerationRow[];
+    meta: Record<string, unknown> & { footer?: SponsorInvoiceGenerationFooter; totalStudent?: number };
+  }>(`/api/student-finance/sponsor-invoice-generation${params}`);
+}
+
+export async function getSponsorInvoiceGenerationOptions() {
+  return apiRequest<{ data: SponsorInvoiceGenerationOptions }>(
+    "/api/student-finance/sponsor-invoice-generation/options",
+  );
+}
+
+// Student Finance > Sponsor > Student Journal Approval (PAGEID 1954 / MENUID 2390).
+// Legacy BL `MZ_BL_SF_APPROVAL`.
+export async function getStudentJournalApprovalDetail(id: number) {
+  return apiRequest<{ data: StudentJournalApprovalDetail }>(
+    `/api/student-finance/student-journal-approval/${id}`,
+  );
+}
+
+export async function listStudentJournalApprovalCredit(id: number, params = "") {
+  return apiRequest<{
+    data: StudentJournalApprovalRow[];
+    meta: Record<string, unknown> & { footer?: StudentJournalApprovalFooter };
+  }>(`/api/student-finance/student-journal-approval/${id}/credit${params}`);
+}
+
+export async function listStudentJournalApprovalDebit(id: number, params = "") {
+  return apiRequest<{
+    data: StudentJournalApprovalRow[];
+    meta: Record<string, unknown> & { footer?: StudentJournalApprovalFooter };
+  }>(`/api/student-finance/student-journal-approval/${id}/debit${params}`);
 }
