@@ -67,14 +67,12 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (AuthenticationException $e, Request $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'error' => [
-                        'code' => 'UNAUTHORIZED',
-                        'message' => 'Unauthenticated.',
-                    ],
-                ], 401);
-            }
+            return response()->json([
+                'error' => [
+                    'code' => 'UNAUTHORIZED',
+                    'message' => 'Unauthenticated.',
+                ],
+            ], 401);
         });
 
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {

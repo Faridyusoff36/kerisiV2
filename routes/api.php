@@ -61,6 +61,8 @@ use App\Http\Controllers\Api\InvestmentToBeWithdrawnController;
 use App\Http\Controllers\Api\InvoiceBalanceController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\JournalListingController;
+use App\Http\Controllers\Api\KerisiArController;
+use App\Http\Controllers\Api\KerisiPayrollController;
 use App\Http\Controllers\Api\KerisiSfLevel3Controller;
 use App\Http\Controllers\Api\LaporanBelanjawanController;
 use App\Http\Controllers\Api\LedgerController;
@@ -511,6 +513,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // PAGE_MENUID1019_LEVEL3 registry shell — empty rows until per-menu BL is wired.
     Route::get('/student-finance/kerisi-level3/{menuId}', [KerisiSfLevel3Controller::class, 'index'])
+        ->whereNumber('menuId');
+
+    // PAGE_MENUID1024_LEVEL3 Account Receivable shell — ORM queries in KerisiArShellListService.
+    Route::get('/payroll/kerisi/{menuId}', [KerisiPayrollController::class, 'index'])
+        ->whereNumber('menuId');
+    Route::get('/account-receivable/kerisi-ar/{menuId}', [KerisiArController::class, 'index'])
         ->whereNumber('menuId');
 
     // Investment > List Of Accrual (PAGEID 1548 / MENUID 1877). Legacy BL

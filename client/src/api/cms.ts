@@ -3108,3 +3108,16 @@ export async function listStudentJournalApprovalDebit(id: number, params = "") {
     meta: Record<string, unknown> & { footer?: StudentJournalApprovalFooter };
   }>(`/api/student-finance/student-journal-approval/${id}/debit${params}`);
 }
+
+// Account Receivable — PAGE_MENUID1024_LEVEL3 shell endpoint
+export async function listKerisiArData(menuId: number, params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/account-receivable/kerisi-ar/${menuId}${params}`,
+  );
+}
+
+export async function listKerisiPayrollData(menuId: number, params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/payroll/kerisi/${menuId}${params}`,
+  );
+}
