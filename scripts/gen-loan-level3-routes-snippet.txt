@@ -1,0 +1,99 @@
+    // HIDDEN_PAGE_LEVEL3 Loan (`HIDDEN_PAGE_LEVEL3.json` overlaps; must stay before `...kerisiLoanHiddenRoutes`).
+    {
+      path: "/admin/kerisi/m/1586",
+      name: "kerisi-loan-portal-profile-form",
+      component: LoanLegacyPlaceholderView,
+      props: {
+        title: "Loan Profile Form",
+        breadcrumb: "Portal / Loan / Loan Profile Form",
+        description:
+          "This legacy loan workflow, report, or setup screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin",
+        relatedLabel: "Open main dashboard",
+      },
+      meta: { requiresAuth: true, title: "Loan Profile Form" },
+    },
+    {
+      path: "/admin/kerisi/m/1627",
+      name: "kerisi-loan-portal-payslip",
+      component: LoanLegacyPlaceholderView,
+      props: {
+        title: "Payslip",
+        breadcrumb: "Portal / Loan / Payslip",
+        description:
+          "This legacy loan workflow, report, or setup screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin",
+        relatedLabel: "Open main dashboard",
+      },
+      meta: { requiresAuth: true, title: "Payslip" },
+    },
+    {
+      path: "/admin/kerisi/m/1640",
+      name: "kerisi-loan-portal-update-information",
+      component: LoanLegacyPlaceholderView,
+      props: {
+        title: "Update Loan Information",
+        breadcrumb: "Portal / Loan / Update Loan Information",
+        description:
+          "This legacy loan workflow, report, or setup screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin",
+        relatedLabel: "Open main dashboard",
+      },
+      meta: { requiresAuth: true, title: "Update Loan Information" },
+    },
+    {
+      path: "/admin/kerisi/m/2051",
+      name: "kerisi-loan-portal-modification",
+      component: LoanLegacyPlaceholderView,
+      props: {
+        title: "Loan Modification",
+        breadcrumb: "Portal / Loan / Loan Modification",
+        description:
+          "This legacy loan workflow, report, or setup screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin",
+        relatedLabel: "Open main dashboard",
+      },
+      meta: { requiresAuth: true, title: "Loan Modification" },
+    },
+    {
+      path: "/admin/kerisi/m/2052",
+      name: "kerisi-loan-portal-modification-workflow",
+      component: LoanLegacyPlaceholderView,
+      props: {
+        title: "Loan Modification Workflow",
+        breadcrumb: "Portal / Loan / Loan Modification Workflow",
+        description:
+          "This legacy loan workflow, report, or setup screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin",
+        relatedLabel: "Open main dashboard",
+      },
+      meta: { requiresAuth: true, title: "Loan Modification Workflow" },
+    },
+    {
+      path: "/admin/kerisi/m/2484",
+      name: "kerisi-loan-cc-student-micro-credit",
+      component: LoanLegacyPlaceholderView,
+      props: {
+        title: "Student Micro Credit Loan",
+        breadcrumb: "Credit Control / Setup / Student Micro Credit Loan",
+        description:
+          "This legacy loan workflow, report, or setup screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin",
+        relatedLabel: "Open main dashboard",
+      },
+      meta: { requiresAuth: true, title: "Student Micro Credit Loan" },
+    },
+    {
+      path: "/admin/kerisi/m/3292",
+      name: "kerisi-loan-portal-payment-information",
+      component: LoanLegacyPlaceholderView,
+      props: {
+        title: "Form Loan Payment Information",
+        breadcrumb: "Portal / Loan / Form Loan Payment Information",
+        description:
+          "This legacy loan workflow, report, or setup screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin",
+        relatedLabel: "Open main dashboard",
+      },
+      meta: { requiresAuth: true, title: "Form Loan Payment Information" },
+    },

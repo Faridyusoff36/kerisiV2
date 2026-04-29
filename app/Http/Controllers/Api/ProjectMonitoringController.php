@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SaveProjectMonitoringBalanceRequest;
+use App\Http\Requests\UpdateCapitalProjectProfileRequest;
 use App\Http\Traits\ApiResponse;
 use App\Models\Budget;
 use App\Models\CapitalProject;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -234,6 +236,79 @@ class ProjectMonitoringController extends Controller
         });
 
         return $this->sendOk(['success' => true]);
+    }
+
+    /**
+     * GET `/project-monitoring/projects/{cpaProjectNo}`. Single serialized row
+     * (same shape as the list endpoint) for Profile Setup / edit forms
+     * (MENUID 1615 / 2650).
+     */
+    public function showProject(Request $request, string $cpaProjectNo): JsonResponse
+    {
+        $cpaProjectNo = trim($cpaProjectNo);
+        if ($cpaProjectNo === '') {
+            return $this->sendError(404, 'NOT_FOUND', 'Project not found');
+        }
+
+        $project = CapitalProject::query()->where('cpa_project_no', $cpaProjectNo)->first();
+        if (! $project) {
+            return $this->sendError(404, 'NOT_FOUND', 'Project not found', [
+                'cpaProjectNo' => $cpaProjectNo,
+            ]);
+        }
+
+        return $this->sendOk($this->serializeProjectRow($project, 1));
+    }
+
+    /**
+     * PATCH `/project-monitoring/projects/{cpaProjectNo}`. Updates denormalized
+     * column set on `capital_project` for the Profile Setup screen.
+     */
+    public function updateProject(UpdateCapitalProjectProfileRequest $request, string $cpaProjectNo): JsonResponse
+    {
+        $cpaProjectNo = trim($cpaProjectNo);
+        if ($cpaProjectNo === '') {
+            return $this->sendError(404, 'NOT_FOUND', 'Project not found');
+        }
+
+        $project = CapitalProject::query()->where('cpa_project_no', $cpaProjectNo)->first();
+        if (! $project) {
+            return $this->sendError(404, 'NOT_FOUND', 'Project not found', [
+                'cpaProjectNo' => $cpaProjectNo,
+            ]);
+        }
+
+        $validated = $request->validated();
+        $updates = [];
+
+        foreach ([
+            'cpa_project_desc', 'fty_fund_type', 'lat_activity_code', 'oun_code',
+            'ccr_costcentre', 'so_code', 'cpa_project_type', 'cpa_source', 'cpa_project_status',
+        ] as $key) {
+            if (array_key_exists($key, $validated)) {
+                $updates[$key] = $validated[$key];
+            }
+        }
+
+        foreach (['cpa_start_date', 'cpa_end_date'] as $key) {
+            if (! array_key_exists($key, $validated)) {
+                continue;
+            }
+            $v = $validated[$key];
+            if ($v === null) {
+                $updates[$key] = null;
+            } else {
+                $updates[$key] = Carbon::createFromFormat('d/m/Y', (string) $v)->startOfDay();
+            }
+        }
+
+        $username = $request->user()?->name ?? 'system';
+        $updates['updateddate'] = now();
+        $updates['updatedby'] = $username;
+
+        $project->update($updates);
+
+        return $this->sendOk($this->serializeProjectRow($project->fresh(), 1));
     }
 
     private function applyProjectFilters($query, Request $request)

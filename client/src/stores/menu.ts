@@ -1,5 +1,13 @@
 import { defineStore } from "pinia";
-import { DEFAULT_MENU, type AdminMenuPrefs, type MenuGroupDef, type MenuNode } from "@/config/admin-menu";
+import {
+  DEFAULT_MENU,
+  KERISI_DEFAULT_HIDDEN_CHILD_IDS,
+  KERISI_DEFAULT_HIDDEN_GRANDCHILD_IDS,
+  KERISI_DEFAULT_HIDDEN_ITEM_IDS,
+  type AdminMenuPrefs,
+  type MenuGroupDef,
+  type MenuNode,
+} from "@/config/admin-menu";
 import { getAdminMenuPrefs, saveAdminMenuPrefs } from "@/api/cms";
 
 type LegacyPrefs = {
@@ -22,7 +30,14 @@ function normalizePrefs(raw: AdminMenuPrefs | LegacyPrefs | null): AdminMenuPref
     hiddenChildren: prefs.hiddenChildren || [],
     hiddenGrandchildren: prefs.hiddenGrandchildren || [],
     hiddenGroups: prefs.hiddenGroups || [],
+    shownItems: prefs.shownItems || [],
+    shownChildren: prefs.shownChildren || [],
+    shownGrandchildren: prefs.shownGrandchildren || [],
   };
+}
+
+function isNodeHiddenByDefault(node: MenuNode | undefined): boolean {
+  return Boolean(node && node.hiddenByDefault);
 }
 
 function orderByIds<T extends { id: string }>(items: T[], order: string[]): T[] {
@@ -47,9 +62,14 @@ function resolveChildren(children: MenuNode[] | undefined, prefs: AdminMenuPrefs
   const childOrder = prefs.childOrder[parentId] || [];
   const orderedChildren = orderByIds(children, childOrder)
     .filter((child) => !prefs.hiddenChildren.includes(child.id))
+    .filter((child) => !isNodeHiddenByDefault(child) || prefs.shownChildren?.includes(child.id))
     .map((child) => {
       const orderedGrandchildren = orderByIds(child.children || [], prefs.grandchildOrder[child.id] || [])
-        .filter((grandchild) => !prefs.hiddenGrandchildren.includes(grandchild.id));
+        .filter((grandchild) => !prefs.hiddenGrandchildren.includes(grandchild.id))
+        .filter(
+          (grandchild) =>
+            !isNodeHiddenByDefault(grandchild) || prefs.shownGrandchildren?.includes(grandchild.id),
+        );
 
       return {
         ...child,
@@ -61,10 +81,16 @@ function resolveChildren(children: MenuNode[] | undefined, prefs: AdminMenuPrefs
 }
 
 function resolveMenu(prefsRaw: AdminMenuPrefs | null): MenuGroupDef[] {
-  if (!prefsRaw) return DEFAULT_MENU;
-
-  const prefs = normalizePrefs(prefsRaw);
-  if (!prefs) return DEFAULT_MENU;
+  const prefs = normalizePrefs(prefsRaw) ?? {
+    groupOrder: [],
+    itemOrder: {},
+    childOrder: {},
+    grandchildOrder: {},
+    hidden: [],
+    hiddenChildren: [],
+    hiddenGrandchildren: [],
+    hiddenGroups: [],
+  };
 
   const groupMap = new Map(DEFAULT_MENU.map((g) => [g.id, g]));
   const orderedGroups: MenuGroupDef[] = [];
@@ -92,6 +118,7 @@ function resolveMenu(prefsRaw: AdminMenuPrefs | null): MenuGroupDef[] {
     .map((group) => {
       const orderedItems = orderByIds(group.items, prefs.itemOrder[group.id] || [])
         .filter((item) => !prefs.hidden.includes(item.id))
+        .filter((item) => !isNodeHiddenByDefault(item) || prefs.shownItems?.includes(item.id))
         .map((item) => ({
           ...item,
           children: resolveChildren(item.children, prefs, item.id),
@@ -104,6 +131,10 @@ function resolveMenu(prefsRaw: AdminMenuPrefs | null): MenuGroupDef[] {
     })
     .filter((group) => group.items.length > 0);
 }
+
+export const DEFAULT_HIDDEN_ITEM_IDS = KERISI_DEFAULT_HIDDEN_ITEM_IDS;
+export const DEFAULT_HIDDEN_CHILD_IDS = KERISI_DEFAULT_HIDDEN_CHILD_IDS;
+export const DEFAULT_HIDDEN_GRANDCHILD_IDS = KERISI_DEFAULT_HIDDEN_GRANDCHILD_IDS;
 
 export const useMenuStore = defineStore("menu", {
   state: () => ({

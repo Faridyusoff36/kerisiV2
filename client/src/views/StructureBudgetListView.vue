@@ -8,6 +8,16 @@ import type { DatatableRefApi } from "@/composables/useDatatableFeatures";
 import { useToast } from "@/composables/useToast";
 import type { StructureBudgetListOptions, StructureBudgetListRow } from "@/types";
 
+const props = withDefaults(
+  defineProps<{
+    /** Breadcrumb (hidden Budget>Setup>Structure Budget). */
+    pageHeading?: string;
+  }>(),
+  {
+    pageHeading: "Budget / Structure Budget List",
+  },
+);
+
 const toast = useToast();
 
 const rows = ref<StructureBudgetListRow[]>([]);
@@ -184,7 +194,7 @@ onUnmounted(() => {
         class="hidden"
         @change="onTemplateFileChange"
       />
-      <h1 class="page-title">Budget / Structure Budget List</h1>
+      <h1 class="page-title">{{ props.pageHeading }}</h1>
 
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-100 px-4 py-3">
