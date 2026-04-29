@@ -158,7 +158,8 @@ class KerisiRemainingShellListService
             2624 => $this->purchasingGrnVendorAssessment2624($request, $page, $limit, $q),
             /** Purchasing / Vendor Assessment / Work Progress Note — `work_progress_master` (PAGE 2172 / menu 2626). */
             2626 => $this->purchasingWpnVendorAssessment2626($request, $page, $limit, $q),
-            2663 => $this->assetMaintenanceList($request, $page, $limit, $q),
+            /** Purchasing / Vendor / List of Vendor — `vend_customer_supplier` (PAGE 2205 / menu 2663). */
+            2663 => $this->purchasingListingOfVendor($request, $page, $limit, $q),
             2664 => $this->assetMaintenanceMasterList($request, $page, $limit, $q),
             2665 => $this->assetDamageList($request, $page, $limit, $q),
             2667 => $this->assetAdjustmentList($request, $page, $limit, $q),
@@ -196,7 +197,8 @@ class KerisiRemainingShellListService
             1932 => $this->purchasingListOfJobscopeShell($request, $page, $limit, $q),
             /** Purchasing / Setup / Assessment Question (PAGE 1708) — `vendor_assessment_setup`. */
             2066 => $this->purchasingAssessmentQuestionShell($request, $page, $limit, $q),
-            1828 => $this->purchasingTenderList($request, $page, $limit, $q),
+            /** Purchasing / Vendor / Vendor Profile — `vend_customer_supplier` (PAGE 1507 / menu 1828). */
+            1828 => $this->purchasingVendorProfile($request, $page, $limit, $q),
             1829 => $this->purchasingItemMainListing($request, $page, $limit, $q),
             /** Purchasing / Purchase Order List — `purchase_order_master` (PAGE 1512 / menu 1833). */
             1833 => $this->purchasingPurchaseOrderMenu1833($request, $page, $limit, $q),
@@ -206,6 +208,8 @@ class KerisiRemainingShellListService
             1839 => $this->purchasingGoodReceiveNoteList1839($request, $page, $limit, $q),
             /** Purchasing / Work Progress Note List — `work_progress_master` (PAGE 1519 / menu 1840). */
             1840 => $this->purchasingWorkProgressNoteList1840($request, $page, $limit, $q),
+            /** Purchasing / Vendor / Bank Account No For Updated — vendor status/payment update shell (PAGE 1616 / menu 1955). */
+            1955 => $this->purchasingVendorBankAccountUpdated1955($request, $page, $limit, $q),
             1856 => $this->purchasingPrForm($request, $page, $limit, $q),
             1858 => $this->purchasingGrnForm($request, $page, $limit, $q),
             /** Purchasing / Purchase Order Cancellation — POCANCEL_STATUS (PAGE 1684 / menu 2039). */
@@ -3170,15 +3174,439 @@ class KerisiRemainingShellListService
 
     private function purchasingVendorList(Request $r, int $page, int $limit, string $q): array
     {
+        $bankStatus = $this->conn()->table('vend_supplier_account')
+            ->select([
+                'vcs_vendor_code',
+                DB::raw("CASE WHEN MAX(CASE WHEN vsa_status = '1' THEN 1 ELSE 0 END) = 1 THEN 'ACTIVE' WHEN MAX(CASE WHEN vsa_status = '0' THEN 1 ELSE 0 END) = 1 THEN 'INACTIVE' ELSE MAX(vsa_status) END AS vsa_status"),
+            ])
+            ->groupBy('vcs_vendor_code');
+
         $base = $this->conn()->table('vend_customer_supplier as vcs')
-            ->select(['vcs.vcs_id', 'vcs.vcs_vendor_code', 'vcs.vcs_vendor_name', 'vcs.vcs_type_gov', 'vcs.vcs_vendor_status'])
-            ->orderBy('vcs.vcs_vendor_name');
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw("LOWER(CONCAT_WS('|', IFNULL(vcs.vendor_code,''), IFNULL(vcs.vendor_name,''))) LIKE ?", [$like]);
+            ->leftJoinSub($bankStatus, 'vsa', 'vsa.vcs_vendor_code', '=', 'vcs.vcs_vendor_code')
+            ->select([
+                'vcs.vcs_id',
+                'vcs.vcs_vendor_code',
+                'vcs.vcs_vendor_name',
+                DB::raw("CONCAT_WS(', ', NULLIF(TRIM(vcs.vcs_address), ''), NULLIF(TRIM(vcs.vcs_address2), ''), NULLIF(TRIM(vcs.vcs_address3), ''), NULLIF(TRIM(vcs.vcs_postcode), ''), NULLIF(TRIM(vcs.vcs_town), ''), NULLIF(TRIM(vcs.vcs_state), '')) AS vcs_address"),
+                'vcs.vcs_registration_no',
+                'vcs.vcs_reg_date',
+                'vcs.vcs_reg_exp_date',
+                'vcs.vcs_kk_regno',
+                'vcs.vcs_kk_expired_date',
+                'vcs.vcs_unv_reg_date',
+                'vcs.vcs_unv_req_exp_date',
+                'vcs.vcs_bumi_status',
+                'vcs.vcs_company_category',
+                DB::raw('CAST(IFNULL(vcs.vcs_authorize_capital, 0) AS DECIMAL(15, 2)) AS vcs_authorize_capital'),
+                DB::raw('CAST(IFNULL(vcs.vcs_paid_up_capital, 0) AS DECIMAL(15, 2)) AS vcs_paid_up_capital'),
+                'vcs.vcs_tel_no',
+                'vcs.vcs_fax_no',
+                'vcs.vcs_contact_person',
+                'vcs.vcs_iscreditor',
+                'vcs.vcs_isdebtor',
+                DB::raw("IFNULL(vsa.vsa_status, '') AS vsa_status"),
+                'vcs.vcs_vendor_status',
+            ])
+            ->orderBy('vcs.vcs_vendor_name')
+            ->orderBy('vcs.vcs_vendor_code');
+
+        $vendorCode = trim((string) $r->input('sf_0', ''));
+        if ($vendorCode !== '') {
+            $like = $this->likeEscape(mb_strtolower($vendorCode, 'UTF-8'));
+            $base->whereRaw("LOWER(IFNULL(vcs.vcs_vendor_code,'')) LIKE ?", [$like]);
         }
 
-        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_vendor_list']);
+        $vendorName = trim((string) $r->input('sf_1', ''));
+        if ($vendorName !== '') {
+            $like = $this->likeEscape(mb_strtolower($vendorName, 'UTF-8'));
+            $base->whereRaw("LOWER(IFNULL(vcs.vcs_vendor_name,'')) LIKE ?", [$like]);
+        }
+
+        $debtor = trim((string) $r->input('sf_2', ''));
+        if ($debtor !== '') {
+            $base->where('vcs.vcs_isdebtor', $debtor);
+        }
+
+        $vendorStatus = trim((string) $r->input('sf_3', ''));
+        if ($vendorStatus !== '') {
+            $base->where('vcs.vcs_vendor_status', $vendorStatus);
+        }
+
+        $state = trim((string) $r->input('sf_5', ''));
+        if ($state !== '') {
+            $base->where('vcs.vcs_state', $state);
+        }
+
+        $registrationCategory = trim((string) $r->input('sf_6', ''));
+        if ($registrationCategory !== '') {
+            $base->where('vcs.vcs_company_category', $registrationCategory);
+        }
+
+        $codeSsm = trim((string) $r->input('sf_8', ''));
+        if ($codeSsm !== '') {
+            $base->where('vcs.vcs_registration_no', $codeSsm);
+        }
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(vcs.vcs_vendor_code,''), IFNULL(vcs.vcs_vendor_name,''), IFNULL(vcs.vcs_registration_no,''), IFNULL(vcs.vcs_kk_regno,''), IFNULL(vcs.vcs_contact_person,''), IFNULL(vcs.vcs_tel_no,''), IFNULL(vcs.vcs_vendor_status,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        $stateOptions = $this->conn()->table('lookup_details')
+            ->where('lma_code_name', 'STATE')
+            ->whereRaw("TRIM(IFNULL(lde_description,'')) <> ''")
+            ->orderBy('lde_description')
+            ->pluck('lde_description')
+            ->unique()
+            ->map(fn ($value) => ['value' => (string) $value, 'label' => (string) $value])
+            ->values()
+            ->all();
+
+        return array_merge($this->paginate($base, $page, $limit), [
+            'connector' => 'purchasing_vendor_list',
+            'smart_filter_options' => [
+                'sf_2' => [
+                    ['value' => 'Y', 'label' => 'YES'],
+                    ['value' => 'N', 'label' => 'NO'],
+                ],
+                'sf_3' => [
+                    ['value' => '0', 'label' => 'INACTIVE'],
+                    ['value' => '1', 'label' => 'ACTIVE'],
+                    ['value' => 'BLACKLIST', 'label' => 'BLACKLIST'],
+                ],
+                'sf_5' => $stateOptions,
+                'sf_6' => [
+                    ['value' => 'INDIVIDUAL', 'label' => 'INDIVIDUAL'],
+                    ['value' => 'REGISTERED', 'label' => 'REGISTERED'],
+                    ['value' => 'UNQUALIFIED TO REGISTERED', 'label' => 'UNQUALIFIED TO REGISTERED'],
+                ],
+            ],
+        ]);
+    }
+
+    private function purchasingVendorProfile(Request $r, int $page, int $limit, string $q): array
+    {
+        return $this->purchasingVendorList($r, $page, $limit, $q);
+    }
+
+    private function purchasingVendorBankAccountUpdated1955(Request $r, int $page, int $limit, string $q): array
+    {
+        $vendorCode = $this->resolveVendorCode($r);
+
+        if ($vendorCode === '') {
+            return [
+                'rows' => [],
+                'total' => 0,
+                'connector' => 'purchasing_vendor_bank_account_updated_1955',
+                'form_values' => $this->blankVendorBankUpdatedValues(),
+                'form_options' => $this->vendorBankUpdatedOptions(),
+                'extra_datatable_rows' => [[], [], [], [], [], [], []],
+            ];
+        }
+
+        $bankBase = $this->conn()->table('vend_supplier_account as vsa')
+            ->leftJoin('bank_master as bm', 'bm.bnm_bank_code', '=', 'vsa.vsa_vendor_bank')
+            ->where('vsa.vcs_vendor_code', $vendorCode)
+            ->select([
+                'vsa.vsa_vend_acct_id',
+                'vsa.vcs_vendor_code',
+                DB::raw("COALESCE(NULLIF(CONCAT_WS(' - ', NULLIF(TRIM(vsa.vsa_vendor_bank), ''), NULLIF(TRIM(bm.bnm_bank_desc), '')), ''), vsa.vsa_vendor_bank) AS vsa_vendor_bank"),
+                'vsa.vsa_bank_accno',
+                'vsa.vsa_reason',
+                DB::raw("CASE WHEN vsa.vsa_status = '1' THEN 'ACTIVE' WHEN vsa.vsa_status = '0' THEN 'INACTIVE' ELSE IFNULL(vsa.vsa_status, '') END AS vsa_status"),
+                'vsa.createddate',
+            ])
+            ->orderByDesc('vsa.createddate');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $bankBase->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(vsa.vsa_vendor_bank,''), IFNULL(bm.bnm_bank_desc,''), IFNULL(vsa.vsa_bank_accno,''), IFNULL(vsa.vsa_reason,''), IFNULL(vsa.vsa_status,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        $bankPack = $this->paginate($bankBase, $page, $limit);
+
+        return array_merge($bankPack, [
+            'connector' => 'purchasing_vendor_bank_account_updated_1955',
+            'form_values' => $this->vendorBankUpdatedFormValues($vendorCode),
+            'form_options' => $this->vendorBankUpdatedOptions(),
+            'extra_datatable_rows' => [
+                $this->vendorCategoryRows($vendorCode),
+                $this->vendorAccountRows($vendorCode),
+                $this->vendorAddressRows($vendorCode),
+                $this->vendorJobscopeRows($vendorCode),
+                $this->vendorLicenceRows('vend_licence_ssm', 'vls_id', 'vls_licence_code', $vendorCode),
+                $this->vendorLicenceRows('vend_licence_mof', 'vlm_id', 'vlm_licence_code', $vendorCode),
+                $this->vendorOtherLicenceRows($vendorCode),
+            ],
+        ]);
+    }
+
+    private function resolveVendorCode(Request $r): string
+    {
+        foreach (['Code', 'code', 'vcs_vendor_code', 'vcsVendorCode', 'vendorCode'] as $key) {
+            $value = trim((string) $r->input($key, ''));
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        $id = trim((string) $r->input('ID', $r->input('id', '')));
+        if ($id === '') {
+            return '';
+        }
+
+        return (string) ($this->conn()
+            ->table('vend_customer_supplier')
+            ->where('vcs_id', $id)
+            ->value('vcs_vendor_code') ?? '');
+    }
+
+    private function blankVendorBankUpdatedValues(): array
+    {
+        return [
+            'vendorCode' => '',
+            'vendorName' => '',
+            'icNo' => '',
+            'telNo' => '',
+            'creditor' => '',
+            'faxNo' => '',
+            'contactPerson' => '',
+            'vendorStatus' => '',
+            'debtor' => '',
+            'taraf' => '',
+            'gstNo' => '',
+            'email' => '',
+            'registrationDate' => '',
+            'expiryDate' => '',
+            'kwspNo' => '',
+            'socsoNo' => '',
+            'companyCategory' => '',
+            'registrationNoSsm' => '',
+            'registrationNoMof' => '',
+            'registrationDateSsm' => '',
+            'registrationExpiryDateMof' => '',
+            'registrationExpiryDateSsm' => '',
+            'registrationNoMotac' => '',
+            'registrationExpiredDateMotac' => '',
+            'registrationDateMotac' => '',
+            'rosNo' => '',
+            'approvalName' => '',
+            'approvalPosition' => '',
+            'approvalDate' => now()->format('d/m/Y'),
+            'approvalStatus' => '',
+            'approvalRemark' => '',
+        ];
+    }
+
+    private function vendorBankUpdatedFormValues(string $vendorCode): array
+    {
+        $row = $this->conn()->table('vend_customer_supplier')
+            ->where('vcs_vendor_code', $vendorCode)
+            ->first([
+                'vcs_vendor_code',
+                'vcs_vendor_name',
+                'vcs_ic_no',
+                'vcs_tel_no',
+                'vcs_iscreditor',
+                'vcs_fax_no',
+                'vcs_contact_person',
+                'vcs_vendor_status',
+                'vcs_isdebtor',
+                'vcs_bumi_status',
+                'vcs_tax_regno',
+                'vcs_email_address',
+                'vcs_unv_reg_date',
+                'vcs_unv_req_exp_date',
+                'vcs_epf_no',
+                'vcs_socso_no',
+                'vcs_company_category',
+                'vcs_registration_no',
+                'vcs_kk_regno',
+                'vcs_reg_date',
+                'vcs_kk_expired_date',
+                'vcs_reg_exp_date',
+                'vcs_reg_no_kpm',
+                'vcs_reg_expdate_kpm',
+                'vcs_reg_date_kpm',
+                'vcs_ros_no',
+                'vcs_position',
+            ]);
+
+        if (! $row) {
+            return $this->blankVendorBankUpdatedValues();
+        }
+
+        return array_merge($this->blankVendorBankUpdatedValues(), [
+            'vendorCode' => (string) $row->vcs_vendor_code,
+            'vendorName' => (string) $row->vcs_vendor_name,
+            'icNo' => (string) ($row->vcs_ic_no ?? ''),
+            'telNo' => (string) ($row->vcs_tel_no ?? ''),
+            'creditor' => (string) ($row->vcs_iscreditor ?? ''),
+            'faxNo' => (string) ($row->vcs_fax_no ?? ''),
+            'contactPerson' => (string) ($row->vcs_contact_person ?? ''),
+            'vendorStatus' => (string) ($row->vcs_vendor_status ?? ''),
+            'debtor' => (string) ($row->vcs_isdebtor ?? ''),
+            'taraf' => (string) ($row->vcs_bumi_status ?? ''),
+            'gstNo' => (string) ($row->vcs_tax_regno ?? ''),
+            'email' => (string) ($row->vcs_email_address ?? ''),
+            'registrationDate' => $this->formatSqlDate($row->vcs_unv_reg_date),
+            'expiryDate' => $this->formatSqlDate($row->vcs_unv_req_exp_date),
+            'kwspNo' => (string) ($row->vcs_epf_no ?? ''),
+            'socsoNo' => (string) ($row->vcs_socso_no ?? ''),
+            'companyCategory' => (string) ($row->vcs_company_category ?? ''),
+            'registrationNoSsm' => (string) ($row->vcs_registration_no ?? ''),
+            'registrationNoMof' => (string) ($row->vcs_kk_regno ?? ''),
+            'registrationDateSsm' => $this->formatSqlDate($row->vcs_reg_date),
+            'registrationExpiryDateMof' => $this->formatSqlDate($row->vcs_kk_expired_date),
+            'registrationExpiryDateSsm' => $this->formatSqlDate($row->vcs_reg_exp_date),
+            'registrationNoMotac' => (string) ($row->vcs_reg_no_kpm ?? ''),
+            'registrationExpiredDateMotac' => $this->formatSqlDate($row->vcs_reg_expdate_kpm),
+            'registrationDateMotac' => $this->formatSqlDate($row->vcs_reg_date_kpm),
+            'rosNo' => (string) ($row->vcs_ros_no ?? ''),
+            'approvalPosition' => (string) ($row->vcs_position ?? ''),
+        ]);
+    }
+
+    private function vendorBankUpdatedOptions(): array
+    {
+        $taraf = $this->conn()->table('lookup_details')
+            ->where('lma_code_name', 'TARAF_VENDOR')
+            ->orderBy('lde_sorting')
+            ->orderBy('lde_description')
+            ->get(['lde_value', 'lde_description'])
+            ->map(fn ($r) => [
+                'value' => (string) $r->lde_value,
+                'label' => strtoupper((string) $r->lde_description),
+            ])
+            ->all();
+
+        return [
+            'yesNo' => [
+                ['value' => 'Y', 'label' => 'YES'],
+                ['value' => 'N', 'label' => 'NO'],
+            ],
+            'taraf' => $taraf,
+            'approvalStatus' => [
+                ['value' => 'APPROVE', 'label' => 'APPROVE'],
+                ['value' => 'REJECT', 'label' => 'REJECT'],
+            ],
+        ];
+    }
+
+    private function vendorCategoryRows(string $vendorCode): array
+    {
+        return $this->conn()->table('vend_category')
+            ->where('vcs_vendor_code', $vendorCode)
+            ->orderByDesc('createddate')
+            ->get([
+                DB::raw('vc_id AS VendorID'),
+                DB::raw('vcs_vendor_code AS VendorCode'),
+                DB::raw('vc_category_code AS CategoryCode'),
+            ])
+            ->map(fn ($r) => (array) $r)
+            ->all();
+    }
+
+    private function vendorAccountRows(string $vendorCode): array
+    {
+        return $this->conn()->table('vend_supplier_account as vsa')
+            ->leftJoin('bank_master as bm', 'bm.bnm_bank_code', '=', 'vsa.vsa_vendor_bank')
+            ->where('vsa.vcs_vendor_code', $vendorCode)
+            ->orderByDesc('vsa.createddate')
+            ->get([
+                DB::raw('vsa.vsa_vend_acct_id AS AccountIndex'),
+                DB::raw('vsa.vcs_vendor_code AS VendorCode'),
+                DB::raw("COALESCE(NULLIF(CONCAT_WS(' - ', NULLIF(TRIM(vsa.vsa_vendor_bank), ''), NULLIF(TRIM(bm.bnm_bank_desc), '')), ''), vsa.vsa_vendor_bank) AS VendorBank"),
+                DB::raw('vsa.vsa_bank_accno AS BankAccountNo'),
+                DB::raw("CASE WHEN vsa.vsa_status = '1' THEN 'ACTIVE' WHEN vsa.vsa_status = '0' THEN 'INACTIVE' ELSE IFNULL(vsa.vsa_status, '') END AS Status"),
+            ])
+            ->map(fn ($r) => (array) $r)
+            ->all();
+    }
+
+    private function vendorAddressRows(string $vendorCode): array
+    {
+        return $this->conn()->table('vendor_address as va')
+            ->leftJoin('lookup_details as ld', function (JoinClause $join) {
+                $join->on('ld.lde_value', '=', 'va.vdd_address_type')
+                    ->where('ld.lma_code_name', '=', 'ADDRESS_TYPE');
+            })
+            ->where('va.vcs_vendor_code', $vendorCode)
+            ->orderByDesc('va.createddate')
+            ->get([
+                DB::raw('va.vdd_address_id AS AddressId'),
+                DB::raw('va.vcs_vendor_code AS VendorCode'),
+                DB::raw("COALESCE(NULLIF(ld.lde_description2, ''), NULLIF(ld.lde_description, ''), va.vdd_address_type) AS AddressType"),
+                'va.vdd_address1',
+                'va.vdd_address2',
+                'va.vdd_address3',
+                DB::raw('va.vdd_pcode AS Postcode'),
+                DB::raw('va.vdd_city AS City'),
+                DB::raw('va.vdd_state AS State'),
+                DB::raw('va.vdd_country AS Country'),
+                DB::raw("DATE_FORMAT(va.createddate, '%d/%m/%Y') AS CreateDate"),
+            ])
+            ->map(fn ($r) => (array) $r)
+            ->all();
+    }
+
+    private function vendorJobscopeRows(string $vendorCode): array
+    {
+        return $this->conn()->table('vendor_jobscope as vj')
+            ->leftJoin('jobscope as js', function (JoinClause $join) {
+                $join->on('js.jbs_jobscope_code', '=', 'vj.jbs_jobscope_code')
+                    ->on('js.jbc_category', '=', 'vj.jbc_category');
+            })
+            ->where('vj.vcs_vendor_code', $vendorCode)
+            ->orderByDesc('vj.createddate')
+            ->get([
+                DB::raw('vj.vjb_id AS VendorID'),
+                DB::raw('vj.vcs_vendor_code AS VendorCode'),
+                DB::raw("COALESCE(NULLIF(CONCAT_WS(' - ', NULLIF(TRIM(vj.jbs_jobscope_code), ''), NULLIF(TRIM(js.jbs_job_name), '')), ''), vj.jbs_jobscope_code) AS JobscopeCode"),
+                DB::raw('vj.jbc_category AS Category'),
+                DB::raw("DATE_FORMAT(vj.createddate, '%d/%m/%Y') AS CreatedDate"),
+            ])
+            ->map(fn ($r) => (array) $r)
+            ->all();
+    }
+
+    private function vendorLicenceRows(string $table, string $idColumn, string $codeColumn, string $vendorCode): array
+    {
+        return $this->conn()->table($table)
+            ->where('vcs_vendor_code', $vendorCode)
+            ->orderByDesc('createddate')
+            ->get([
+                DB::raw($idColumn.' AS '.$idColumn),
+                'vcs_vendor_code',
+                $codeColumn,
+            ])
+            ->map(fn ($r) => (array) $r)
+            ->all();
+    }
+
+    private function vendorOtherLicenceRows(string $vendorCode): array
+    {
+        return $this->conn()->table('vend_licence_others')
+            ->where('vcs_vendor_code', $vendorCode)
+            ->orderByDesc('createddate')
+            ->get(['vlo_id', 'vcs_vendor_code', 'vlo_licence_code', 'vlo_licence_desc'])
+            ->map(fn ($r) => (array) $r)
+            ->all();
+    }
+
+    private function formatSqlDate(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        return substr((string) $value, 0, 10);
     }
 
     private function purchasingVendorListByItem(Request $r, int $page, int $limit, string $q): array
@@ -3264,14 +3692,81 @@ class KerisiRemainingShellListService
     private function purchasingAgreementList(Request $r, int $page, int $limit, string $q): array
     {
         $base = $this->conn()->table('aggrement_po as ap')
-            ->select(['ap.agg_id', 'ap.agg_no', 'ap.agg_start_date', 'ap.vcs_vendor_code', 'ap.agg_status'])
+            ->leftJoin('vend_customer_supplier as vc', 'vc.vcs_vendor_code', '=', 'ap.vcs_vendor_code')
+            ->select([
+                DB::raw('ap.agg_id AS AgreementID'),
+                DB::raw('ap.agg_no AS AgreementNo'),
+                DB::raw('ap.agg_ref_doc AS AgreementRef'),
+                'ap.createddate',
+                DB::raw('ap.vcs_vendor_code AS VendorCode'),
+                DB::raw("COALESCE(NULLIF(TRIM(vc.vcs_vendor_name), ''), '') AS VendorName"),
+                DB::raw("IFNULL(ap.agg_address, '') AS Address"),
+                DB::raw("IFNULL(ap.agg_description, '') AS Description"),
+                DB::raw('ap.agg_start_date AS StartDate'),
+                DB::raw('ap.agg_end_date AS EndDate'),
+                DB::raw('CAST(IFNULL(ap.agg_amt, 0) AS DECIMAL(15, 2)) AS Amount'),
+                DB::raw('CAST(IFNULL(ap.agg_bal_amt, 0) AS DECIMAL(15, 2)) AS AmountBalance'),
+                DB::raw('CAST(IFNULL(ap.agg_amt_monthly, 0) AS DECIMAL(15, 2)) AS AmountMonthly'),
+                DB::raw('ap.agg_duration AS Duration'),
+                DB::raw('ap.agg_tenure AS Type'),
+                'ap.tdm_tender_no',
+                DB::raw('ap.agg_status AS StatusAgreement'),
+                DB::raw('ap.agg_status_wf AS StatusWfAgreement'),
+            ])
             ->orderByDesc('ap.agg_id');
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw("LOWER(CONCAT_WS('|', IFNULL(ap.agr_no,''), IFNULL(ap.agr_vendor,''))) LIKE ?", [$like]);
+
+        $agreementNo = trim((string) $r->input('sf_0', ''));
+        if ($agreementNo !== '') {
+            $like = $this->likeEscape(mb_strtolower($agreementNo, 'UTF-8'));
+            $base->whereRaw("LOWER(IFNULL(ap.agg_no,'')) LIKE ?", [$like]);
         }
 
-        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_agreement_list']);
+        $vendorCode = trim((string) $r->input('sf_1', ''));
+        if ($vendorCode !== '') {
+            $like = $this->likeEscape(mb_strtolower($vendorCode, 'UTF-8'));
+            $base->whereRaw("LOWER(IFNULL(ap.vcs_vendor_code,'')) LIKE ?", [$like]);
+        }
+
+        $typeDuration = trim((string) $r->input('sf_3', ''));
+        if ($typeDuration !== '') {
+            $base->where('ap.agg_tenure', $typeDuration);
+        }
+
+        $statusAgreement = trim((string) $r->input('sf_5', ''));
+        if ($statusAgreement !== '') {
+            $base->where('ap.agg_status', $statusAgreement);
+        }
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(ap.agg_no,''), IFNULL(ap.agg_ref_doc,''), IFNULL(ap.vcs_vendor_code,''), IFNULL(vc.vcs_vendor_name,''), IFNULL(ap.agg_description,''), IFNULL(ap.agg_status,''), IFNULL(ap.agg_status_wf,''), IFNULL(ap.tdm_tender_no,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        $typeOptions = $this->conn()->table('lookup_details')
+            ->where('lma_code_name', 'INVESTMENT_TENURE')
+            ->whereRaw("TRIM(IFNULL(lde_description2,'')) <> ''")
+            ->orderBy('lde_sorting')
+            ->orderBy('lde_description2')
+            ->pluck('lde_description2')
+            ->unique()
+            ->map(fn ($value) => ['value' => (string) $value, 'label' => (string) $value])
+            ->values()
+            ->all();
+
+        return array_merge($this->paginate($base, $page, $limit), [
+            'connector' => 'purchasing_agreement_list',
+            'smart_filter_options' => [
+                'sf_3' => $typeOptions,
+                'sf_5' => [
+                    ['value' => '1', 'label' => 'ACTIVE'],
+                    ['value' => '0', 'label' => 'INACTIVE'],
+                    ['value' => '3', 'label' => 'PENDING'],
+                ],
+            ],
+        ]);
     }
 
     private function purchasingAgreementListAll(Request $r, int $page, int $limit, string $q): array
@@ -3300,11 +3795,28 @@ class KerisiRemainingShellListService
     private function purchasingVoList(Request $r, int $page, int $limit, string $q): array
     {
         $base = $this->conn()->table('aggrement_vo as av')
-            ->select(['av.agv_id', 'av.agv_no', 'av.agg_id', 'av.agv_letter_date', 'av.agv_amt', 'av.agv_status'])
+            ->leftJoin('aggrement_po as ap', 'ap.agg_id', '=', 'av.agg_id')
+            ->select([
+                'av.agv_id',
+                'av.agg_id',
+                'av.agv_letter_date',
+                'av.agv_no',
+                'av.agv_reference_no',
+                'ap.agg_no',
+                'ap.agg_ref_doc',
+                DB::raw('CAST(IFNULL(ap.agg_amt, 0) AS DECIMAL(15, 2)) AS agg_amt'),
+                DB::raw('CAST(IFNULL(av.agv_amt, 0) AS DECIMAL(15, 2)) AS agv_amt'),
+                DB::raw('CAST(IFNULL(ap.agg_amt, 0) + IFNULL(av.agv_amt, 0) AS DECIMAL(15, 2)) AS agg_amt_new'),
+                DB::raw("IFNULL(av.agv_extended_field, '') AS reason"),
+                'av.agv_status',
+            ])
             ->orderByDesc('av.agv_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw("LOWER(IFNULL(av.agv_no,'')) LIKE ?", [$like]);
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(av.agv_no,''), IFNULL(av.agv_reference_no,''), IFNULL(ap.agg_no,''), IFNULL(ap.agg_ref_doc,''), IFNULL(av.agv_status,''))) LIKE ?",
+                [$like]
+            );
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_vo_list']);
@@ -3317,7 +3829,87 @@ class KerisiRemainingShellListService
 
     private function purchasingNewVo(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->shellPreview('purchasing_new_vo');
+        unset($page, $limit, $q);
+
+        $voId = (int) $r->input('agv_id', $r->input('agvId', $r->input('id', 0)));
+        $formValues = [
+            'agv_no' => 'Auto Assigned',
+            'agv_letter_date' => now()->toDateString(),
+            'agv_status' => 'DRAFT',
+        ];
+
+        if ($voId > 0) {
+            $vo = $this->conn()->table('aggrement_vo AS av')
+                ->leftJoin('aggrement_po AS ap', 'ap.agg_id', '=', 'av.agg_id')
+                ->where('av.agv_id', $voId)
+                ->select([
+                    'av.*',
+                    'ap.agg_no',
+                    'ap.agg_ref_doc',
+                    'ap.agg_amt',
+                ])
+                ->first();
+            if ($vo) {
+                $formValues = array_merge($formValues, (array) $vo);
+            }
+        }
+
+        return [
+            'rows' => [],
+            'total' => 0,
+            'connector' => 'purchasing_new_vo',
+            'form_options' => $this->variationOrderOptions(),
+            'form_values' => $formValues,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function variationOrderOptions(): array
+    {
+        $cx = $this->conn();
+
+        $agreements = $cx->table('aggrement_po')
+            ->orderByDesc('agg_id')
+            ->limit(1000)
+            ->get(['agg_id', 'agg_no', 'agg_ref_doc', 'agg_amt', 'agg_status'])
+            ->map(fn ($r) => [
+                'value' => (string) $r->agg_id,
+                'label' => trim((string) ($r->agg_ref_doc ?? '')) !== ''
+                    ? $r->agg_no.' - '.$r->agg_ref_doc
+                    : (string) $r->agg_no,
+                'agreementNo' => (string) ($r->agg_no ?? ''),
+                'agreementRef' => (string) ($r->agg_ref_doc ?? ''),
+                'agreementAmount' => (string) ($r->agg_amt ?? '0'),
+                'status' => (string) ($r->agg_status ?? ''),
+            ])
+            ->values()
+            ->all();
+
+        $receivers = $cx->table('staff')
+            ->orderBy('stf_staff_name')
+            ->limit(1000)
+            ->get(['stf_staff_id', 'stf_staff_name'])
+            ->map(fn ($r) => [
+                'value' => (string) $r->stf_staff_id,
+                'label' => trim((string) ($r->stf_staff_name ?? '')) !== ''
+                    ? $r->stf_staff_id.' - '.$r->stf_staff_name
+                    : (string) $r->stf_staff_id,
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'agreements' => $agreements,
+            'statusOptions' => [
+                ['value' => 'ENTRY', 'label' => 'ENTRY'],
+                ['value' => 'DRAFT', 'label' => 'DRAFT'],
+                ['value' => 'REJECT', 'label' => 'REJECT'],
+                ['value' => 'APPROVE', 'label' => 'APPROVE'],
+            ],
+            'nextReceivers' => $receivers,
+        ];
     }
 
     private function purchasingVendorAssessment(Request $r, int $page, int $limit, string $q): array
