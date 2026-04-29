@@ -97,15 +97,15 @@ Every controller MUST:
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Store{Resource}Request;
-use App\Http\Requests\Update{Resource}Request;
+use App\Http\Requests\StoreResourceRequest;
+use App\Http\Requests\UpdateResourceRequest;
 use App\Http\Traits\ApiResponse;
-use App\Models\{Resource};
+use App\Models\Resource;
 use App\Services\SlugService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class {Resource}Controller extends Controller
+class ResourceController extends Controller
 {
     use ApiResponse;
 
@@ -121,7 +121,7 @@ class {Resource}Controller extends Controller
         $sortBy  = $request->input('sort_by', 'created_at');
         $sortDir = $request->input('sort_dir', 'desc');
 
-        $query = {Resource}::query();
+        $query = Resource::query();
 
         if ($q) {
             $query->where(function ($builder) use ($q) {
@@ -143,27 +143,27 @@ class {Resource}Controller extends Controller
         ]);
     }
 
-    public function store(Store{Resource}Request $request): JsonResponse
+    public function store(StoreResourceRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $resource = {Resource}::create($data);
+        $resource = Resource::create($data);
         return $this->sendCreated($resource);
     }
 
     public function show(int $id): JsonResponse
     {
-        $resource = {Resource}::find($id);
+        $resource = Resource::find($id);
         if (!$resource) {
-            return $this->sendError(404, 'NOT_FOUND', '{Resource} not found');
+            return $this->sendError(404, 'NOT_FOUND', 'Resource not found');
         }
         return $this->sendOk($resource);
     }
 
-    public function update(Update{Resource}Request $request, int $id): JsonResponse
+    public function update(UpdateResourceRequest $request, int $id): JsonResponse
     {
-        $resource = {Resource}::find($id);
+        $resource = Resource::find($id);
         if (!$resource) {
-            return $this->sendError(404, 'NOT_FOUND', '{Resource} not found');
+            return $this->sendError(404, 'NOT_FOUND', 'Resource not found');
         }
         $resource->update($request->validated());
         return $this->sendOk($resource);
@@ -171,7 +171,7 @@ class {Resource}Controller extends Controller
 
     public function destroy(int $id): JsonResponse
     {
-        {Resource}::where('id', $id)->delete();
+        Resource::where('id', $id)->delete();
         return $this->sendOk(['success' => true]);
     }
 }
@@ -255,7 +255,7 @@ Every form request MUST:
 
 namespace App\Http\Requests;
 
-class Store{Resource}Request extends BaseFormRequest
+class StoreResourceRequest extends BaseFormRequest
 {
     public function authorize(): bool
     {
@@ -355,23 +355,23 @@ When adding a new module: add constants AND register them in `Permission::all()`
 **Skeleton** (add to `client/src/api/cms.ts`):
 
 ```ts
-export async function list{Resources}(params = "") {
-  return apiRequest<{ data: {Resource}[]; meta: Record<string, unknown> }>(`/api/{resources}${params}`);
+export async function listResources(params = "") {
+  return apiRequest<{ data: Resource[]; meta: Record<string, unknown> }>(`/api/{resources}${params}`);
 }
 
-export async function get{Resource}(id: number) {
-  return apiRequest<{ data: {Resource} }>(`/api/{resources}/${id}`);
+export async function getResource(id: number) {
+  return apiRequest<{ data: Resource }>(`/api/{resources}/${id}`);
 }
 
-export async function create{Resource}(input: {Resource}Input) {
-  return apiRequest<{ data: {Resource} }>("/api/{resources}", { method: "POST", body: JSON.stringify(input) });
+export async function createResource(input: ResourceInput) {
+  return apiRequest<{ data: Resource }>("/api/{resources}", { method: "POST", body: JSON.stringify(input) });
 }
 
-export async function update{Resource}(id: number, input: {Resource}Input) {
-  return apiRequest<{ data: {Resource} }>(`/api/{resources}/${id}`, { method: "PUT", body: JSON.stringify(input) });
+export async function updateResource(id: number, input: ResourceInput) {
+  return apiRequest<{ data: Resource }>(`/api/{resources}/${id}`, { method: "PUT", body: JSON.stringify(input) });
 }
 
-export async function delete{Resource}(id: number) {
+export async function deleteResource(id: number) {
   return apiRequest<{ data: { success: boolean } }>(`/api/{resources}/${id}`, { method: "DELETE" });
 }
 ```
@@ -391,13 +391,13 @@ Pattern:
 **Skeleton**:
 
 ```ts
-export type {Resource}Input = {
+export type ResourceInput = {
   name: string;
   slug?: string;
   description?: string;
 };
 
-export type {Resource} = {Resource}Input & {
+export type Resource = ResourceInput & {
   id: number;
   slug: string;
   createdAt: string;
@@ -470,7 +470,7 @@ Every admin view (anything wrapped in `<AdminLayout>`) MUST follow the **kitchen
 
 **When migrating an existing Kerisi/FIMS page** (or generating a new one), the first edit is always: drop every `max-w-*`/`mx-auto` on the root wrapper and replace the legacy breadcrumb element with a single `<h1 class="page-title">…</h1>`.
 
-**Concrete references:** `KitchenSinkView.vue`, `BankAccountView.vue`, `CashbookListView.vue`, `AccountCodeView.vue`, `CostCentreView.vue`, `InvestmentAccrualView.vue`, `InvoiceListView.vue`, `DepositFormView.vue`, `CreditNoteFormView.vue`, `PettyCashClaimFormView.vue`.
+**Concrete references:** `KitchenSinkView.vue`, `BankAccountView.vue`, `CashbookListView.vue`, `AccountCodeView.vue`, `CostCentreView.vue`, `InvestmentAccrualView.vue`, `ManualInvoiceListingView.vue`, `DepositFormView.vue`, `CreditNoteFormView.vue`, `PettyCashClaimFormView.vue`.
 
 ### Kerisi / FIMS setup list pages (search & smart filter when migrating)
 
@@ -494,18 +494,6 @@ Admin setup screens migrated in the Kerisi/FIMS style (hierarchical or flat code
 - Escape LIKE metacharacters in the user needle: `%`, `_`, and `\` (e.g. build `'%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $needle) . '%'`).
 
 **Concrete references (search + `q` on API):** `CostCentreView.vue`, `CascadeStructureView.vue`, `FundTypeView.vue`, `AccountCodeView.vue`, `ActivityCodeView.vue`, `PtjCodeView.vue` and matching `app/Http/Controllers/Api/*Controller.php` list methods. **Smart filter modal pattern:** `CostCentreView.vue`, `CascadeStructureView.vue`, `FundTypeView.vue`.
-
-### Kerisi / FIMS detail, workflow & master–detail pages (when migrating)
-
-Use this when migrating FIMS screens that combine a **read-only master** (e.g. “Details”), **one or more grids/DataTables**, and/or **workflow approve/reject** (`TRIGGER_*` PAGE JSON, legacy `$GET`/`postData`, `COMPONENT_JS` onload):
-
-1. **Inspect legacy triggers first** — `.scratch/TRIGGER_PAGE_*.json`, onload POST fields, grid URL query strings. Workflow screens often pass the primary key via **`$_GET['wtk_application_id']`** (not only **`id`**). **`taskId`** / **`task_id`** maps to **`wf_task`** when the BL expects a task row.
-2. **Resolve the entity id from the router query** — Accept **`wtk_application_id`**, domain-specific IDs (e.g. **`mjm_journal_id`** where the POST uses it), **`id`** as a tooling alias, plus camelCase keys the SPA may emit. Prefer one small **`parse*` helper** consumed by **`computed`** and **`watch`**; document allowed keys in the view header comment.
-3. **Sidebar with no query** — Legacy still renders **empty/disabled master** and grids showing **“No records”**. Do **not** block the page with a “missing parameter” banner; **clear `detail`/rows** when id is absent (parity with empty POST/API calls).
-4. **Workflow / Process panel** — If legacy hides the approve strip when **`!taskId`**, gate that panel with **`v-if="workflowTaskId"`** derived from **`taskId`**/**`task_id`**. Keep destructive actions disabled if the stored procedure/backend is unmigrated (note in UI).
-5. **Layout & grids** — Match legacy **two-column master** ordering when screenshots show distinct left/right stacks. Tables show **legacy-visible columns only** (ignore DataTable `d-none`/hidden markup for default UI); **`colspan`**, pagination empty rows, and **CSV/XLSX** match the displayed column layout.
-
-**Reference:** `StudentJournalApprovalView.vue`.
 
 ---
 
