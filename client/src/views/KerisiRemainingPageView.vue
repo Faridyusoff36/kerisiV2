@@ -73,6 +73,21 @@ function cellKey(dt: KerisiRemainingDatatable, colIdx: number): string {
   return lab.replace(/\s+/g, "_").toLowerCase();
 }
 
+/** Purchase Order shell — Amount shown as legacy grouped decimals. */
+function formatPurchasingPoAmountCell(mid: number | null, dt: KerisiRemainingDatatable, colIdx: number, raw: string): string {
+  if (mid !== 1833 && mid !== 2030 && mid !== 2039) return raw;
+  const dk = String(dt.dtKey[colIdx] ?? "").toLowerCase();
+  const label = String(dt.dtBi[colIdx] ?? "").toLowerCase();
+  if (!(dk.includes("pom_order_amt") || label.includes("amount"))) {
+    return raw;
+  }
+  const clean = raw.replace(/,/g, "").trim();
+  if (clean === "") return "";
+  const n = parseFloat(clean);
+  if (!Number.isFinite(n)) return raw;
+  return new Intl.NumberFormat("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
 function displayCell(row: Record<string, unknown>, dt: KerisiRemainingDatatable, colIdx: number): string {
   const key = cellKey(dt, colIdx);
   const tryKey = (k: string) => {
@@ -80,31 +95,33 @@ function displayCell(row: Record<string, unknown>, dt: KerisiRemainingDatatable,
     return v !== undefined && v !== null ? String(v) : null;
   };
 
-  const direct = tryKey(key);
-  if (direct !== null) return direct;
+  let resolved: string | null = tryKey(key);
 
-  // PascalCase → camelCase
-  if (/^[A-Z]/.test(key)) {
+  if (resolved === null && /^[A-Z]/.test(key)) {
     const cc = key.charAt(0).toLowerCase() + key.slice(1);
-    const v2 = tryKey(cc);
-    if (v2 !== null) return v2;
+    resolved = tryKey(cc);
   }
 
-  // snake_case → camelCase
-  const camel = key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
-  const v3 = tryKey(camel);
-  if (v3 !== null) return v3;
+  if (resolved === null) {
+    const camel = key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase());
+    resolved = tryKey(camel);
+  }
 
-  // compact match (ignore non-alphanumeric)
-  const compact = key.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-  if (compact.length) {
-    for (const [rk, rv] of Object.entries(row)) {
-      if (rk.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() === compact) {
-        if (rv !== undefined && rv !== null) return String(rv);
+  if (resolved === null) {
+    const compact = key.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+    if (compact.length) {
+      for (const [rk, rv] of Object.entries(row)) {
+        if (rk.replace(/[^a-zA-Z0-9]/g, "").toLowerCase() === compact) {
+          if (rv !== undefined && rv !== null) {
+            resolved = String(rv);
+            break;
+          }
+        }
       }
     }
   }
-  return "";
+
+  return formatPurchasingPoAmountCell(menuId.value, dt, colIdx, resolved ?? "");
 }
 
 function isActionCol(h: string | Record<string, unknown>): boolean {
@@ -130,6 +147,35 @@ function visibleColIndices(dt: KerisiRemainingDatatable): number[] {
 
 function tableColspan(dt: KerisiRemainingDatatable): number {
   return visibleColIndices(dt).length;
+}
+
+/** Menu 1833 — grand total under Amount (Purchase Order List legacy). */
+const grandTotalPoAmtRm = ref<number | null>(null);
+
+function poGrandTotalColSpans(dt: KerisiRemainingDatatable): { label: number; amount: number; tail: number } {
+  const vis = visibleColIndices(dt);
+  const amountIx = vis.findIndex((hi) => {
+    const dk = String(dt.dtKey[hi] ?? "").toLowerCase();
+    const lab = String(dt.dtBi[hi] ?? "").toLowerCase();
+    return dk.includes("pom_order_amt") || lab.includes("amount");
+  });
+  const idx = amountIx >= 0 ? amountIx : Math.max(0, vis.length - 2);
+  const label = Math.max(idx, 1);
+  const tail = Math.max(0, vis.length - label - 1);
+  return { label, amount: 1, tail };
+}
+
+function formatGrandPoTotal(n: number): string {
+  return new Intl.NumberFormat("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
+function poNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
+  const mid = menuId.value;
+  if (mid !== 1833 && mid !== 2030 && mid !== 2039) return "";
+  const dk = String(dt.dtKey[hi] ?? "").toLowerCase();
+  const lab = String(dt.dtBi[hi] ?? "").toLowerCase();
+  if (dk.includes("pom_order_amt") || lab.includes("amount")) return "text-right tabular-nums";
+  return "";
 }
 
 function hasFreezeLeft(dt: KerisiRemainingDatatable): boolean {
@@ -343,9 +389,19 @@ async function loadRows() {
 
   try {
     const res = await listKerisiRemainingData(id, `?${params.toString()}`);
-    rows.value  = Array.isArray(res.data) ? res.data : [];
+    rows.value = Array.isArray(res.data) ? res.data : [];
     total.value = Number(res.meta?.total ?? 0);
+    grandTotalPoAmtRm.value = null;
     const m = res.meta as Record<string, unknown> | undefined;
+    if (id === 1833 && m) {
+      const raw = m.grandTotalPomOrderAmtRm ?? m.grand_total_pom_order_amt_rm;
+      if (typeof raw === "number" && Number.isFinite(raw)) {
+        grandTotalPoAmtRm.value = raw;
+      } else if (typeof raw === "string" && raw.trim() !== "") {
+        const num = parseFloat(raw);
+        if (Number.isFinite(num)) grandTotalPoAmtRm.value = num;
+      }
+    }
     const opts = m?.topFilterOptions as Record<string, { value: string; label: string }[]> | undefined;
     if (opts && typeof opts === "object") {
       topFilterOptions.value = opts;
@@ -359,6 +415,7 @@ async function loadRows() {
     toast.error("Load failed", e instanceof Error ? e.message : "Unable to load list.");
     rows.value  = [];
     total.value = 0;
+    grandTotalPoAmtRm.value = null;
     topFilterOptions.value = {};
   } finally {
     loading.value = false;
@@ -693,6 +750,7 @@ onUnmounted(() => {
                       v-for="hi in visibleColIndices(dt)"
                       :key="'c-' + ri + '-' + hi"
                       class="px-3 py-2 text-slate-700"
+                      :class="poNumericColClass(dt, hi)"
                     >
                       <template v-if="isNoCol(dt.dtBi[hi] ?? '')">
                         {{ menuId === 3038 && di > 0 ? ri + 1 : (page - 1) * limit + ri + 1 }}
@@ -731,6 +789,20 @@ onUnmounted(() => {
                     </td>
                   </tr>
                 </tbody>
+                <tfoot v-if="di === 0 && menuId === 1833 && grandTotalPoAmtRm != null">
+                  <tr class="border-t-2 border-violet-600 bg-violet-100 font-semibold text-slate-900">
+                    <td class="px-3 py-2 text-left uppercase tracking-wide text-violet-950" :colspan="poGrandTotalColSpans(dt).label">
+                      Grand Total
+                    </td>
+                    <td
+                      class="px-3 py-2 text-right tabular-nums text-violet-950"
+                      :colspan="poGrandTotalColSpans(dt).amount"
+                    >
+                      {{ formatGrandPoTotal(grandTotalPoAmtRm) }}
+                    </td>
+                    <td v-if="poGrandTotalColSpans(dt).tail > 0" :colspan="poGrandTotalColSpans(dt).tail" class="px-3 py-2" />
+                  </tr>
+                </tfoot>
               </table>
             </div>
 

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -194,13 +195,15 @@ class KerisiRemainingShellListService
             2066 => $this->purchasingAssessmentQuestionShell($request, $page, $limit, $q),
             1828 => $this->purchasingTenderList($request, $page, $limit, $q),
             1829 => $this->purchasingItemMainListing($request, $page, $limit, $q),
-            1833 => $this->purchasingQuotationList($request, $page, $limit, $q),
+            /** Purchasing / Purchase Order List — `purchase_order_master` (PAGE 1512 / menu 1833). */
+            1833 => $this->purchasingPurchaseOrderMenu1833($request, $page, $limit, $q),
             1838 => $this->purchasingJobScope($request, $page, $limit, $q),
             1839 => $this->purchasingCommitteeSetup($request, $page, $limit, $q),
             1840 => $this->purchasingTenderJobScope($request, $page, $limit, $q),
             1856 => $this->purchasingPrForm($request, $page, $limit, $q),
             1858 => $this->purchasingGrnForm($request, $page, $limit, $q),
-            2039 => $this->purchasingAgreementList($request, $page, $limit, $q),
+            /** Purchasing / Purchase Order Cancellation — POCANCEL_STATUS (PAGE 1684 / menu 2039). */
+            2039 => $this->purchasingPoCancellationStatus2039($request, $page, $limit, $q),
             2041 => $this->purchasingPoClosing($request, $page, $limit, $q),
             2042 => $this->purchasingPoUpdate($request, $page, $limit, $q),
             2082 => $this->purchasingVoList($request, $page, $limit, $q),
@@ -262,7 +265,8 @@ class KerisiRemainingShellListService
             1897 => $this->apOtherPayment($request, $page, $limit, $q),
             1928 => $this->apRefund($request, $page, $limit, $q),
             1986 => $this->apPayeeReport($request, $page, $limit, $q),
-            2030 => $this->apBillsList($request, $page, $limit, $q),
+            /** Purchasing / Purchase Order / New PO Cancellation — PO_REJECT (PAGE 1678 / menu 2030). */
+            2030 => $this->purchasingPoNewCancellation2030($request, $page, $limit, $q),
             2107 => $this->apBillCancelKnockoff($request, $page, $limit, $q),
             2166 => $this->apBillDaysReport($request, $page, $limit, $q),
             2198 => $this->apVoucherReport($request, $page, $limit, $q),
@@ -1845,17 +1849,96 @@ class KerisiRemainingShellListService
         return array_map(static fn (\stdClass $row) => (array) $row, $fallback->get()->all());
     }
 
-    private function purchasingPoList(Request $r, int $page, int $limit, string $q): array
+    /**
+     * Shared query for Purchasing PO Kerisi grids (menus 1833, 2030, 2039).
+     *
+     * @param  'all'|'eligible_cancel'|'cancellation_log'  $scenario
+     */
+    private function purchaseOrderKerisiBase(Request $request, string $q, string $scenario): Builder
     {
-        $base = $this->conn()->table('purchase_order_master as pom')
-            ->select(['pom.pom_order_id', 'pom.pom_order_no', 'pom.pom_request_date', 'pom.vcs_vendor_code', 'pom.pom_order_amt', 'pom.pom_order_status'])
+        $subOu = $this->conn()->table('purchase_order_details')
+            ->select([
+                'pom_order_id',
+                DB::raw('MIN(IFNULL(TRIM(`oun_code`), \'\')) AS oun_from_pod'),
+            ])
+            ->groupBy('pom_order_id');
+
+        $base = $this->conn()->table('purchase_order_master AS pom')
+            ->leftJoin('vend_customer_supplier AS vc', 'vc.vcs_vendor_code', '=', 'pom.vcs_vendor_code')
+            ->leftJoinSub($subOu, 'pou', function (JoinClause $join) {
+                $join->on('pou.pom_order_id', '=', 'pom.pom_order_id');
+            })
+            ->select([
+                'pom.pom_order_id',
+                'pom.pom_order_no',
+                'pom.pom_description',
+                DB::raw("IFNULL(TRIM(`pou`.`oun_from_pod`),'') AS `oun_code`"),
+                'pom.vcs_vendor_code',
+                'vc.vcs_vendor_name',
+                DB::raw('pom.pom_order_amt_rm AS pom_order_amt_rm'),
+                DB::raw('pom.pom_order_amt_rm AS pom_order_amt'),
+                'pom.pom_order_status',
+                DB::raw("IFNULL(TRIM(`pom`.`pom_requisition_no`),'') AS `prlno`"),
+                'pom.pom_wflow_sts',
+                'pom.pom_cancel_remark',
+                'pom.updateddate AS createddate',
+            ])
             ->orderByDesc('pom.pom_order_id');
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw("LOWER(CONCAT_WS('|', IFNULL(pom.po_no,''), IFNULL(pom.po_vendor,''))) LIKE ?", [$like]);
+
+        if ($scenario === 'eligible_cancel') {
+            $base->whereRaw("UPPER(TRIM(IFNULL(pom.pom_order_status,''))) = 'APPROVE'")
+                ->where(function ($w) {
+                    $w->whereNull('pom.pom_cancel_remark')
+                        ->orWhereRaw("TRIM(IFNULL(pom.pom_cancel_remark,'')) = ''");
+                });
+        } elseif ($scenario === 'cancellation_log') {
+            $base->where(function ($w) {
+                $w->whereRaw("UPPER(TRIM(IFNULL(pom.pom_order_status,''))) = 'CANCEL'")
+                    ->orWhereRaw("IFNULL(TRIM(pom.pom_cancel_remark),'') <> ''")
+                    ->orWhereNotNull('pom.pom_cancel_date');
+            });
         }
 
-        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_po_list']);
+        $qTrim = trim($q);
+        if ($qTrim !== '') {
+            $like = $this->likeEscape(mb_strtolower($qTrim, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(pom.pom_order_no,''), IFNULL(pom.pom_description,''), IFNULL(pom.vcs_vendor_code,''), IFNULL(vc.vcs_vendor_name,''), IFNULL(pom.pom_order_status,''), IFNULL(pom.pom_requisition_no,''), IFNULL(pom.pom_cancel_remark,''), IFNULL(pom.pom_wflow_sts,''), IFNULL(`pou`.`oun_from_pod`,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        return $base;
+    }
+
+    /** Purchasing / Purchase Order List (menu 1833). */
+    private function purchasingPurchaseOrderMenu1833(Request $r, int $page, int $limit, string $q): array
+    {
+        $base = $this->purchaseOrderKerisiBase($r, $q, 'all');
+
+        /** @phpstan-ignore-next-line Laravel sum casts */
+        $grand = round((float) (clone $base)->sum('pom.pom_order_amt_rm'), 2);
+
+        $out = array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_purchase_order_list_1833']);
+        $out['grand_total_pom_order_amt_rm'] = $grand;
+
+        return $out;
+    }
+
+    /** Purchasing / New PO Cancellation (menu 2030). */
+    private function purchasingPoNewCancellation2030(Request $r, int $page, int $limit, string $q): array
+    {
+        $base = $this->purchaseOrderKerisiBase($r, $q, 'eligible_cancel');
+
+        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_po_new_cancel_2030']);
+    }
+
+    /** Purchasing / List of Purchase Order Cancellation (menu 2039). */
+    private function purchasingPoCancellationStatus2039(Request $r, int $page, int $limit, string $q): array
+    {
+        $base = $this->purchaseOrderKerisiBase($r, $q, 'cancellation_log');
+
+        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_po_cancel_status_2039']);
     }
 
     private function purchasingGrnList(Request $r, int $page, int $limit, string $q): array
@@ -2234,7 +2317,7 @@ class KerisiRemainingShellListService
 
     private function purchasingPoUpdate(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->purchasingPoList($r, $page, $limit, $q);
+        return $this->purchasingPurchaseOrderMenu1833($r, $page, $limit, $q);
     }
 
     private function purchasingVoList(Request $r, int $page, int $limit, string $q): array

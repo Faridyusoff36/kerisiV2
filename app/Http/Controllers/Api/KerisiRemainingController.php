@@ -45,6 +45,10 @@ class KerisiRemainingController extends Controller
             $meta['top_filter_options'] = $pack['top_filter_options'];
         }
 
+        if (array_key_exists('grand_total_pom_order_amt_rm', $pack)) {
+            $meta['grand_total_pom_order_amt_rm'] = $pack['grand_total_pom_order_amt_rm'];
+        }
+
         return $this->sendOk($rows, $meta);
     }
 
