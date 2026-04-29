@@ -3128,6 +3128,13 @@ export async function listKerisiRemainingData(menuId: number, params = "") {
   );
 }
 
+/** Purchasing / Work Progress Note Cancel (2082) — legacy processcancelwpn_entry */
+export async function kerisiWpnCancel(payload: { selectedId: string }) {
+  return apiRequest<{
+    data: { status: string; successMessage?: string; wpnNo?: string };
+  }>("/api/kerisi/remaining/wpn-cancel", { method: "POST", body: JSON.stringify(payload) });
+}
+
 /** Purchasing / List of PR To Be Cancel (3038) — Details PR grid linked to PR no / id */
 export async function getKerisiPrToCancelDetails(query: string) {
   const qs = query.startsWith("?") ? query : `?${query}`;

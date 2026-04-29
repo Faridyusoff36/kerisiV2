@@ -523,6 +523,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/payroll/kerisi/{menuId}', [KerisiPayrollController::class, 'index'])
         ->whereNumber('menuId');
     Route::get('/kerisi/remaining/pr-to-cancel/details', [KerisiRemainingController::class, 'prToCancelDetails']);
+    // Purchasing / WPN Cancel (menu 2082) — legacy processcancelwpn_entry
+    Route::post('/kerisi/remaining/wpn-cancel', [KerisiRemainingController::class, 'wpnCancel']);
     Route::get('/kerisi/remaining/{menuId}', [KerisiRemainingController::class, 'index'])
         ->whereNumber('menuId');
     Route::get('/account-receivable/kerisi-ar/{menuId}', [KerisiArController::class, 'index'])

@@ -14,6 +14,7 @@ import { useRoute, useRouter } from "vue-router";
 import {
   ChevronLeft,
   Download,
+  Eye,
   FileDown,
   FileSpreadsheet,
   Filter,
@@ -26,12 +27,16 @@ import {
   X,
 } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
-import { getKerisiPrToCancelDetails, listKerisiRemainingData } from "@/api/cms";
+import { getKerisiPrToCancelDetails, kerisiWpnCancel, listKerisiRemainingData } from "@/api/cms";
 import {
   getKerisiMenuTrailByMenuId,
   parseKerisiNumericMenuIdFromPath,
 } from "@/config/kerisi-menu-resolve";
-import type { KerisiRemainingDatatable, KerisiRemainingPageSpec } from "@/config/kerisi-remaining-registry.generated";
+import type {
+  KerisiRemainingDatatable,
+  KerisiRemainingFormField,
+  KerisiRemainingPageSpec,
+} from "@/config/kerisi-remaining-registry.generated";
 import { getKerisiRemainingSpec } from "@/config/kerisi-remaining-registry.generated";
 import { useToast } from "@/composables/useToast";
 
@@ -88,6 +93,46 @@ function formatPurchasingPoAmountCell(mid: number | null, dt: KerisiRemainingDat
   return new Intl.NumberFormat("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 
+/** Work Progress Note grids — Tax/Amount/Unit Price columns use legacy grouping. */
+function formatKerisiWpnMoney(mid: number | null, dt: KerisiRemainingDatatable, colIdx: number, raw: string): string {
+  if (mid !== 1840 && mid !== 2082 && mid !== 1838) return raw;
+  const dk = String(dt.dtKey[colIdx] ?? "").toLowerCase();
+  const lab = String(dt.dtBi[colIdx] ?? "")
+    .toLowerCase()
+    .replace(/<br\s*\/?>/gi, " ");
+  const isAmt =
+    dk.includes("amt") ||
+    dk.includes("tax") ||
+    dk.includes("price") ||
+    lab.includes("(rm)") ||
+    (lab.includes("amount") && !lab.includes("checkbox"));
+  if (!isAmt) return raw;
+  const clean = raw.replace(/,/g, "").trim();
+  if (clean === "") return "";
+  const n2 = parseFloat(clean);
+  if (!Number.isFinite(n2)) return raw;
+  return new Intl.NumberFormat("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n2);
+}
+
+function formatKerisiWpnDateIfNeeded(mid: number | null, dt: KerisiRemainingDatatable, colIdx: number, raw: string): string {
+  if (mid !== 2082) return raw;
+  const dk = String(dt.dtKey[colIdx] ?? "").toLowerCase();
+  if (!dk.includes("wpm_receive") && !dk.includes("date")) return raw;
+  const t = raw.trim();
+  if (!t) return "";
+  // SQL date-only strings → DD/MM/YYYY without timezone shift
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+  if (iso) {
+    return `${iso[3]}/${iso[2]}/${iso[1]}`;
+  }
+  const d = new Date(t);
+  if (Number.isNaN(d.getTime())) return raw;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
 function displayCell(row: Record<string, unknown>, dt: KerisiRemainingDatatable, colIdx: number): string {
   const key = cellKey(dt, colIdx);
   const tryKey = (k: string) => {
@@ -121,7 +166,10 @@ function displayCell(row: Record<string, unknown>, dt: KerisiRemainingDatatable,
     }
   }
 
-  return formatPurchasingPoAmountCell(menuId.value, dt, colIdx, resolved ?? "");
+  const po = formatPurchasingPoAmountCell(menuId.value, dt, colIdx, resolved ?? "");
+  const withWpn = formatKerisiWpnMoney(menuId.value, dt, colIdx, po);
+
+  return formatKerisiWpnDateIfNeeded(menuId.value, dt, colIdx, withWpn);
 }
 
 function isActionCol(h: string | Record<string, unknown>): boolean {
@@ -132,6 +180,12 @@ function isActionCol(h: string | Record<string, unknown>): boolean {
 function isNoCol(h: string | Record<string, unknown>): boolean {
   const t = toStr(h).trim().toLowerCase();
   return t === "no" || t === "no.";
+}
+
+/** Registry column titles may include `<br>` markup — show a single space for thead. */
+function stripHtmlBrLabel(h: string | Record<string, unknown> | undefined): string {
+  const s = typeof h === "string" ? h : "";
+  return s.replace(/<br\s*\/?>/gi, " ").trim();
 }
 
 /** Registry `dtClass` may include `d-none` (legacy Bootstrap) to hide Id / internal columns. */
@@ -178,8 +232,43 @@ function poNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
   return "";
 }
 
+/** WPN list / cancel / detail grids — right-align amount & tax columns (registry headers may use &lt;br&gt;). */
+function wpnNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
+  const mid = menuId.value;
+  if (mid !== 1840 && mid !== 2082 && mid !== 1838) return "";
+  const dk = String(dt.dtKey[hi] ?? "").toLowerCase();
+  const lab = String(dt.dtBi[hi] ?? "")
+    .toLowerCase()
+    .replace(/<br\s*\/?>/gi, " ");
+  if (dk.includes("amt") || dk.includes("tax") || dk.includes("price") || lab.includes("(rm)")) {
+    return "text-right tabular-nums";
+  }
+  return "";
+}
+
+function tableNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
+  return poNumericColClass(dt, hi) || wpnNumericColClass(dt, hi);
+}
+
 function hasFreezeLeft(dt: KerisiRemainingDatatable): boolean {
   return (dt.dtFreezeLeft ?? 0) > 0;
+}
+
+function kerisiFormFieldHidden(f: KerisiRemainingPageSpec["formSections"][number]): boolean {
+  return (f.additionalAttribute ?? "").toLowerCase().includes("d-none");
+}
+
+function wpnDropdownOptions(which: "wpn_type" | "po_pr_no" | "vendor" | "currency"): { value: string; label: string }[] {
+  const o = kerisiFormOptions.value as Record<string, { value: string; label: string }[] | undefined>;
+  const alt: Record<string, string> = {
+    wpn_type: "wpnType",
+    po_pr_no: "poPrNo",
+    vendor: "vendor",
+    currency: "currency",
+  };
+  const a = o[which];
+  const b = o[alt[which] ?? ""];
+  return Array.isArray(a) && a.length ? a : Array.isArray(b) && b.length ? b : [];
 }
 
 // ── layout: form-before-datatable ─────────────────────────────────────────
@@ -215,11 +304,22 @@ const smartFilterValues = ref<Record<string, string>>({});
 const topFilterValues   = ref<Record<string, string>>({});
 /** Option lists for top-filter dropdowns (server meta.topFilterOptions), e.g. menu 1829. */
 const topFilterOptions  = ref<Record<string, { value: string; label: string }[]>>({});
+/** Menu 1840 — Status smart filter options from server (meta.smartFilterOptions). */
+const smartFilterOptionLists = ref<Record<string, { value: string; label: string }[]>>({});
+/** Menu 1838 — second grid rows (WPN Detail). */
+const extraDatatableRowsStore = ref<Record<string, unknown>[][]>([]);
+const kerisiFormOptions = ref<Record<string, unknown>>({});
+const kerisiFormValues = ref<Record<string, string>>({});
 
 function optionsForTopFilter(index: number): { value: string; label: string }[] {
   const legacyKey = `tf_${index}`;
   const camelKey = `tf${index}`;
   return topFilterOptions.value[legacyKey] ?? topFilterOptions.value[camelKey] ?? [];
+}
+
+function optionsForSmartFilter(index: number): { value: string; label: string }[] {
+  const k = `sf_${index}`;
+  return smartFilterOptionLists.value[k] ?? [];
 }
 
 function initFilters() {
@@ -233,6 +333,10 @@ function initFilters() {
   tfFields.forEach((_, i) => (tfVals[`tf_${i}`] = ""));
   topFilterValues.value = tfVals;
   topFilterOptions.value = {};
+  smartFilterOptionLists.value = {};
+  extraDatatableRowsStore.value = [];
+  kerisiFormOptions.value = {};
+  kerisiFormValues.value = {};
 
   q.value = "";
   page.value = 1;
@@ -314,6 +418,54 @@ function navigateToPrCancelFrom3038(row: Record<string, unknown>) {
   void router.push({ path: "/admin/kerisi/m/3039", query: { rqm_requisition_id: String(id) } });
 }
 
+/** Work Progress Note Cancel (2082) — row id for shell detail / legacy checkbox value. */
+function extractWpmProgressId(row: Record<string, unknown>): number | null {
+  const raw = row.wpm_progress_id ?? row.wpmProgressId;
+  if (typeof raw === "number") return Number.isFinite(raw) && raw > 0 ? raw : null;
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  return null;
+}
+
+/** Open Work Progress Note Detail with this WPN (legacy eye → url_view). */
+function openWpnDetail2082(row: Record<string, unknown>) {
+  const id = extractWpmProgressId(row);
+  if (id === null) {
+    toast.error("Work Progress Note", "Could not read WPN id from this row.");
+    return;
+  }
+  void router.push({ path: "/admin/kerisi/m/1838", query: { wpm_progress_id: String(id) } });
+}
+
+function onWpn2082CheckboxChange(row: Record<string, unknown>, checked: boolean): void {
+  const cbox = String(row.cbox ?? "");
+  if (!cbox) return;
+  if (checked) {
+    wpn2082SelectedCbox.value = cbox;
+  } else if (wpn2082SelectedCbox.value === cbox) {
+    wpn2082SelectedCbox.value = "";
+  }
+}
+
+async function submitWpnCancel2082(): Promise<void> {
+  const id = wpn2082SelectedCbox.value.trim();
+  if (!id) {
+    toast.error("WPN Cancel", "Please select one row.");
+    return;
+  }
+  try {
+    const res = await kerisiWpnCancel({ selectedId: id });
+    toast.success("WPN Cancel", res.data?.successMessage ?? "Submitted.");
+    wpn2082SelectedCbox.value = "";
+    await loadRows();
+  } catch (e) {
+    const err = e as Error & { message?: string };
+    toast.error("WPN Cancel", err.message ?? "Cancel failed.");
+  }
+}
+
 function onShellMasterRowClick(di: number, row: Record<string, unknown>) {
   if (menuId.value !== 3038 || di !== 0) return;
   navigateToPrCancelFrom3038(row);
@@ -346,6 +498,7 @@ function shellRows(di: number): Record<string, unknown>[] {
   /** Menu 3041 DT1 (Details PO/Bill) — not wired yet; dedicated API would populate this. Empty = "No records". */
   if (menuId.value === 3041 && di > 0) return [];
   if (menuId.value === 3038 && di > 0) return detailRows.value;
+  if (menuId.value === 1838 && di === 1) return extraDatatableRowsStore.value[0] ?? [];
   return rows.value;
 }
 
@@ -361,6 +514,8 @@ function showDetailSection(di: number): boolean {
 }
 
 const q       = ref("");
+/** Legacy cbox = wpm_progress_id + '_' + wpm_progress_no for WPN Cancel POST */
+const wpn2082SelectedCbox = ref<string>("");
 let searchDebounce: ReturnType<typeof setTimeout> | null = null;
 
 async function loadRows() {
@@ -408,6 +563,31 @@ async function loadRows() {
     } else {
       topFilterOptions.value = {};
     }
+    const sfOpts = m?.smartFilterOptions ?? m?.smart_filter_options;
+    if (sfOpts && typeof sfOpts === "object") {
+      smartFilterOptionLists.value = sfOpts as Record<string, { value: string; label: string }[]>;
+    } else {
+      smartFilterOptionLists.value = {};
+    }
+    const edt = m?.extraDatatableRows ?? m?.extra_datatable_rows;
+    extraDatatableRowsStore.value = Array.isArray(edt) ? (edt as Record<string, unknown>[][]) : [];
+    const fo = m?.formOptions ?? m?.form_options;
+    kerisiFormOptions.value = fo && typeof fo === "object" ? (fo as Record<string, unknown>) : {};
+    const fv = m?.formValues ?? m?.form_values;
+    if (fv && typeof fv === "object") {
+      kerisiFormValues.value = Object.fromEntries(
+        Object.entries(fv as Record<string, unknown>).map(([k, v]) => [
+          k,
+          v !== null && v !== undefined ? String(v) : "",
+        ]),
+      );
+      const recv = kerisiFormValues.value.wpmReceiveDate;
+      if (recv && recv.includes(" ") && recv.length >= 10) {
+        kerisiFormValues.value.wpmReceiveDate = recv.slice(0, 10);
+      }
+    } else {
+      kerisiFormValues.value = {};
+    }
     if (m?.shellError && typeof m.shellError === "string") {
       toast.error("List source", m.shellError);
     }
@@ -417,6 +597,10 @@ async function loadRows() {
     total.value = 0;
     grandTotalPoAmtRm.value = null;
     topFilterOptions.value = {};
+    smartFilterOptionLists.value = {};
+    extraDatatableRowsStore.value = [];
+    kerisiFormOptions.value = {};
+    kerisiFormValues.value = {};
   } finally {
     loading.value = false;
   }
@@ -513,6 +697,7 @@ onMounted(() => {
 watch(menuId, () => {
   initFilters();
   resetPr3038Details();
+  wpn2082SelectedCbox.value = "";
   void loadRows();
 });
 
@@ -599,7 +784,7 @@ onUnmounted(() => {
         </article>
 
         <!-- Form sections BEFORE datatable -->
-        <template v-if="formBeforeDataTable">
+        <template v-if="formBeforeDataTable && menuId !== 1838">
           <article
             v-for="grp in formSectionGroups"
             :key="grp.title"
@@ -618,6 +803,126 @@ onUnmounted(() => {
                   value=""
                 />
               </div>
+            </div>
+          </article>
+        </template>
+        <template v-else-if="formBeforeDataTable && menuId === 1838">
+          <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-4 py-3">
+              <h2 class="text-base font-semibold text-slate-900">WPN Information</h2>
+            </div>
+            <div class="grid gap-3 p-4 sm:grid-cols-2">
+              <div
+                v-for="(f, fi) in spec?.formSections ?? []"
+                v-show="(!f.componentTitle || f.componentTitle === 'WPN Information') && !kerisiFormFieldHidden(f)"
+                :key="'wpn-fs-' + fi"
+                :class="f.fieldType === 'textarea' ? 'sm:col-span-2' : ''"
+              >
+                <label class="mb-1 block text-xs font-medium text-slate-600">{{ f.title }}</label>
+                <select
+                  v-if="(f.title ?? '').toLowerCase().includes('wpn type')"
+                  v-model="kerisiFormValues.wpmType"
+                  disabled
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+                >
+                  <option value="">— Select —</option>
+                  <option v-for="opt in wpnDropdownOptions('wpn_type')" :key="'wt-' + fi + '-' + opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+                <select
+                  v-else-if="(f.title ?? '').toLowerCase().includes('po no') || (f.title ?? '').toLowerCase().includes('pr no')"
+                  v-model="kerisiFormValues.pomOrderNo"
+                  disabled
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+                >
+                  <option value="">— Select —</option>
+                  <option v-for="opt in wpnDropdownOptions('po_pr_no')" :key="'po-' + fi + '-' + opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+                <select
+                  v-else-if="(f.title ?? '').toLowerCase().includes('vendor code')"
+                  v-model="kerisiFormValues.vcsVendorCode"
+                  disabled
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+                >
+                  <option value="">— Select —</option>
+                  <option v-for="opt in wpnDropdownOptions('vendor')" :key="'v-' + fi + '-' + opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+                <select
+                  v-else-if="(f.title ?? '').toLowerCase().includes('currency')"
+                  v-model="kerisiFormValues.wpmCurrencyCode"
+                  disabled
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
+                >
+                  <option value="">— Select —</option>
+                  <option v-for="opt in wpnDropdownOptions('currency')" :key="'c-' + fi + '-' + opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+                <textarea
+                  v-else-if="(f.title ?? '').toLowerCase().includes('po description')"
+                  v-model="kerisiFormValues.pomDescription"
+                  rows="3"
+                  disabled
+                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                />
+                <input
+                  v-else-if="f.fieldType === 'date'"
+                  v-model="kerisiFormValues.wpmReceiveDate"
+                  disabled
+                  type="date"
+                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                />
+                <input
+                  v-else-if="(f.title ?? '').toLowerCase().includes('wpn no')"
+                  v-model="kerisiFormValues.wpmProgressNo"
+                  disabled
+                  type="text"
+                  placeholder="Auto Assigned"
+                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                />
+                <input
+                  v-else-if="(f.title ?? '').toLowerCase().includes('vendor name')"
+                  v-model="kerisiFormValues.vcsVendorName"
+                  disabled
+                  type="text"
+                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                />
+                <input
+                  v-else-if="(f.title ?? '').toLowerCase().includes('do no')"
+                  v-model="kerisiFormValues.wpmReferenceDoc"
+                  disabled
+                  type="text"
+                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                />
+                <input
+                  v-else-if="(f.title ?? '').trim().toLowerCase() === 'status'"
+                  v-model="kerisiFormValues.wpmStatus"
+                  disabled
+                  type="text"
+                  placeholder="DRAFT"
+                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                />
+                <input v-else disabled type="text" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500" />
+              </div>
+            </div>
+          </article>
+          <article class="mt-4 rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-4 py-3">
+              <h2 class="text-base font-semibold text-slate-900">Remarks</h2>
+            </div>
+            <div class="p-4">
+              <label class="mb-1 block text-xs font-medium text-slate-600">Remarks</label>
+              <textarea
+                v-model="kerisiFormValues.wpmCancelRemark"
+                rows="3"
+                disabled
+                class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+              />
             </div>
           </article>
         </template>
@@ -717,13 +1022,19 @@ onUnmounted(() => {
             <div :class="hasFreezeLeft(dt) ? 'overflow-x-auto' : ''">
               <table class="w-full text-sm">
                 <thead>
-                  <tr class="border-b border-slate-200 bg-slate-50">
+                  <tr
+                    class="border-b border-slate-200"
+                    :class="menuId === 2082 ? 'bg-violet-100' : 'bg-slate-50'"
+                  >
                     <th
                       v-for="hi in visibleColIndices(dt)"
                       :key="'h-' + dt.componentId + '-' + hi"
-                      class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
+                      :class="[
+                        'px-3 py-2 text-left text-xs font-semibold tracking-wide',
+                        menuId === 2082 ? 'text-violet-900 normal-case' : 'uppercase text-slate-500',
+                      ]"
                     >
-                      {{ isNoCol(dt.dtBi[hi] ?? "") ? "No" : dt.dtBi[hi] }}
+                      {{ isNoCol(dt.dtBi[hi] ?? "") ? "No" : stripHtmlBrLabel(dt.dtBi[hi]) }}
                     </th>
                   </tr>
                 </thead>
@@ -750,10 +1061,10 @@ onUnmounted(() => {
                       v-for="hi in visibleColIndices(dt)"
                       :key="'c-' + ri + '-' + hi"
                       class="px-3 py-2 text-slate-700"
-                      :class="poNumericColClass(dt, hi)"
+                      :class="tableNumericColClass(dt, hi)"
                     >
                       <template v-if="isNoCol(dt.dtBi[hi] ?? '')">
-                        {{ menuId === 3038 && di > 0 ? ri + 1 : (page - 1) * limit + ri + 1 }}
+                        {{ (menuId === 3038 && di > 0) || (menuId === 1838 && di > 0) ? ri + 1 : (page - 1) * limit + ri + 1 }}
                       </template>
                       <template v-else-if="isActionCol(dt.dtBi[hi] ?? '')">
                         <!-- Row click navigates to 3039; stop bubble so Details only loads the lower grid -->
@@ -767,7 +1078,29 @@ onUnmounted(() => {
                             <Info class="h-3.5 w-3.5" />
                           </button>
                         </div>
-                        <div v-else class="flex items-center gap-1">
+                        <div
+                          v-else-if="menuId === 2082 && di === 0"
+                          class="flex items-center gap-2"
+                          @click.stop
+                        >
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="View"
+                            @click="openWpnDetail2082(row)"
+                          >
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
+                          <input
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                            aria-label="Select for WPN Cancel"
+                            :checked="wpn2082SelectedCbox === String(row.cbox ?? '')"
+                            @change="onWpn2082CheckboxChange(row, ($event.target as HTMLInputElement).checked)"
+                            @click.stop
+                          />
+                        </div>
+                        <div v-else class="flex items-center gap-1" @click.stop>
                           <button
                             type="button"
                             class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
@@ -810,7 +1143,7 @@ onUnmounted(() => {
             <template v-if="di === 0">
               <div class="flex items-center justify-between pt-1">
                 <div class="flex items-center gap-2 text-xs text-slate-500">
-                  <span>Show</span>
+                  <span>{{ menuId === 2082 ? "Display" : "Show" }}</span>
                   <select
                     v-model="limit"
                     class="rounded border border-slate-300 px-2 py-1 text-xs"
@@ -818,9 +1151,14 @@ onUnmounted(() => {
                   >
                     <option v-for="n in [5, 10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
                   </select>
-                  <span>entries</span>
-                  <span class="ml-4">
-                    {{ total === 0 ? "No records" : `${(page - 1) * limit + 1}–${Math.min(page * limit, total)} of ${total}` }}
+                  <span>{{ menuId === 2082 ? "records" : "entries" }}</span>
+                  <span v-if="menuId === 2082" class="ml-4">
+                    {{ total === 0 ? "No records" : `${total} record${total === 1 ? "" : "s"}` }}
+                  </span>
+                  <span v-else class="ml-4">
+                    {{
+                      total === 0 ? "No records" : `${(page - 1) * limit + 1}–${Math.min(page * limit, total)} of ${total}`
+                    }}
                   </span>
                 </div>
                 <div class="flex items-center gap-1">
@@ -842,6 +1180,16 @@ onUnmounted(() => {
                     ›
                   </button>
                 </div>
+              </div>
+              <div v-if="menuId === 2082" class="flex justify-end pt-3">
+                <button
+                  type="button"
+                  class="rounded-lg bg-violet-600 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-violet-700 disabled:opacity-50"
+                  :disabled="!wpn2082SelectedCbox"
+                  @click="submitWpnCancel2082"
+                >
+                  WPN Cancel
+                </button>
               </div>
             </template>
           </div>
@@ -917,6 +1265,13 @@ onUnmounted(() => {
                 class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
               >
                 <option value="">— All —</option>
+                <option
+                  v-for="opt in optionsForSmartFilter(fi)"
+                  :key="'sf-' + fi + '-' + opt.value"
+                  :value="opt.value"
+                >
+                  {{ opt.label }}
+                </option>
               </select>
               <input
                 v-else

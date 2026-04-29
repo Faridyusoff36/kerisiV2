@@ -197,16 +197,19 @@ class KerisiRemainingShellListService
             1829 => $this->purchasingItemMainListing($request, $page, $limit, $q),
             /** Purchasing / Purchase Order List — `purchase_order_master` (PAGE 1512 / menu 1833). */
             1833 => $this->purchasingPurchaseOrderMenu1833($request, $page, $limit, $q),
-            1838 => $this->purchasingJobScope($request, $page, $limit, $q),
+            /** Purchasing / Work Progress Note Detail — `work_progress_master` + grids (PAGE 1517 / menu 1838). */
+            1838 => $this->purchasingWorkProgressNoteDetail1838($request, $page, $limit, $q),
             1839 => $this->purchasingCommitteeSetup($request, $page, $limit, $q),
-            1840 => $this->purchasingTenderJobScope($request, $page, $limit, $q),
+            /** Purchasing / Work Progress Note List — `work_progress_master` (PAGE 1519 / menu 1840). */
+            1840 => $this->purchasingWorkProgressNoteList1840($request, $page, $limit, $q),
             1856 => $this->purchasingPrForm($request, $page, $limit, $q),
             1858 => $this->purchasingGrnForm($request, $page, $limit, $q),
             /** Purchasing / Purchase Order Cancellation — POCANCEL_STATUS (PAGE 1684 / menu 2039). */
             2039 => $this->purchasingPoCancellationStatus2039($request, $page, $limit, $q),
             2041 => $this->purchasingPoClosing($request, $page, $limit, $q),
             2042 => $this->purchasingPoUpdate($request, $page, $limit, $q),
-            2082 => $this->purchasingVoList($request, $page, $limit, $q),
+            /** Purchasing / Work Progress Note Cancel List (PAGE 1723 / menu 2082). */
+            2082 => $this->purchasingWorkProgressNoteCancel2082($request, $page, $limit, $q),
             2085 => $this->purchasingVendorAssessment($request, $page, $limit, $q),
             2320 => $this->purchasingPurchaseRequisitionCancellationList($request, $page, $limit, $q),
             2333 => $this->purchasingTenderEvaluation($request, $page, $limit, $q),
@@ -342,6 +345,90 @@ class KerisiRemainingShellListService
 
             default => ['rows' => [], 'total' => 0, 'connector' => 'remaining_shell_preview'],
         };
+    }
+
+    /**
+     * Legacy SNA_API_PURCHASING_WPN_CANCEL `processcancelwpn_entry` (workflowSubmit commented out there).
+     *
+     * @return array{success: bool, successMessage?: string, wpnNo?: string, errorMsg?: string}
+     */
+    public function processWpnCancelEntry(string $cboxKey, string $username): array
+    {
+        $cboxKey = trim($cboxKey);
+        if ($cboxKey === '') {
+            return ['success' => false, 'errorMsg' => 'Please choose one WPN row.'];
+        }
+
+        if (! preg_match('/^(\d+)_(.+)$/', $cboxKey, $m)) {
+            return ['success' => false, 'errorMsg' => 'Invalid selection reference.'];
+        }
+
+        $seqId = (int) $m[1];
+        $progressNo = trim((string) $m[2]);
+        if ($seqId < 1 || $progressNo === '') {
+            return ['success' => false, 'errorMsg' => 'Invalid selection reference.'];
+        }
+
+        $cx = $this->conn();
+
+        try {
+            $cx->transaction(function () use ($cx, $seqId, $progressNo, $username): void {
+                /** @var object|null $row */
+                $row = $cx->table('work_progress_master')->where('wpm_progress_id', $seqId)->lockForUpdate()->first();
+                if (! $row) {
+                    throw new \RuntimeException('Work Progress Note not found.');
+                }
+                if (trim((string) ($row->wpm_progress_no ?? '')) !== $progressNo) {
+                    throw new \RuntimeException('Selection does not match this WPN record.');
+                }
+                if (! in_array((string) ($row->wpm_status ?? ''), ['ENDORSE', 'APPROVE'], true)) {
+                    throw new \RuntimeException('This WPN is not in a cancellable status (ENDORSE/APPROVE).');
+                }
+
+                $hasApproveBill = $cx->table('bills_master')
+                    ->where('bim_status', 'APPROVE')
+                    ->whereRaw('IFNULL(grm_receive_no, ?) = ?', ['', $progressNo])
+                    ->exists();
+                if ($hasApproveBill) {
+                    throw new \RuntimeException('This WPN has an approved bill and cannot be cancelled from this list.');
+                }
+
+                $now = now();
+
+                $n = $cx->table('work_progress_master')
+                    ->where('wpm_progress_id', $seqId)
+                    ->update([
+                        'wpm_status' => 'CANCEL',
+                        'wpm_cancel_by' => $username,
+                        'wpm_cancel_date' => $now,
+                        'updateddate' => $now,
+                        'updatedby' => $username,
+                    ]);
+                if ($n < 1) {
+                    throw new \RuntimeException('Failed to update Work Progress Note master.');
+                }
+
+                $cx->table('work_progress_details')
+                    ->where('wpm_progress_id', $seqId)
+                    ->update([
+                        'wpd_status' => 'CANCEL',
+                        'updateddate' => $now,
+                        'updatedby' => $username,
+                    ]);
+            });
+        } catch (\RuntimeException $e) {
+            return ['success' => false, 'errorMsg' => $e->getMessage()];
+        } catch (\Throwable $e) {
+            report($e);
+
+            return ['success' => false, 'errorMsg' => 'WPN cancel failed.'];
+        }
+
+        return [
+            'success' => true,
+            'successMessage' => 'Work Progress Note successfully submitted to be cancelled. WPN No: '.$progressNo,
+            'wpnNo' => $progressNo,
+        ];
     }
 
     /* ── helpers ──────────────────────────────────────────────────────── */
@@ -1939,6 +2026,400 @@ class KerisiRemainingShellListService
         $base = $this->purchaseOrderKerisiBase($r, $q, 'cancellation_log');
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_po_cancel_status_2039']);
+    }
+
+    /**
+     * Purchasing / Work Progress Note List (menu 1840) — legacy MM_API_PURCHASING_WORKPROGRESSNOTELIST.
+     */
+    private function purchasingWorkProgressNoteList1840(Request $r, int $page, int $limit, string $q): array
+    {
+        $taxSum = $this->conn()->table('work_progress_details')
+            ->select([
+                'wpm_progress_id',
+                DB::raw('COALESCE(SUM(IFNULL(wpd_taxamt, 0)), 0) AS sum_wpd_taxamt'),
+            ])
+            ->groupBy('wpm_progress_id');
+
+        $vamSql = '(SELECT v2.vam_status FROM vendor_assessment_master AS v2 WHERE v2.vcs_vendor_code = wpm.vcs_vendor_code ORDER BY v2.vam_assessment_id DESC LIMIT 1)';
+
+        $base = $this->conn()->table('work_progress_master AS wpm')
+            ->leftJoin('purchase_order_master AS pom', 'pom.pom_order_no', '=', 'wpm.pom_order_no')
+            ->leftJoin('vend_customer_supplier AS vc', 'vc.vcs_vendor_code', '=', 'wpm.vcs_vendor_code')
+            ->leftJoinSub($taxSum, 'tx', 'tx.wpm_progress_id', '=', 'wpm.wpm_progress_id')
+            ->select([
+                'wpm.wpm_progress_id',
+                'wpm.wpm_progress_no',
+                'wpm.pom_order_no',
+                'wpm.vcs_vendor_code',
+                'vc.vcs_vendor_name',
+                DB::raw("IFNULL(NULLIF(TRIM(pom.pom_description), ''), '') AS pom_description"),
+                DB::raw('IFNULL(tx.sum_wpd_taxamt, 0) AS sum_wpd_taxamt'),
+                'wpm.wpm_total_amt',
+                'wpm.wpm_status',
+                DB::raw($vamSql.' AS vam_status'),
+            ])
+            ->orderByDesc('wpm.wpm_progress_id');
+
+        $sf = trim((string) $r->input('sf_0', ''));
+        if ($sf !== '') {
+            $base->where('wpm.wpm_status', $sf);
+        }
+
+        $qTrim = trim($q);
+        if ($qTrim !== '') {
+            $like = $this->likeEscape(mb_strtolower($qTrim, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(wpm.wpm_progress_no,''), IFNULL(wpm.pom_order_no,''), IFNULL(wpm.vcs_vendor_code,''), IFNULL(vc.vcs_vendor_name,''), IFNULL(pom.pom_description,''), IFNULL(wpm.wpm_status,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        $statusOpts = $this->conn()->table('work_progress_master')
+            ->selectRaw('DISTINCT TRIM(wpm_status) AS st')
+            ->whereRaw("TRIM(IFNULL(wpm_status,'')) <> ''")
+            ->orderBy('st')
+            ->pluck('st')
+            ->map(fn ($s) => ['value' => (string) $s, 'label' => (string) $s])
+            ->values()
+            ->all();
+
+        return array_merge($this->paginate($base, $page, $limit), [
+            'connector' => 'purchasing_work_progress_note_list_1840',
+            'smart_filter_options' => ['sf_0' => $statusOpts],
+        ]);
+    }
+
+    /**
+     * Purchasing / Work Progress Note Cancel List (menu 2082) — legacy `SNA_API_PURCHASING_WPN_CANCEL?dt_wpnCancel=1`.
+     *
+     * Same eligibility as cancel submit: ENDORSE/APPROVE, no approved bill with grm_receive_no = wpm_progress_no.
+     */
+    private function purchasingWorkProgressNoteCancel2082(Request $r, int $page, int $limit, string $q): array
+    {
+        $base = $this->wpnCancel2082BaseQuery()
+            ->select([
+                'wpm.wpm_progress_id',
+                'wpm.wpm_progress_no',
+                'wpm.pom_order_no',
+                'wpm.wpm_receive_date',
+                DB::raw('IFNULL(wpm.wpm_total_amt_rm, IFNULL(wpm.wpm_total_amt, 0)) AS wpm_total_amt_rm'),
+                DB::raw("CONCAT(wpm.wpm_progress_id, '_', wpm.wpm_progress_no) AS cbox"),
+            ])
+            ->orderByDesc('wpm.wpm_progress_id');
+
+        $qTrim = trim($q);
+        if ($qTrim !== '') {
+            $like = $this->likeEscape(mb_strtolower($qTrim, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('__',
+                    IFNULL(wpm.wpm_progress_id,''),
+                    IFNULL(wpm.wpm_progress_no,''),
+                    IFNULL(wpm.pom_order_no,''),
+                    IFNULL(wpm.wpm_receive_date,''),
+                    IFNULL(wpm.wpm_total_amt,''),
+                    IFNULL(wpm.wpm_total_amt_rm,''),
+                    IFNULL(wpm.wpm_status,''),
+                    CONCAT(IFNULL(wpm.wpm_progress_id,''), '_', IFNULL(wpm.wpm_progress_no,''))
+                )) LIKE ?",
+                [$like]
+            );
+        }
+
+        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_wpn_cancel_list_2082']);
+    }
+
+    /** Base query for menu 2082 list + cancel eligibility (legacy dt_wpnCancel NOT IN approved bill). */
+    private function wpnCancel2082BaseQuery(): Builder
+    {
+        return $this->conn()->table('work_progress_master AS wpm')
+            ->whereIn('wpm.wpm_status', ['ENDORSE', 'APPROVE'])
+            ->whereRaw(
+                'wpm.wpm_progress_no NOT IN (SELECT IFNULL(grm_receive_no, ?) FROM bills_master WHERE bim_status = ?)',
+                ['', 'APPROVE']
+            );
+    }
+
+    /**
+     * Purchasing / Work Progress Note Detail (menu 1838) — header form options + two grids.
+     *
+     * Pass ?wpm_progress_id=… to load grids; otherwise grids are empty (legacy empty-POST parity).
+     *
+     * @return array<string, mixed>
+     */
+    private function purchasingWorkProgressNoteDetail1838(Request $r, int $page, int $limit, string $q): array
+    {
+        unset($page, $limit);
+        $formOptions = $this->workProgressNoteFormOptions();
+        $wpmId = (int) $r->input('wpm_progress_id', $r->input('wpmProgressId', 0));
+
+        if ($wpmId < 1) {
+            return [
+                'rows' => [],
+                'total' => 0,
+                'connector' => 'purchasing_wpn_detail_1838',
+                'form_options' => $formOptions,
+                'extra_datatable_rows' => [[]],
+            ];
+        }
+
+        $wpm = $this->conn()->table('work_progress_master')->where('wpm_progress_id', $wpmId)->first();
+        if (! $wpm) {
+            return [
+                'rows' => [],
+                'total' => 0,
+                'connector' => 'purchasing_wpn_detail_1838',
+                'form_options' => $formOptions,
+                'extra_datatable_rows' => [[]],
+                'shellError' => 'Work Progress Note not found.',
+            ];
+        }
+
+        $pomNo = trim((string) ($wpm->pom_order_no ?? ''));
+        $existing = $pomNo !== '' ? $this->workProgressNoteExistingPrPoRowsForPom($pomNo) : [];
+        $qTrim = trim($q);
+        if ($qTrim !== '') {
+            $needle = mb_strtolower($qTrim, 'UTF-8');
+            $existing = array_values(array_filter($existing, static function (array $row) use ($needle) {
+                $hay = mb_strtolower(implode('|', array_map(static fn ($v) => (string) $v, $row)), 'UTF-8');
+
+                return str_contains($hay, $needle);
+            }));
+        }
+
+        $detailRows = $this->workProgressNoteWpnDetailRows($wpmId);
+
+        return [
+            'rows' => $existing,
+            'total' => count($existing),
+            'connector' => 'purchasing_wpn_detail_1838',
+            'form_options' => $formOptions,
+            'extra_datatable_rows' => [$detailRows],
+            'form_values' => [
+                'wpm_progress_no' => (string) ($wpm->wpm_progress_no ?? ''),
+                'wpm_type' => (string) ($wpm->wpm_type ?? ''),
+                'pom_order_no' => $pomNo,
+                'vcs_vendor_code' => (string) ($wpm->vcs_vendor_code ?? ''),
+                'vcs_vendor_name' => $this->vendorNameForCode((string) ($wpm->vcs_vendor_code ?? '')),
+                'pom_description' => $this->pomDescriptionForOrder($pomNo),
+                'wpm_currency_code' => (string) ($wpm->wpm_currency_code ?? ''),
+                'wpm_receive_date' => $wpm->wpm_receive_date ?? null,
+                'wpm_reference_doc' => (string) ($wpm->wpm_reference_doc ?? ''),
+                'wpm_status' => (string) ($wpm->wpm_status ?? ''),
+                'wpm_cancel_remark' => (string) ($wpm->wpm_cancel_remark ?? ''),
+            ],
+        ];
+    }
+
+    /**
+     * Lookup + static options for WPN Information form (menu 1838).
+     *
+     * @return array<string, mixed>
+     */
+    private function workProgressNoteFormOptions(): array
+    {
+        $cx = $this->conn();
+        $po = $cx->table('purchase_order_master')
+            ->orderByDesc('pom_order_id')
+            ->limit(800)
+            ->pluck('pom_order_no')
+            ->filter(static fn ($n) => trim((string) $n) !== '')
+            ->unique()
+            ->map(static fn ($n) => ['value' => (string) $n, 'label' => (string) $n])
+            ->values()
+            ->all();
+
+        $vendors = $cx->table('vend_customer_supplier')
+            ->orderBy('vcs_vendor_code')
+            ->limit(3000)
+            ->get(['vcs_vendor_code', 'vcs_vendor_name'])
+            ->map(static function ($r) {
+                $c = trim((string) ($r->vcs_vendor_code ?? ''));
+                $n = trim((string) ($r->vcs_vendor_name ?? ''));
+
+                return ['value' => $c, 'label' => $c !== '' && $n !== '' ? $c.' — '.$n : $c];
+            })
+            ->filter(static fn ($o) => $o['value'] !== '')
+            ->values()
+            ->all();
+
+        $currencies = $cx->table('lookup_details')
+            ->where('lma_code_name', 'CURRENCY')
+            ->where('lde_status', '1')
+            ->orderBy('lde_sorting')
+            ->orderBy('lde_value')
+            ->get(['lde_value'])
+            ->map(static fn ($r) => ['value' => (string) ($r->lde_value ?? ''), 'label' => (string) ($r->lde_value ?? '')])
+            ->filter(static fn ($o) => $o['value'] !== '')
+            ->values()
+            ->all();
+
+        if ($currencies === []) {
+            $currencies = $cx->table('work_progress_master')
+                ->selectRaw('DISTINCT TRIM(wpm_currency_code) AS cu')
+                ->whereRaw("TRIM(IFNULL(wpm_currency_code, '')) <> ''")
+                ->orderBy('cu')
+                ->pluck('cu')
+                ->map(static fn ($c) => ['value' => (string) $c, 'label' => (string) $c])
+                ->values()
+                ->all();
+        }
+
+        return [
+            'wpn_type' => [
+                ['value' => 'PR', 'label' => 'PR'],
+                ['value' => 'PO', 'label' => 'PO'],
+            ],
+            'po_pr_no' => $po,
+            'vendor' => $vendors,
+            'currency' => $currencies,
+        ];
+    }
+
+    private function vendorNameForCode(string $code): string
+    {
+        $code = trim($code);
+        if ($code === '') {
+            return '';
+        }
+        $name = $this->conn()->table('vend_customer_supplier')
+            ->where('vcs_vendor_code', $code)
+            ->value('vcs_vendor_name');
+
+        return trim((string) ($name ?? ''));
+    }
+
+    private function pomDescriptionForOrder(string $pomOrderNo): string
+    {
+        $pomOrderNo = trim($pomOrderNo);
+        if ($pomOrderNo === '') {
+            return '';
+        }
+        $d = $this->conn()->table('purchase_order_master')
+            ->where('pom_order_no', $pomOrderNo)
+            ->value('pom_description');
+
+        return trim((string) ($d ?? ''));
+    }
+
+    /**
+     * Rows for "List of Existing PR / PO in WPN / GRN" (menu 1838 DT0).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function workProgressNoteExistingPrPoRowsForPom(string $pomOrderNo): array
+    {
+        $pomOrderNo = trim($pomOrderNo);
+        if ($pomOrderNo === '') {
+            return [];
+        }
+        $cx = $this->conn();
+        $pom = $cx->table('purchase_order_master')->where('pom_order_no', $pomOrderNo)->first();
+        if (! $pom) {
+            return [];
+        }
+        $rqmNo = trim((string) ($pom->pom_requisition_no ?? ''));
+        if ($rqmNo === '') {
+            return [];
+        }
+
+        $grn = $cx->table('goods_receive_master as grm')
+            ->join('purchase_order_master as pom', 'pom.pom_order_no', '=', 'grm.pom_order_no')
+            ->where('pom.pom_requisition_no', $rqmNo)
+            ->selectRaw('grm.grm_receive_no AS application_no')
+            ->selectRaw('grm.pom_order_no AS pom_order_no')
+            ->selectRaw('COALESCE(grm.vcs_vendor_code, pom.vcs_vendor_code) AS vcs_vendor_code')
+            ->selectRaw('pom.pom_description AS pom_description')
+            ->selectRaw('grm.grm_total_amt AS grm_total_amt')
+            ->selectRaw('(SELECT SUM(grd.grd_receive_amt) FROM goods_receive_details grd WHERE grd.grm_receive_id = grm.grm_receive_id) AS grd_receive_amt')
+            ->selectRaw('grm.grm_status AS application_status')
+            ->selectRaw("'GRN' AS from_table")
+            ->get();
+
+        $wpn = $cx->table('work_progress_master as wpm')
+            ->join('purchase_order_master as pom', 'pom.pom_order_no', '=', 'wpm.pom_order_no')
+            ->where('pom.pom_requisition_no', $rqmNo)
+            ->selectRaw('wpm.wpm_progress_no AS application_no')
+            ->selectRaw('wpm.pom_order_no AS pom_order_no')
+            ->selectRaw('COALESCE(wpm.vcs_vendor_code, pom.vcs_vendor_code) AS vcs_vendor_code')
+            ->selectRaw('pom.pom_description AS pom_description')
+            ->selectRaw('wpm.wpm_total_amt AS grm_total_amt')
+            ->selectRaw('COALESCE(wpm.wpm_receive_amt_rm, wpm.wpm_total_amt_rm) AS grd_receive_amt')
+            ->selectRaw('wpm.wpm_status AS application_status')
+            ->selectRaw("'WPN' AS from_table")
+            ->get();
+
+        $bill = $cx->table('bills_master as bim')
+            ->join('purchase_order_master as pom', 'pom.pom_order_no', '=', 'bim.pom_order_no')
+            ->where('pom.pom_requisition_no', $rqmNo)
+            ->selectRaw('bim.bim_bills_no AS application_no')
+            ->selectRaw('bim.pom_order_no AS pom_order_no')
+            ->selectRaw('COALESCE(bim.vcs_vendor_code, pom.vcs_vendor_code) AS vcs_vendor_code')
+            ->selectRaw("COALESCE(NULLIF(TRIM(bim.bim_bills_desc), ''), pom.pom_description) AS pom_description")
+            ->selectRaw('bim.bim_bill_amt AS grm_total_amt')
+            ->selectRaw('bim.bim_ent_amt AS grd_receive_amt')
+            ->selectRaw('bim.bim_status AS application_status')
+            ->selectRaw("'BILL' AS from_table")
+            ->get();
+
+        $out = [];
+        foreach (array_merge($grn->all(), $wpn->all(), $bill->all()) as $row) {
+            $a = (array) $row;
+            if (trim((string) ($a['application_no'] ?? '')) === '') {
+                continue;
+            }
+            $out[] = [
+                'application_no' => $a['application_no'],
+                'pom_order_no' => $a['pom_order_no'],
+                'vcs_vendor_code' => $a['vcs_vendor_code'],
+                'pom_description' => $a['pom_description'],
+                'grm_total_amt' => $a['grm_total_amt'],
+                'grd_receive_amt' => $a['grd_receive_amt'],
+                'application_status' => $a['application_status'],
+                'from_table' => $a['from_table'],
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function workProgressNoteWpnDetailRows(int $wpmProgressId): array
+    {
+        $cx = $this->conn();
+        $rows = $cx->table('work_progress_details AS wpd')
+            ->leftJoin('purchase_order_master AS pomd', 'pomd.pom_order_no', '=', 'wpd.pom_order_no')
+            ->leftJoin('purchase_order_details AS pod', function ($j) {
+                $j->whereColumn('pod.pom_order_id', 'pomd.pom_order_id')
+                    ->whereColumn('pod.pod_line_no', 'wpd.pod_line_no');
+            })
+            ->leftJoin('item_main AS im', 'im.itm_item_code', '=', 'pod.itm_item_code')
+            ->where('wpd.wpm_progress_id', $wpmProgressId)
+            ->orderBy('wpd.wpd_line_no')
+            ->select([
+                'wpd.wpd_wp_details_id',
+                'wpd.wpd_line_no',
+                DB::raw('IFNULL(NULLIF(TRIM(pod.itm_item_code), \'\'), IFNULL(im.itm_item_code, \'\')) AS itm_item_code'),
+                DB::raw('COALESCE(NULLIF(TRIM(pod.pod_item_spec), \'\'), NULLIF(TRIM(wpd.wpd_item_desc), \'\')) AS pod_item_spec'),
+                'wpd.acm_acct_code',
+                DB::raw('IFNULL(pod.bdg_budget_code, \'\') AS bdg_budget_code'),
+                'wpd.wpd_order_qty',
+                'wpd.wpd_unit_price',
+                'wpd.wpd_order_amt',
+                'wpd.wpd_taxcode',
+                'wpd.wpd_taxpct',
+                'wpd.wpd_taxamt',
+                'wpd.wpd_receive_amt',
+            ])
+            ->get();
+
+        $list = [];
+        foreach ($rows as $r) {
+            $list[] = (array) $r;
+        }
+
+        return $list;
     }
 
     private function purchasingGrnList(Request $r, int $page, int $limit, string $q): array
