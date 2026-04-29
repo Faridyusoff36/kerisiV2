@@ -152,7 +152,8 @@ class KerisiRemainingShellListService
             2495 => $this->assetDisposalRegistration($request, $page, $limit, $q),
             2543 => $this->assetTransferList($request, $page, $limit, $q),
             2544 => $this->assetTransferApplication($request, $page, $limit, $q),
-            2618 => $this->assetVerification($request, $page, $limit, $q),
+            /** Purchasing / Advertisement / New Tender/Quotation — `tender_master` form shell (PAGE 2165 / menu 2618). */
+            2618 => $this->purchasingAdvertisementRequest2618($request, $page, $limit, $q),
             /** Purchasing / Vendor Assessment / Good Receive Note — `goods_receive_master` + `vendor_assessment_master` (PAGE 2170 / menu 2624). */
             2624 => $this->purchasingGrnVendorAssessment2624($request, $page, $limit, $q),
             /** Purchasing / Vendor Assessment / Work Progress Note — `work_progress_master` (PAGE 2172 / menu 2626). */
@@ -2694,6 +2695,253 @@ class KerisiRemainingShellListService
     }
 
     /**
+     * Purchasing / Advertisement / New Tender/Quotation (menu 2618).
+     *
+     * The legacy form is mostly client-side until Save; this endpoint supplies the
+     * live dropdown lists and existing child rows when a `tdm_tender_id` is opened.
+     */
+    private function purchasingAdvertisementRequest2618(Request $r, int $page, int $limit, string $q): array
+    {
+        unset($page, $limit, $q);
+
+        $tenderId = (int) $r->input('tdm_tender_id', $r->input('tdmTenderId', $r->input('id', 0)));
+        $jobscopeRows = [];
+        $tarafRows = [];
+        $flowRows = [];
+        $formValues = [
+            'tdm_tender_no' => 'Auto Assigned',
+            'tdm_requestdate' => now()->toDateString(),
+            'tdm_status' => 'DRAFT',
+            'tdm_tender_type' => '',
+        ];
+
+        if ($tenderId > 0) {
+            $master = $this->conn()->table('tender_master')->where('tdm_tender_id', $tenderId)->first();
+            if ($master) {
+                $formValues = array_merge($formValues, (array) $master);
+            }
+
+            $jobscopeRows = $this->advertisementJobscopeRows($tenderId);
+            $tarafRows = $this->advertisementTarafRows($tenderId);
+        }
+
+        return [
+            'rows' => $jobscopeRows,
+            'total' => count($jobscopeRows),
+            'connector' => 'purchasing_advertisement_request_2618',
+            'form_options' => $this->advertisementRequestOptions(),
+            'form_values' => $formValues,
+            'extra_datatable_rows' => [$tarafRows, $flowRows],
+        ];
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function advertisementJobscopeRows(int $tenderId): array
+    {
+        return $this->conn()->table('tender_jobscope AS tj')
+            ->leftJoin('jobscope AS js', 'js.jbs_jobscope_code', '=', 'tj.tjs_jobscope_code')
+            ->leftJoin('jobscope_category AS jc', 'jc.jbc_category', '=', 'tj.tjs_jobscope_category')
+            ->leftJoin('lkp_logic_jobscope AS lj', 'lj.llj_code', '=', 'tj.tjs_logic_code')
+            ->where('tj.tdm_tender_id', $tenderId)
+            ->orderBy('tj.tjs_id_ai')
+            ->select([
+                'tj.tjs_id_ai',
+                'tj.tdm_tender_id',
+                'tj.tjs_jobscope_code',
+                DB::raw("IFNULL(js.jbs_job_name, '') AS tjs_jobscope_desc"),
+                'tj.tjs_jobscope_category',
+                DB::raw("IFNULL(jc.jbc_desc, '') AS tjs_jobscope_category_desc"),
+                'tj.tjs_logic_code',
+                DB::raw("IFNULL(lj.llj_desc, '') AS tjs_logic_desc"),
+            ])
+            ->get()
+            ->map(fn ($row) => (array) $row)
+            ->all();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function advertisementTarafRows(int $tenderId): array
+    {
+        return $this->conn()->table('tender_bumi_status AS tb')
+            ->leftJoin('lookup_details AS ld', function (JoinClause $join) {
+                $join->on('ld.lde_value', '=', 'tb.trf_bumi_status')
+                    ->where('ld.lma_code_name', '=', 'TARAF_VENDOR');
+            })
+            ->where('tb.tdm_tender_id', $tenderId)
+            ->orderBy('tb.trf_id_ai')
+            ->select([
+                'tb.trf_id_ai',
+                'tb.tdm_tender_id',
+                'tb.trf_bumi_status',
+                DB::raw("IFNULL(ld.lde_description, '') AS trf_bumi_status_desc"),
+            ])
+            ->get()
+            ->map(fn ($row) => (array) $row)
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function advertisementRequestOptions(): array
+    {
+        $cx = $this->conn();
+
+        $option = static fn ($value, $label): array => [
+            'value' => (string) $value,
+            'label' => (string) $label,
+        ];
+
+        $requisitions = $cx->table('requisition_master')
+            ->orderByDesc('rqm_requisition_id')
+            ->limit(500)
+            ->get(['rqm_requisition_no', 'rqm_requisition_title'])
+            ->filter(fn ($r) => trim((string) ($r->rqm_requisition_no ?? '')) !== '')
+            ->map(fn ($r) => $option(
+                $r->rqm_requisition_no,
+                trim((string) ($r->rqm_requisition_title ?? '')) !== ''
+                    ? $r->rqm_requisition_no.' - '.$r->rqm_requisition_title
+                    : $r->rqm_requisition_no
+            ))
+            ->values()
+            ->all();
+
+        $staff = $cx->table('staff')
+            ->orderBy('stf_staff_name')
+            ->limit(1000)
+            ->get(['stf_staff_id', 'stf_staff_name'])
+            ->map(fn ($r) => $option(
+                $r->stf_staff_id,
+                trim((string) ($r->stf_staff_name ?? '')) !== ''
+                    ? $r->stf_staff_id.' - '.$r->stf_staff_name
+                    : $r->stf_staff_id
+            ))
+            ->values()
+            ->all();
+
+        $tenderMethods = $cx->table('lookup_details')
+            ->where('lma_code_name', 'TENDERTYPE')
+            ->orderBy('lde_sorting')
+            ->orderBy('lde_description')
+            ->get(['lde_description'])
+            ->filter(fn ($r) => trim((string) ($r->lde_description ?? '')) !== '')
+            ->map(fn ($r) => $option($r->lde_description, $r->lde_description))
+            ->values()
+            ->all();
+
+        $ptj = $cx->table('organization_unit')
+            ->whereRaw("TRIM(IFNULL(oun_code,'')) <> ''")
+            ->orderBy('oun_code')
+            ->limit(2000)
+            ->get(['oun_code', 'oun_desc'])
+            ->map(fn ($r) => $option($r->oun_code, $r->oun_code.' - '.$r->oun_desc))
+            ->values()
+            ->all();
+
+        $costCentres = $cx->table('costcentre')
+            ->whereRaw("TRIM(IFNULL(ccr_costcentre,'')) <> ''")
+            ->orderBy('ccr_costcentre')
+            ->limit(3000)
+            ->get(['ccr_costcentre', 'ccr_costcentre_desc', 'oun_code'])
+            ->map(fn ($r) => [
+                'value' => (string) $r->ccr_costcentre,
+                'label' => (string) ($r->ccr_costcentre.' - '.$r->ccr_costcentre_desc),
+                'ounCode' => (string) ($r->oun_code ?? ''),
+            ])
+            ->values()
+            ->all();
+
+        $fundTypes = $cx->table('fund_type')
+            ->whereRaw("TRIM(IFNULL(fty_fund_type,'')) <> ''")
+            ->orderBy('fty_fund_type')
+            ->get(['fty_fund_type', 'fty_fund_desc'])
+            ->map(fn ($r) => $option($r->fty_fund_type, $r->fty_fund_type.' - '.$r->fty_fund_desc))
+            ->values()
+            ->all();
+
+        $activities = $cx->table('activity_type')
+            ->whereRaw("TRIM(IFNULL(at_activity_code,'')) <> ''")
+            ->orderBy('at_activity_code')
+            ->limit(3000)
+            ->get(['at_activity_code', 'at_activity_description_bm'])
+            ->map(fn ($r) => $option($r->at_activity_code, $r->at_activity_code.' - '.$r->at_activity_description_bm))
+            ->values()
+            ->all();
+
+        $soCodes = $cx->table('requisition_master')
+            ->selectRaw('DISTINCT TRIM(IFNULL(so_code, \'\')) AS so_code')
+            ->whereRaw("TRIM(IFNULL(so_code,'')) <> ''")
+            ->orderBy('so_code')
+            ->pluck('so_code')
+            ->map(fn ($s) => $option($s, $s))
+            ->values()
+            ->all();
+
+        $categories = $cx->table('jobscope_category')
+            ->whereRaw("TRIM(IFNULL(jbc_category,'')) <> ''")
+            ->orderBy('jbc_category')
+            ->get(['jbc_category', 'jbc_desc'])
+            ->map(fn ($r) => $option($r->jbc_category, strtoupper((string) $r->jbc_desc)))
+            ->values()
+            ->all();
+
+        $jobscopes = $cx->table('jobscope')
+            ->whereRaw("TRIM(IFNULL(jbs_jobscope_code,'')) <> ''")
+            ->whereRaw("UPPER(TRIM(IFNULL(jbs_status,''))) NOT IN ('N','INACTIVE','DISABLE')")
+            ->orderBy('jbs_jobscope_code')
+            ->get(['jbs_jobscope_code', 'jbs_job_name', 'jbc_category'])
+            ->map(fn ($r) => [
+                'value' => (string) $r->jbs_jobscope_code,
+                'label' => trim((string) ($r->jbs_job_name ?? '')) !== ''
+                    ? $r->jbs_jobscope_code.' - '.$r->jbs_job_name
+                    : (string) $r->jbs_jobscope_code,
+                'category' => (string) ($r->jbc_category ?? ''),
+            ])
+            ->values()
+            ->all();
+
+        $logic = $cx->table('lkp_logic_jobscope')
+            ->where('llj_status', '1')
+            ->orderBy('llj_code')
+            ->get(['llj_code', 'llj_desc'])
+            ->map(fn ($r) => $option($r->llj_code, $r->llj_desc))
+            ->values()
+            ->all();
+
+        $taraf = $cx->table('lookup_details')
+            ->where('lma_code_name', 'TARAF_VENDOR')
+            ->orderBy('lde_sorting')
+            ->orderBy('lde_value')
+            ->get(['lde_value', 'lde_description'])
+            ->map(fn ($r) => $option(
+                $r->lde_value,
+                trim((string) ($r->lde_description ?? '')) !== ''
+                    ? $r->lde_value.' - '.strtoupper((string) $r->lde_description)
+                    : $r->lde_value
+            ))
+            ->values()
+            ->all();
+
+        return [
+            'purchaseRequisitions' => $requisitions,
+            'requestBy' => $staff,
+            'staff' => $staff,
+            'tenderMethods' => $tenderMethods,
+            'tenderTypes' => [$option('TENDER', 'TENDER'), $option('QUOTATION', 'QUOTATION')],
+            'ptj' => $ptj,
+            'costCentres' => $costCentres,
+            'fundTypes' => $fundTypes,
+            'activities' => $activities,
+            'soCodes' => $soCodes,
+            'nextReceivers' => $staff,
+            'jobscopeCategories' => $categories,
+            'jobscopes' => $jobscopes,
+            'jobscopeLogic' => $logic,
+            'taraf' => $taraf,
+        ];
+    }
+
+    /**
      * Purchasing / Setup / Item Main Listing (menu 1829).
      * Legacy: ZR_PURCHASING_ITEMMAINLISTING_API — item_main, LEFT JOIN lookup_details ON lde_value = itm_category_code,
      * itm_status = '1', top filters category / subcategory / accountCode, Category column from asset_depr_setup + STORE/OTHERS.
@@ -3252,7 +3500,57 @@ class KerisiRemainingShellListService
 
     private function purchasingCommitteeReport(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->shellPreview('purchasing_committee_report');
+        $tenderId = (int) $r->input('tdm_tender_id', $r->input('tdmTenderId', $r->input('tender_id', 0)));
+        $tenderOptions = $this->conn()->table('tender_master')
+            ->orderByDesc('tdm_tender_id')
+            ->get(['tdm_tender_id', 'tdm_tender_no', 'tdm_title'])
+            ->map(fn ($row) => [
+                'value' => (string) $row->tdm_tender_id,
+                'label' => trim((string) ($row->tdm_title ?? '')) !== ''
+                    ? $row->tdm_tender_no.' - '.$row->tdm_title
+                    : (string) $row->tdm_tender_no,
+            ])
+            ->values()
+            ->all();
+
+        if ($tenderId < 1) {
+            return [
+                'rows' => [],
+                'total' => 0,
+                'connector' => 'purchasing_committee_report_3306',
+                'form_options' => ['tenderNumbers' => $tenderOptions],
+                'form_values' => ['tdm_tender_id' => ''],
+            ];
+        }
+
+        $base = $this->conn()->table('tender_answer AS ta')
+            ->leftJoin('tender_participant AS tp', function (JoinClause $join) {
+                $join->on('tp.tdm_tender_id', '=', 'ta.tdm_tender_id')
+                    ->on('tp.vcs_vendor_code', '=', 'ta.tas_cust_id');
+            })
+            ->leftJoin('vend_customer_supplier AS vc', 'vc.vcs_vendor_code', '=', 'ta.tas_cust_id')
+            ->where('ta.tdm_tender_id', $tenderId)
+            ->select([
+                DB::raw("DATE_FORMAT(ta.tas_submit_date, '%Y%m%d%H%i%s') AS tas_submit_date_formatted"),
+                'ta.tas_cust_id',
+                DB::raw("COALESCE(NULLIF(TRIM(tp.vcs_vendor_name), ''), NULLIF(TRIM(vc.vcs_vendor_name), ''), '') AS tas_cust_name"),
+            ])
+            ->orderBy('ta.tas_submit_date');
+
+        $qTrim = trim($q);
+        if ($qTrim !== '') {
+            $like = $this->likeEscape(mb_strtolower($qTrim, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(ta.tas_cust_id,''), IFNULL(tp.vcs_vendor_name,''), IFNULL(vc.vcs_vendor_name,''), IFNULL(ta.tas_submit_date,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        return array_merge($this->paginate($base, $page, $limit), [
+            'connector' => 'purchasing_committee_report_3306',
+            'form_options' => ['tenderNumbers' => $tenderOptions],
+            'form_values' => ['tdm_tender_id' => (string) $tenderId],
+        ]);
     }
 
     private function purchasingOtherPayment(Request $r, int $page, int $limit, string $q): array
