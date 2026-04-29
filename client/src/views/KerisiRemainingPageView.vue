@@ -177,6 +177,39 @@ function displayCell(row: Record<string, unknown>, dt: KerisiRemainingDatatable,
     }
   }
 
+  if (menuId.value === 2618) {
+    const rowText = (k: string) => {
+      const v = row[k] ?? row[k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())];
+      return v !== undefined && v !== null ? String(v) : "";
+    };
+    if (key === "tjs_jobscope_code") {
+      const code = rowText("tjs_jobscope_code");
+      const desc = rowText("tjs_jobscope_desc");
+      return code && desc ? `${code} - ${desc}` : code;
+    }
+    if (key === "tjs_jobscope_category") {
+      const code = rowText("tjs_jobscope_category");
+      const desc = rowText("tjs_jobscope_category_desc");
+      return code && desc ? `${code} - ${desc}` : code;
+    }
+    if (key === "tjs_logic_code") {
+      const code = rowText("tjs_logic_code");
+      const desc = rowText("tjs_logic_desc");
+      return desc || code;
+    }
+    if (key === "trf_bumi_status") {
+      const code = rowText("trf_bumi_status");
+      const desc = rowText("trf_bumi_status_desc");
+      return code && desc ? `${code} - ${desc}` : code;
+    }
+  }
+
+  if (menuId.value === 3306 && key === "tas_submit_date_formatted") {
+    const v = resolved ?? "";
+    const m = /^(\d{4})(\d{2})(\d{2})/.exec(v);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : v;
+  }
+
   const po = formatPurchasingPoAmountCell(menuId.value, dt, colIdx, resolved ?? "");
   const withWpn = formatKerisiWpnMoney(menuId.value, dt, colIdx, po);
 
@@ -302,6 +335,55 @@ function wpnDropdownOptions(which: "wpn_type" | "po_pr_no" | "vendor" | "currenc
   return Array.isArray(a) && a.length ? a : Array.isArray(b) && b.length ? b : [];
 }
 
+type KerisiOption = { value: string; label: string; category?: string; ounCode?: string };
+
+function advertisementOptions(key: string): KerisiOption[] {
+  const raw = kerisiFormOptions.value[key];
+  return Array.isArray(raw) ? (raw as KerisiOption[]) : [];
+}
+
+function popupFieldKey(f: KerisiRemainingFormField): string {
+  return (f.title ?? "")
+    .replace(/\*/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function advertisementPopupFields(): KerisiRemainingFormField[] {
+  const fields = spec.value?.popupFormFields ?? [];
+  if (menuId.value !== 2618) return fields;
+  if (popupContext.value === "taraf") {
+    return fields.filter((f) => popupFieldKey(f) === "taraf");
+  }
+  return fields.filter((f) => ["category", "jobscope code", "logic"].includes(popupFieldKey(f)));
+}
+
+function optionsForAdvertisementPopupField(f: KerisiRemainingFormField): KerisiOption[] {
+  const key = popupFieldKey(f);
+  if (key === "category") return advertisementOptions("jobscopeCategories");
+  if (key === "logic") return advertisementOptions("jobscopeLogic");
+  if (key === "taraf") return advertisementOptions("taraf");
+  if (key === "jobscope code") {
+    const category = popupFormValues.value.category ?? "";
+    const opts = advertisementOptions("jobscopes");
+    return category ? opts.filter((o) => !o.category || o.category === category) : opts;
+  }
+  return [];
+}
+
+function advertisementPopupModelKey(f: KerisiRemainingFormField): string {
+  const key = popupFieldKey(f);
+  if (key === "category") return "category";
+  if (key === "jobscope code") return "jobscopeCode";
+  if (key === "logic") return "logic";
+  if (key === "taraf") return "taraf";
+  return key.replace(/\s+/g, "_");
+}
+
+function selectedOptionLabel(options: KerisiOption[], value: string): string {
+  return options.find((o) => o.value === value)?.label ?? value;
+}
+
 // ── layout: form-before-datatable ─────────────────────────────────────────
 const formBeforeDataTable = computed(() => {
   const s = spec.value;
@@ -391,29 +473,93 @@ function applySmartFilter() {
 const showPopupModal   = ref(false);
 const modalMode        = ref<"add" | "edit">("add");
 const popupFormValues  = ref<Record<string, string>>({});
+const popupContext     = ref<"default" | "jobscope" | "taraf">("default");
 
-function openAddModal() {
+function openAddModal(context: "default" | "jobscope" | "taraf" = "default") {
   modalMode.value = "add";
+  popupContext.value = context;
   popupFormValues.value = {};
   showPopupModal.value = true;
 }
 
 /** Menu 1773 (Purchase Requisition List) navigates to New Purchase Requisition (1771); others keep modal UX. */
-function onAddPrimaryClick() {
+function onAddPrimaryClick(di = 0) {
   if (menuId.value === 1773) {
     void router.push({ path: "/admin/kerisi/m/1771" });
 
     return;
   }
-  openAddModal();
+  if (menuId.value === 2618) {
+    if (di === 0) openAddModal("jobscope");
+    else if (di === 1) openAddModal("taraf");
+    return;
+  }
+  openAddModal("default");
 }
 
-function openEditModal(row: Record<string, unknown>) {
+function openEditModal(row: Record<string, unknown>, context: "default" | "jobscope" | "taraf" = "default") {
   modalMode.value = "edit";
-  popupFormValues.value = Object.fromEntries(
-    Object.entries(row).map(([k, v]) => [k, v !== null && v !== undefined ? String(v) : ""])
-  );
+  popupContext.value = context;
+  if (menuId.value === 2618 && context === "jobscope") {
+    popupFormValues.value = {
+      category: String(row.tjs_jobscope_category ?? row.tjsJobscopeCategory ?? ""),
+      jobscopeCode: String(row.tjs_jobscope_code ?? row.tjsJobscopeCode ?? ""),
+      logic: String(row.tjs_logic_code ?? row.tjsLogicCode ?? ""),
+    };
+  } else if (menuId.value === 2618 && context === "taraf") {
+    popupFormValues.value = {
+      taraf: String(row.trf_bumi_status ?? row.trfBumiStatus ?? ""),
+    };
+  } else {
+    popupFormValues.value = Object.fromEntries(
+      Object.entries(row).map(([k, v]) => [k, v !== null && v !== undefined ? String(v) : ""])
+    );
+  }
   showPopupModal.value = true;
+}
+
+function saveAdvertisementPopup(): void {
+  if (popupContext.value === "jobscope") {
+    const category = popupFormValues.value.category ?? "";
+    const jobscopeCode = popupFormValues.value.jobscopeCode ?? "";
+    const logic = popupFormValues.value.logic ?? "";
+    if (!category || !jobscopeCode || !logic) {
+      toast.error("Jobscope", "Category, Jobscope Code and Logic are required.");
+      return;
+    }
+    const jobscopeLabel = selectedOptionLabel(advertisementOptions("jobscopes"), jobscopeCode);
+    const categoryLabel = selectedOptionLabel(advertisementOptions("jobscopeCategories"), category);
+    const logicLabel = selectedOptionLabel(advertisementOptions("jobscopeLogic"), logic);
+    rows.value = [
+      ...rows.value,
+      {
+        tjs_jobscope_code: jobscopeCode,
+        tjs_jobscope_desc: jobscopeLabel.includes(" - ") ? jobscopeLabel.split(" - ").slice(1).join(" - ") : "",
+        tjs_jobscope_category: category,
+        tjs_jobscope_category_desc: categoryLabel,
+        tjs_logic_code: logic,
+        tjs_logic_desc: logicLabel,
+      },
+    ];
+  } else if (popupContext.value === "taraf") {
+    const taraf = popupFormValues.value.taraf ?? "";
+    if (!taraf) {
+      toast.error("Taraf", "Taraf is required.");
+      return;
+    }
+    const label = selectedOptionLabel(advertisementOptions("taraf"), taraf);
+    extraDatatableRowsStore.value = [
+      [
+        ...(extraDatatableRowsStore.value[0] ?? []),
+        {
+          trf_bumi_status: taraf,
+          trf_bumi_status_desc: label.includes(" - ") ? label.split(" - ").slice(1).join(" - ") : "",
+        },
+      ],
+      extraDatatableRowsStore.value[1] ?? [],
+    ];
+  }
+  showPopupModal.value = false;
 }
 
 // ── list state ────────────────────────────────────────────────────────────
@@ -579,6 +725,8 @@ function shellRows(di: number): Record<string, unknown>[] {
   if ((menuId.value === 2624 || menuId.value === 2626) && di === 1) {
     return extraDatatableRowsStore.value[0] ?? [];
   }
+  if (menuId.value === 2618 && di === 1) return extraDatatableRowsStore.value[0] ?? [];
+  if (menuId.value === 2618 && di === 2) return extraDatatableRowsStore.value[1] ?? [];
   return rows.value;
 }
 
@@ -589,6 +737,7 @@ function shellTableLoading(di: number): boolean {
 }
 
 function showDetailSection(di: number): boolean {
+  if (menuId.value === 2618 && di === 2) return false;
   if (menuId.value !== 3038 || di === 0) return true;
   return showDetailsPr.value;
 }
@@ -616,6 +765,9 @@ async function loadRows() {
   Object.entries(topFilterValues.value).forEach(([k, v]) => {
     if (v.trim()) params.set(k, v.trim());
   });
+  if (id === 3306 && (kerisiFormValues.value.tdmTenderId || kerisiFormValues.value.tdm_tender_id)) {
+    params.set("tdm_tender_id", kerisiFormValues.value.tdmTenderId || kerisiFormValues.value.tdm_tender_id);
+  }
 
   // Pass route query params
   for (const [k, v] of Object.entries(route.query)) {
@@ -750,6 +902,11 @@ function applyTopFilter() {
   void loadRows();
 }
 
+function applyCommitteeReportFilter() {
+  page.value = 1;
+  void loadRows();
+}
+
 // ── export stubs ──────────────────────────────────────────────────────────
 function handleDownloadPDF() {
   toast.success("Export", "PDF export — connect backend when ready.");
@@ -874,7 +1031,7 @@ onUnmounted(() => {
         </article>
 
         <!-- Form sections BEFORE datatable -->
-        <template v-if="formBeforeDataTable && menuId !== 1838">
+        <template v-if="formBeforeDataTable && menuId !== 1838 && menuId !== 2618 && menuId !== 3306">
           <article
             v-for="grp in formSectionGroups"
             :key="grp.title"
@@ -892,6 +1049,166 @@ onUnmounted(() => {
                   :placeholder="f.fieldType"
                   value=""
                 />
+              </div>
+            </div>
+          </article>
+        </template>
+        <template v-else-if="formBeforeDataTable && menuId === 3306">
+          <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-4 py-3">
+              <h2 class="text-base font-semibold text-slate-900">Search Tender</h2>
+            </div>
+            <div class="grid items-center gap-2 p-4 md:grid-cols-[13rem_0.5rem_1fr_auto]">
+              <label class="text-xs font-semibold text-slate-700">Tender Number</label>
+              <span>:</span>
+              <select
+                v-model="kerisiFormValues.tdmTenderId"
+                class="h-8 rounded border border-slate-300 bg-white px-2 text-xs focus:outline-none focus:ring-2 focus:ring-slate-400"
+              >
+                <option value="">— Select —</option>
+                <option v-for="opt in advertisementOptions('tenderNumbers')" :key="'tn-' + opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
+              </select>
+              <button
+                type="button"
+                class="h-8 rounded bg-violet-500 px-4 text-xs font-medium text-white hover:bg-violet-600"
+                @click="applyCommitteeReportFilter"
+              >
+                Search
+              </button>
+            </div>
+          </article>
+        </template>
+        <template v-else-if="formBeforeDataTable && menuId === 2618">
+          <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-4 py-3">
+              <h2 class="text-base font-semibold text-slate-900">Information</h2>
+            </div>
+            <div class="grid gap-x-6 gap-y-3 p-4 lg:grid-cols-2">
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Purchase Requisition No <span class="text-red-600">*</span></label><span>:</span>
+                <select v-model="kerisiFormValues.rqmRequisitionNo" class="h-8 rounded border border-slate-300 px-2 text-xs">
+                  <option value="">— Select —</option>
+                  <option v-for="opt in advertisementOptions('purchaseRequisitions')" :key="'pr-' + opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Request By <span class="text-red-600">*</span></label><span>:</span>
+                <select v-model="kerisiFormValues.tdmRequestby" class="h-8 rounded border border-slate-300 px-2 text-xs">
+                  <option value="">— Select —</option>
+                  <option v-for="opt in advertisementOptions('requestBy')" :key="'rb-' + opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Tender / Quotation No</label><span>:</span>
+                <input v-model="kerisiFormValues.tdmTenderNo" disabled placeholder="Auto Assigned" class="h-8 rounded border border-slate-200 bg-slate-100 px-2 text-xs text-slate-500" />
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Status</label><span>:</span>
+                <input v-model="kerisiFormValues.tdmStatus" disabled placeholder="DRAFT" class="h-8 rounded border border-slate-200 bg-slate-100 px-2 text-xs text-slate-500" />
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Request Date <span class="text-red-600">*</span></label><span>:</span>
+                <input v-model="kerisiFormValues.tdmRequestdate" type="date" class="h-8 rounded border border-slate-300 px-2 text-xs" />
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Tender type <span class="text-red-600">*</span></label><span>:</span>
+                <select v-model="kerisiFormValues.tdmTenderType" class="h-8 rounded border border-slate-300 px-2 text-xs">
+                  <option value="">— Select —</option>
+                  <option v-for="opt in advertisementOptions('tenderTypes')" :key="'tt-' + opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Requisition Method</label><span>:</span>
+                <select v-model="kerisiFormValues.tdmTenderMethod" class="h-8 rounded border border-slate-300 px-2 text-xs">
+                  <option value="">— Select —</option>
+                  <option v-for="opt in advertisementOptions('tenderMethods')" :key="'tm-' + opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+              <div class="hidden lg:block" />
+              <div class="grid items-center gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Title <span class="text-red-600">*</span> <span class="text-red-600">(max length: 4000)</span></label><span>:</span>
+                <input v-model="kerisiFormValues.tdmTitle" maxlength="4000" class="h-8 rounded border border-slate-300 px-2 text-xs uppercase" />
+              </div>
+              <div class="grid items-center gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Justification <span class="text-red-600">*</span> <span class="text-red-600">(max length: 4000)</span></label><span>:</span>
+                <input v-model="kerisiFormValues.tdmJustification" maxlength="4000" class="h-8 rounded border border-slate-300 px-2 text-xs" />
+              </div>
+              <div class="grid items-center gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">PTJ <span class="text-red-600">*</span></label><span>:</span>
+                <select v-model="kerisiFormValues.ounCode" class="h-8 rounded border border-slate-300 px-2 text-xs">
+                  <option value="">— Select —</option>
+                  <option v-for="opt in advertisementOptions('ptj')" :key="'ptj-' + opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+              <div class="grid items-center gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Costcentre <span class="text-red-600">*</span></label><span>:</span>
+                <select v-model="kerisiFormValues.ccrCostcentre" class="h-8 rounded border border-slate-300 px-2 text-xs">
+                  <option value="">— Select —</option>
+                  <option v-for="opt in advertisementOptions('costCentres').filter((o) => !kerisiFormValues.ounCode || !o.ounCode || o.ounCode === kerisiFormValues.ounCode)" :key="'cc-' + opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+              <div class="grid items-center gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Fund <span class="text-red-600">*</span></label><span>:</span>
+                <select v-model="kerisiFormValues.ftyFundType" class="h-8 rounded border border-slate-300 px-2 text-xs">
+                  <option value="">— Select —</option>
+                  <option v-for="opt in advertisementOptions('fundTypes')" :key="'fund-' + opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+              <div class="grid items-center gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Activity <span class="text-red-600">*</span></label><span>:</span>
+                <select v-model="kerisiFormValues.atActivityCode" class="h-8 rounded border border-slate-300 px-2 text-xs">
+                  <option value="">— Select —</option>
+                  <option v-for="opt in advertisementOptions('activities')" :key="'act-' + opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+              <div class="grid items-center gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Code SO</label><span>:</span>
+                <select v-model="kerisiFormValues.soCode" class="h-8 rounded border border-slate-300 px-2 text-xs">
+                  <option value="">— Select —</option>
+                  <option v-for="opt in advertisementOptions('soCodes')" :key="'so-' + opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+              <div class="grid items-start gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="pt-2 text-xs font-semibold text-slate-700">Quotation/Tender Delivery Address</label><span class="pt-2">:</span>
+                <textarea v-model="kerisiFormValues.tdmAddress" rows="3" class="rounded border border-slate-300 px-2 py-1 text-xs" />
+              </div>
+              <div class="grid items-center gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Estimate Siap</label><span>:</span>
+                <input v-model="kerisiFormValues.tbrEstimateDuration" class="h-8 rounded border border-slate-300 px-2 text-xs" />
+              </div>
+              <div class="grid items-center gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Contact Person</label><span>:</span>
+                <input v-model="kerisiFormValues.tdmContactPerson" disabled class="h-8 rounded border border-slate-200 bg-slate-100 px-2 text-xs text-slate-500" />
+              </div>
+              <div class="grid items-center gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Reference No</label><span>:</span>
+                <input v-model="kerisiFormValues.tdmBriefingRefNo" placeholder="Auto Assigned" class="h-8 rounded border border-slate-300 px-2 text-xs" />
+              </div>
+              <div class="grid items-center gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Estimate Amount (RM) <span class="text-red-600">*</span></label><span>:</span>
+                <div class="flex"><span class="inline-flex h-8 items-center rounded-l border border-r-0 border-slate-300 bg-slate-100 px-2 text-xs">MYR</span><input v-model="kerisiFormValues.tdmEstimatedAmount" class="h-8 flex-1 rounded-r border border-slate-300 px-2 text-right text-xs" /></div>
+              </div>
+              <div class="grid items-start gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="pt-2 text-xs font-semibold text-slate-700">Advertisement Document</label><span class="pt-2">:</span>
+                <div class="flex h-20 items-center justify-center rounded border border-slate-200 bg-slate-50 text-slate-400"><Download class="h-5 w-5" /></div>
+              </div>
+              <div class="grid items-start gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="pt-2 text-xs font-semibold text-slate-700">Tender/Quotation Document Only <span class="text-red-600">*</span></label><span class="pt-2">:</span>
+                <div class="flex h-20 items-center justify-center rounded border border-slate-200 bg-slate-50 text-slate-400"><Download class="h-5 w-5" /></div>
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Tarikh Taklimat Tender</label><span>:</span>
+                <input v-model="kerisiFormValues.tdmTenderOpenStart" type="date" class="h-8 rounded border border-slate-300 px-2 text-xs" />
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Tarikh Tutup Peti</label><span>:</span>
+                <input v-model="kerisiFormValues.tdmTenderOpenClose" type="date" class="h-8 rounded border border-slate-300 px-2 text-xs" />
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Amount Document Price(RM) <span class="text-red-600">*</span> <span class="text-red-600">(min: 0)</span></label><span>:</span>
+                <div class="flex"><span class="inline-flex h-8 items-center rounded-l border border-r-0 border-slate-300 bg-slate-100 px-2 text-xs">MYR</span><input v-model="kerisiFormValues.tdmAmountDoc" class="h-8 flex-1 rounded-r border border-slate-300 px-2 text-right text-xs" /></div>
               </div>
             </div>
           </article>
@@ -1031,10 +1348,10 @@ onUnmounted(() => {
             <div v-if="di === 0 || menuId !== 3038" class="flex items-center gap-2">
               <!-- Add button (only on popup-modal pages or default) -->
               <button
-                v-if="hasPopupForm || di === 0"
+                v-if="menuId === 3306 ? false : menuId === 2618 ? di < 2 : hasPopupForm || di === 0"
                 type="button"
                 class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
-                @click="onAddPrimaryClick"
+                @click="onAddPrimaryClick(di)"
               >
                 <Plus class="h-3.5 w-3.5" />
                 Add
@@ -1134,7 +1451,15 @@ onUnmounted(() => {
                             : 'uppercase text-slate-500',
                       ]"
                     >
-                      {{ isNoCol(dt.dtBi[hi] ?? "") ? "No" : stripHtmlBrLabel(dt.dtBi[hi]) }}
+                      <input
+                        v-if="menuId === 3306 && isActionCol(dt.dtBi[hi] ?? '')"
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                        aria-label="Select all submissions"
+                      />
+                      <template v-else>
+                        {{ isNoCol(dt.dtBi[hi] ?? "") ? "No" : stripHtmlBrLabel(dt.dtBi[hi]) }}
+                      </template>
                     </th>
                   </tr>
                 </thead>
@@ -1170,7 +1495,7 @@ onUnmounted(() => {
                         {{
                           (menuId === 3038 && di > 0) ||
                           (menuId === 1838 && di > 0) ||
-                          ((menuId === 2624 || menuId === 2626) && di > 0)
+                          ((menuId === 2624 || menuId === 2626 || menuId === 2618) && di > 0)
                             ? ri + 1
                             : (page - 1) * limit + ri + 1
                         }}
@@ -1293,6 +1618,31 @@ onUnmounted(() => {
                             <Plus class="h-3.5 w-3.5" />
                           </button>
                         </div>
+                        <div v-else-if="menuId === 2618 && di < 2" class="flex items-center gap-1" @click.stop>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="Edit"
+                            @click="openEditModal(row, di === 0 ? 'jobscope' : 'taraf')"
+                          >
+                            <Pencil class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600"
+                            title="Delete"
+                          >
+                            <Trash2 class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div v-else-if="menuId === 3306" class="flex items-center justify-center" @click.stop>
+                          <input
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                            :value="String(row.tas_cust_id ?? row.tasCustId ?? '')"
+                            aria-label="Select submission"
+                          />
+                        </div>
                         <div v-else class="flex items-center gap-1" @click.stop>
                           <button
                             type="button"
@@ -1405,6 +1755,122 @@ onUnmounted(() => {
             </template>
           </div>
         </section>
+
+        <template v-if="menuId === 2618">
+          <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <h2 class="text-base font-semibold text-slate-900">Attachment A: Technical Info</h2>
+              <div class="flex items-center gap-2 text-slate-600">
+                <span class="text-sm font-semibold">#</span>
+                <button type="button" class="rounded p-1 hover:bg-slate-100" title="Copy">
+                  <Download class="h-3.5 w-3.5" />
+                </button>
+                <button type="button" class="rounded p-1 hover:bg-slate-100" title="Edit">
+                  <Pencil class="h-3.5 w-3.5" />
+                </button>
+                <button type="button" class="rounded p-1 hover:bg-slate-100" title="Collapse">
+                  <ChevronLeft class="h-3.5 w-3.5 -rotate-90" />
+                </button>
+              </div>
+            </div>
+            <div class="p-4">
+              <table class="w-full text-xs">
+                <thead>
+                  <tr class="bg-violet-500 text-white">
+                    <th class="px-3 py-2 text-left font-semibold">Description</th>
+                    <th class="px-3 py-2 text-left font-semibold">Sample Answer</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b border-slate-100">
+                    <td colspan="2" class="px-3 py-3 text-slate-700">
+                      To start, click "Sample Data" or "Copy From"
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="mt-3 flex justify-end gap-2">
+                <button type="button" class="inline-flex items-center gap-1 rounded bg-violet-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-600">
+                  <Pencil class="h-3 w-3" />
+                  Sample Data
+                </button>
+                <button type="button" class="inline-flex items-center gap-1 rounded bg-violet-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-600">
+                  <Download class="h-3 w-3" />
+                  Copy From
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <h2 class="text-base font-semibold text-slate-900">Attachment B: Financial Info</h2>
+              <div class="flex items-center gap-2 text-slate-600">
+                <span class="text-sm font-semibold">#</span>
+                <button type="button" class="rounded p-1 hover:bg-slate-100" title="Copy">
+                  <Download class="h-3.5 w-3.5" />
+                </button>
+                <button type="button" class="rounded p-1 hover:bg-slate-100" title="Edit">
+                  <Pencil class="h-3.5 w-3.5" />
+                </button>
+                <button type="button" class="rounded p-1 hover:bg-slate-100" title="Collapse">
+                  <ChevronLeft class="h-3.5 w-3.5 -rotate-90" />
+                </button>
+              </div>
+            </div>
+            <div class="p-4">
+              <table class="w-full text-xs">
+                <thead>
+                  <tr class="bg-violet-500 text-white">
+                    <th class="px-3 py-2 text-left font-semibold">Description</th>
+                    <th class="px-3 py-2 text-left font-semibold">Sample Answer</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b border-slate-100">
+                    <td colspan="2" class="px-3 py-3 text-slate-700">
+                      To start, click "Sample Data" or "Copy From"
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="mt-3 flex justify-end gap-2">
+                <button type="button" class="inline-flex items-center gap-1 rounded bg-violet-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-600">
+                  <Pencil class="h-3 w-3" />
+                  Sample Data
+                </button>
+                <button type="button" class="inline-flex items-center gap-1 rounded bg-violet-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-600">
+                  <Download class="h-3 w-3" />
+                  Copy From
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="grid items-center gap-2 p-4 md:grid-cols-[13rem_0.5rem_1fr]">
+              <label class="text-xs font-semibold text-slate-700">Next Receiver <span class="text-red-600">*</span></label>
+              <span>:</span>
+              <select v-model="kerisiFormValues.nextReceiver" class="h-8 rounded border border-slate-300 px-2 text-xs">
+                <option value="">— Select —</option>
+                <option v-for="opt in advertisementOptions('nextReceivers')" :key="'nr-' + opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
+              </select>
+            </div>
+          </article>
+
+          <div class="flex justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <button type="button" class="inline-flex items-center gap-1 rounded bg-violet-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-600">
+              <Download class="h-3 w-3" />
+              Save
+            </button>
+            <button type="button" class="inline-flex items-center gap-1 rounded bg-violet-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-600">
+              <Download class="h-3 w-3" />
+              Save &amp; Submit
+            </button>
+          </div>
+        </template>
 
         <!-- Form sections AFTER datatable -->
         <template v-if="!formBeforeDataTable">
@@ -1523,7 +1989,13 @@ onUnmounted(() => {
         <div class="w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-xl">
           <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
             <h3 class="text-base font-semibold text-slate-900">
-              {{ modalMode === "add" ? "Add" : "Edit" }} {{ spec?.pageTitle ?? "Record" }}
+              {{
+                menuId === 2618
+                  ? popupContext === "taraf"
+                    ? "Taraf"
+                    : "Jobscope"
+                  : `${modalMode === "add" ? "Add" : "Edit"} ${spec?.pageTitle ?? "Record"}`
+              }}
             </h3>
             <button
               type="button"
@@ -1535,18 +2007,25 @@ onUnmounted(() => {
           </div>
           <div class="grid gap-3 p-5 sm:grid-cols-2">
             <div
-              v-for="(f, fi) in spec?.popupFormFields ?? []"
+              v-for="(f, fi) in advertisementPopupFields()"
               :key="'pf-' + fi"
               :class="f.cssClass?.includes('d-none') ? 'hidden' : ''"
             >
               <label class="mb-1 block text-xs font-medium text-slate-600">{{ f.title }}</label>
               <select
                 v-if="f.fieldType === 'dropdown' || f.lookupQuery"
-                v-model="popupFormValues[`pf_${fi}`]"
+                v-model="popupFormValues[menuId === 2618 ? advertisementPopupModelKey(f) : `pf_${fi}`]"
                 class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
                 :disabled="f.isDisabled"
               >
                 <option value="">— Select —</option>
+                <option
+                  v-for="opt in optionsForAdvertisementPopupField(f)"
+                  :key="'pfo-' + advertisementPopupModelKey(f) + '-' + opt.value"
+                  :value="opt.value"
+                >
+                  {{ opt.label }}
+                </option>
               </select>
               <textarea
                 v-else-if="f.fieldType === 'textarea'"
@@ -1577,7 +2056,7 @@ onUnmounted(() => {
             <button
               type="button"
               class="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white hover:bg-slate-700"
-              @click="showPopupModal = false"
+              @click="menuId === 2618 ? saveAdvertisementPopup() : (showPopupModal = false)"
             >
               Save
             </button>
