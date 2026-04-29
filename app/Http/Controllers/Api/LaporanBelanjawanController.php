@@ -205,7 +205,8 @@ class LaporanBelanjawanController extends Controller
         $query = Budget::query()
             ->from('budget as B')
             ->join('structure_budget as SB', 'B.sbg_budget_id', '=', 'SB.sbg_budget_id')
-            ->leftJoin('account_main as AM', 'SB.acm_acct_code', '=', 'AM.acm_acct_code')
+            // `structure_budget` has no acm_acct_code; GL account ties from budget code.
+            ->leftJoin('account_main as AM', 'SB.lbc_budget_code', '=', 'AM.acm_acct_code')
             ->leftJoin('fund_type as FT', 'SB.fty_fund_type', '=', 'FT.fty_fund_type')
             ->leftJoin('activity_type as AT', 'SB.at_activity_code', '=', 'AT.at_activity_code')
             ->leftJoin('costcentre as CC', 'SB.ccr_costcentre', '=', 'CC.ccr_costcentre');

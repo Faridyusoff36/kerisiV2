@@ -74,25 +74,31 @@ class StructureBudgetListController extends Controller
             ->get();
 
         $baseIndex = ($page - 1) * $limit;
-        $data = $rows->values()->map(fn ($row, $idx) => [
-            'index' => $baseIndex + $idx + 1,
-            'sbBudgetId' => (string) $row->sbg_budget_id,
-            'sbYear' => $row->bdg_year,
-            'sbFund' => $row->fty_fund_type,
-            'sbActivity' => $row->at_activity_code,
-            'sbActivityDesc' => $row->at_activity_description_bm,
-            'sbOun' => $row->oun_code,
-            'sbOunDesc' => $row->oun_desc,
-            'sbCcr' => $row->ccr_costcentre,
-            'sbCcrDesc' => $row->ccr_costcentre_desc,
-            'sbBudgetCode' => $row->lbc_budget_code,
-            'sbBudgetCodeDesc' => $row->lbc_description,
-            'sbStatus' => $row->bdg_status,
-            'sbInitialAmt' => $row->bdg_initial_amt !== null ? (float) $row->bdg_initial_amt : null,
-            'sbTopupAmt' => $row->bdg_topup_amt !== null ? (float) $row->bdg_topup_amt : null,
-            'sbVirementAmt' => $row->bdg_virement_amt !== null ? (float) $row->bdg_virement_amt : null,
-            'sbBalanceAmt' => $row->bdg_balance_amt !== null ? (float) $row->bdg_balance_amt : null,
-        ]);
+        $data = $rows->values()->map(function ($row, $idx) use ($baseIndex) {
+            $balance = $row->bdg_balance_amt !== null ? (float) $row->bdg_balance_amt : null;
+            $deficit = ($balance !== null && $balance < 0) ? 'YES' : 'NO';
+
+            return [
+                'index' => $baseIndex + $idx + 1,
+                'sbBudgetId' => (string) $row->sbg_budget_id,
+                'sbYear' => $row->bdg_year,
+                'sbFund' => $row->fty_fund_type,
+                'sbActivity' => $row->at_activity_code,
+                'sbActivityDesc' => $row->at_activity_description_bm,
+                'sbOun' => $row->oun_code,
+                'sbOunDesc' => $row->oun_desc,
+                'sbCcr' => $row->ccr_costcentre,
+                'sbCcrDesc' => $row->ccr_costcentre_desc,
+                'sbBudgetCode' => $row->lbc_budget_code,
+                'sbBudgetCodeDesc' => $row->lbc_description,
+                'sbStatus' => $row->bdg_status,
+                'sbDeficitBudget' => $deficit,
+                'sbInitialAmt' => $row->bdg_initial_amt !== null ? (float) $row->bdg_initial_amt : null,
+                'sbTopupAmt' => $row->bdg_topup_amt !== null ? (float) $row->bdg_topup_amt : null,
+                'sbVirementAmt' => $row->bdg_virement_amt !== null ? (float) $row->bdg_virement_amt : null,
+                'sbBalanceAmt' => $balance,
+            ];
+        });
 
         return $this->sendOk($data, [
             'page' => $page,
@@ -214,8 +220,10 @@ class StructureBudgetListController extends Controller
                     ->orWhere('SB.oun_code', 'like', $like)
                     ->orWhere('SB.ccr_costcentre', 'like', $like)
                     ->orWhere('SB.lbc_budget_code', 'like', $like)
-                    ->orWhere('AT.at_activity_desc', 'like', $like)
-                    ->orWhere('OU.oun_desc', 'like', $like);
+                    ->orWhere('AT.at_activity_description_bm', 'like', $like)
+                    ->orWhere('LBC.lbc_description', 'like', $like)
+                    ->orWhere('OU.oun_desc', 'like', $like)
+                    ->orWhere('CC.ccr_costcentre_desc', 'like', $like);
             });
         }
 

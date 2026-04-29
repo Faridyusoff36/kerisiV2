@@ -31,4 +31,34 @@ class PurchasingTest extends TestCase
     {
         $this->assertUnauthorized('GET', '/api/purchasing/status-po-pr/options');
     }
+
+    public function test_purchasing_jobscope_api_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/purchasing/jobscope');
+        $this->assertUnauthorized('GET', '/api/purchasing/jobscope/form-options');
+        $this->assertUnauthorized('GET', '/api/purchasing/jobscope/parent-options?level=2&category=KK');
+        $this->assertUnauthorized('GET', '/api/purchasing/jobscope/1');
+        $this->assertUnauthorized('POST', '/api/purchasing/jobscope');
+        $this->assertUnauthorized('PUT', '/api/purchasing/jobscope/1');
+    }
+
+    public function test_purchasing_item_main_endpoints_require_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/purchasing/item-main/groups');
+        $this->assertUnauthorized('GET', '/api/purchasing/item-main/main-categories');
+        $this->assertUnauthorized('GET', '/api/purchasing/item-main/subcategories');
+        $this->assertUnauthorized('GET', '/api/purchasing/item-main/subsiri');
+        $this->assertUnauthorized('GET', '/api/purchasing/item-main/item-lines');
+    }
+
+    public function test_purchase_requisition_api_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/purchasing/purchase-requisition/options');
+        $this->assertUnauthorized('GET', '/api/purchasing/purchase-requisition/cost-centres?oun_code=PKP');
+        $this->assertUnauthorized('GET', '/api/purchasing/purchase-requisition/1');
+        $this->assertUnauthorized('POST', '/api/purchasing/purchase-requisition');
+        $this->assertUnauthorized('PUT', '/api/purchasing/purchase-requisition/1');
+        $this->assertUnauthorized('GET', '/api/purchasing/purchase-requisition/1/partial-existing-docs');
+        $this->assertUnauthorized('PUT', '/api/purchasing/purchase-requisition/1/cancel');
+    }
 }

@@ -2885,6 +2885,27 @@ export type OfferedStudentSmartFilter = {
   offeredSemester: string;
 };
 
+/** Insurance student lists (MENUID 1039 / 2797 / 2799). {@link StudentInsuranceListingController}. */
+export type StudentInsuranceListingRow = {
+  matric: string;
+  name: string;
+  statusLabel: string;
+  programLevelLabel: string;
+  semesterStart: string;
+  insuranceInstitution: string;
+  policyNo: string;
+};
+
+export type StudentInsuranceListingOptions = {
+  programLevel: ArOption[];
+  semesterStart: ArOption[];
+};
+
+export type StudentInsuranceListingSmartFilter = {
+  programLevel: string;
+  semesterStart: string;
+};
+
 // Student Finance > Invoice (PAGEID 828 / MENUID 1023).
 // Source: FIMS BLs `DT_SF_INVOICE` (main listing) + `DT_DEBIT_LIST`
 // (per-invoice debit detail drilldown). Read-only migration — the
@@ -4479,6 +4500,8 @@ export type StructureBudgetListRow = {
   sbBudgetCode: string | null;
   sbBudgetCodeDesc: string | null;
   sbStatus: string | null;
+  /** YES / NO — legacy Deficit Budget when balance is negative */
+  sbDeficitBudget: string | null;
   sbInitialAmt: number | null;
   sbTopupAmt: number | null;
   sbVirementAmt: number | null;
@@ -4604,8 +4627,10 @@ export type BudgetPlanningNewCreated = {
 };
 
 // Budget > Reports > Total Allocation Report (PAGEID 1626 / MENUID 1968).
+// Legacy grid: opening / allocated / commit / expenses / total expenses / balance (RM).
 export type TotalAllocationRow = {
   index: number;
+  bdgBudgetId: string;
   rptYear: string | null;
   rptFund: string | null;
   rptFundDesc: string | null;
@@ -4617,18 +4642,21 @@ export type TotalAllocationRow = {
   rptCcrDesc: string | null;
   rptBudgetCode: string | null;
   rptBudgetCodeDesc: string | null;
-  rptInitial: number;
-  rptTopup: number;
-  rptVirement: number;
-  rptTotal: number;
+  rptOpening: number;
+  rptAllocated: number;
+  rptCommit: number;
+  rptExpenses: number;
+  rptTotalExpenses: number;
   rptBalance: number | null;
 };
 
 export type TotalAllocationTotals = {
-  initial: number;
-  topup: number;
-  virement: number;
-  grand: number;
+  opening: number;
+  allocated: number;
+  commit: number;
+  expenses: number;
+  totalExpenses: number;
+  balance: number;
 };
 
 export type TotalAllocationOptions = {
@@ -4849,6 +4877,17 @@ export type SponsorProfileSmartFilter = {
   country: string;
   email: string;
   sponStatus: string;
+};
+
+// Student Finance > Sponsor > Report > List of Sponsor (PAGEID 1583 / MENUID 1916).
+// Legacy BL `API_SF_SPONSOR_LISTOFSPONSOR` — read-only 5-column report.
+export type SponsorListRow = {
+  index: number;
+  spnSponsorId: number;
+  sponsorCode: string;
+  sponsorName: string;
+  status: string;
+  claim: string;
 };
 
 // Student Finance > Sponsor > Invoice Generation (PAGEID 1218 / MENUID 1491).

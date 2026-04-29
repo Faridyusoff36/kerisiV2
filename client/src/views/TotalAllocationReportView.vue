@@ -16,7 +16,14 @@ const toast = useToast();
 
 const rows = ref<TotalAllocationRow[]>([]);
 const total = ref(0);
-const totals = ref<TotalAllocationTotals>({ initial: 0, topup: 0, virement: 0, grand: 0 });
+const totals = ref<TotalAllocationTotals>({
+  opening: 0,
+  allocated: 0,
+  commit: 0,
+  expenses: 0,
+  totalExpenses: 0,
+  balance: 0,
+});
 const page = ref(1);
 const limit = ref(10);
 const q = ref("");
@@ -47,7 +54,7 @@ async function loadRows() {
   if (!topFilter.value.year) {
     rows.value = [];
     total.value = 0;
-    totals.value = { initial: 0, topup: 0, virement: 0, grand: 0 };
+    totals.value = { opening: 0, allocated: 0, commit: 0, expenses: 0, totalExpenses: 0, balance: 0 };
     return;
   }
   const params = new URLSearchParams({
@@ -66,6 +73,8 @@ async function loadRows() {
   total.value = Number(res.meta?.total ?? 0);
   if (res.meta?.totals) {
     totals.value = res.meta.totals as TotalAllocationTotals;
+  } else {
+    totals.value = { opening: 0, allocated: 0, commit: 0, expenses: 0, totalExpenses: 0, balance: 0 };
   }
 }
 
@@ -90,31 +99,57 @@ function resetSmartFilter() {
   smartFilter.value = { fund: "", activity: "", oun: "", ccr: "", budgetCode: "" };
 }
 
-const exportColumns = ["Year", "Fund", "Activity", "OUN", "Cost Centre", "Budget Code", "Initial", "Top Up", "Virement", "Total"];
+const exportColumns = [
+  "Budget Code",
+  "Description of Budget",
+  "Fund Type",
+  "PTJ",
+  "Cost Center",
+  "Activity Code",
+  "Opening (RM)",
+  "Allocated (RM)",
+  "Commit (RM)",
+  "Expenses (RM)",
+  "Total Expenses (RM)",
+  "Balance (RM)",
+];
 
 function fmtMoney(v: number | null | undefined): string {
-  if (v === null || v === undefined) return "";
-  return Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const n = v === null || v === undefined || Number.isNaN(Number(v)) ? 0 : Number(v);
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function toExportRow(r: TotalAllocationRow): Record<string, string | number> {
   return {
-    Year: r.rptYear ?? "",
-    Fund: r.rptFund ?? "",
-    Activity: r.rptActivity ?? "",
-    OUN: r.rptOun ?? "",
-    "Cost Centre": r.rptCcr ?? "",
     "Budget Code": r.rptBudgetCode ?? "",
-    Initial: fmtMoney(r.rptInitial),
-    "Top Up": fmtMoney(r.rptTopup),
-    Virement: fmtMoney(r.rptVirement),
-    Total: fmtMoney(r.rptTotal),
+    "Description of Budget": r.rptBudgetCodeDesc ?? "",
+    "Fund Type": r.rptFund ?? "",
+    PTJ: r.rptOun ?? "",
+    "Cost Center": r.rptCcr ?? "",
+    "Activity Code": r.rptActivity ?? "",
+    "Opening (RM)": fmtMoney(r.rptOpening),
+    "Allocated (RM)": fmtMoney(r.rptAllocated),
+    "Commit (RM)": fmtMoney(r.rptCommit),
+    "Expenses (RM)": fmtMoney(r.rptExpenses),
+    "Total Expenses (RM)": fmtMoney(r.rptTotalExpenses),
+    "Balance (RM)": fmtMoney(r.rptBalance),
   };
 }
 
-const datatableRef = ref<DatatableRefApi | null>(null);
+const datatableRef = ref<DatatableRefApi | null>({
+  getExportConfig: () => ({
+    columns: [...exportColumns],
+    data: rows.value.map((r) => {
+      const row: Record<string, unknown> = {};
+      const src = toExportRow(r);
+      for (const c of exportColumns) row[c] = src[c] ?? "";
+      return row;
+    }),
+  }),
+});
+
 const { templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } = useDatatableFeatures({
-  pageName: "Total Allocation Report",
+  pageName: "Total Allocation, Expenditure and Balance of Allocation",
   apiDataPath: "/budget/report/total-allocation",
   defaultExportColumns: exportColumns,
   getFilteredList: () => rows.value.map(toExportRow),
@@ -139,17 +174,19 @@ async function exportExcel() {
     });
     ws.addRow([]);
     ws.addRow([
-      "",
-      "TOTAL",
-      "",
+      "Grand Total",
       "",
       "",
       "",
       "",
-      fmtMoney(totals.value.initial),
-      fmtMoney(totals.value.topup),
-      fmtMoney(totals.value.virement),
-      fmtMoney(totals.value.grand),
+      "",
+      "",
+      fmtMoney(totals.value.opening),
+      fmtMoney(totals.value.allocated),
+      fmtMoney(totals.value.commit),
+      fmtMoney(totals.value.expenses),
+      fmtMoney(totals.value.totalExpenses),
+      fmtMoney(totals.value.balance),
     ]);
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -196,7 +233,7 @@ onUnmounted(() => {
         class="hidden"
         @change="onTemplateFileChange"
       />
-      <h1 class="page-title">Budget / Report / Total Allocation Report</h1>
+      <h1 class="page-title">Budget / Report / Total Allocation, Expenditure and Balance of Allocation</h1>
 
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-100 px-4 py-3">
@@ -251,47 +288,57 @@ onUnmounted(() => {
           </div>
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[1100px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
-                  <tr class="border-b border-slate-200 text-left">
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">Year</th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">Fund</th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">Activity</th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">OUN</th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">Cost Centre</th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">Budget Code</th>
-                    <th class="px-3 py-2 text-right text-xs font-semibold uppercase">Initial</th>
-                    <th class="px-3 py-2 text-right text-xs font-semibold uppercase">Top Up</th>
-                    <th class="px-3 py-2 text-right text-xs font-semibold uppercase">Virement</th>
-                    <th class="px-3 py-2 text-right text-xs font-semibold uppercase">Total</th>
+              <table class="w-full min-w-[1280px] text-sm">
+                <thead class="sticky top-0 z-[1] bg-violet-500 text-white">
+                  <tr class="border-b border-violet-400 text-left">
+                    <th class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide">No</th>
+                    <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">Budget Code</th>
+                    <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">Description of Budget</th>
+                    <th class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide">Fund Type</th>
+                    <th class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide">PTJ</th>
+                    <th class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide">Cost Center</th>
+                    <th class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide">Activity Code</th>
+                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide">Opening (RM)</th>
+                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide">Allocated (RM)</th>
+                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide">Commit (RM)</th>
+                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide">Expenses (RM)</th>
+                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide">Total Expenses (RM)</th>
+                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide">Balance (RM)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="row in rows" :key="`${row.rptYear}-${row.rptFund}-${row.rptActivity}-${row.rptOun}-${row.rptCcr}-${row.rptBudgetCode}-${row.index}`" class="border-b border-slate-100 hover:bg-slate-50">
-                    <td class="px-3 py-2">{{ row.index }}</td>
-                    <td class="px-3 py-2">{{ row.rptYear ?? "—" }}</td>
-                    <td class="px-3 py-2">{{ row.rptFund ?? "—" }}</td>
-                    <td class="px-3 py-2">{{ row.rptActivity ?? "—" }}</td>
-                    <td class="px-3 py-2">{{ row.rptOun ?? "—" }}</td>
-                    <td class="px-3 py-2">{{ row.rptCcr ?? "—" }}</td>
+                  <tr
+                    v-for="row in rows"
+                    :key="row.bdgBudgetId"
+                    class="border-b border-slate-100 hover:bg-slate-50"
+                  >
+                    <td class="px-3 py-2 text-center">{{ row.index }}</td>
                     <td class="px-3 py-2">{{ row.rptBudgetCode ?? "—" }}</td>
-                    <td class="px-3 py-2 text-right">{{ fmtMoney(row.rptInitial) }}</td>
-                    <td class="px-3 py-2 text-right">{{ fmtMoney(row.rptTopup) }}</td>
-                    <td class="px-3 py-2 text-right">{{ fmtMoney(row.rptVirement) }}</td>
-                    <td class="px-3 py-2 text-right font-medium">{{ fmtMoney(row.rptTotal) }}</td>
+                    <td class="max-w-[14rem] whitespace-normal break-words px-3 py-2">{{ row.rptBudgetCodeDesc ?? "—" }}</td>
+                    <td class="px-3 py-2 text-center">{{ row.rptFund ?? "—" }}</td>
+                    <td class="px-3 py-2 text-center">{{ row.rptOun ?? "—" }}</td>
+                    <td class="px-3 py-2 text-center">{{ row.rptCcr ?? "—" }}</td>
+                    <td class="px-3 py-2 text-center">{{ row.rptActivity ?? "—" }}</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ fmtMoney(row.rptOpening) }}</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ fmtMoney(row.rptAllocated) }}</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ fmtMoney(row.rptCommit) }}</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ fmtMoney(row.rptExpenses) }}</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ fmtMoney(row.rptTotalExpenses) }}</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ fmtMoney(row.rptBalance) }}</td>
                   </tr>
                   <tr v-if="rows.length === 0">
-                    <td colspan="11" class="px-3 py-6 text-center text-xs text-slate-500">No data</td>
+                    <td colspan="13" class="px-3 py-8 text-center text-sm text-slate-500">No data</td>
                   </tr>
                 </tbody>
-                <tfoot v-if="rows.length > 0" class="bg-slate-50">
-                  <tr class="border-t-2 border-slate-200 font-semibold">
-                    <td class="px-3 py-2" colspan="7">Total</td>
-                    <td class="px-3 py-2 text-right">{{ fmtMoney(totals.initial) }}</td>
-                    <td class="px-3 py-2 text-right">{{ fmtMoney(totals.topup) }}</td>
-                    <td class="px-3 py-2 text-right">{{ fmtMoney(totals.virement) }}</td>
-                    <td class="px-3 py-2 text-right">{{ fmtMoney(totals.grand) }}</td>
+                <tfoot v-if="rows.length > 0">
+                  <tr class="bg-violet-800 font-semibold text-white">
+                    <td class="px-3 py-2.5 text-left" colspan="7">Grand Total</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums">{{ fmtMoney(totals.opening) }}</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums">{{ fmtMoney(totals.allocated) }}</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums">{{ fmtMoney(totals.commit) }}</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums">{{ fmtMoney(totals.expenses) }}</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums">{{ fmtMoney(totals.totalExpenses) }}</td>
+                    <td class="px-3 py-2.5 text-right tabular-nums">{{ fmtMoney(totals.balance) }}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -353,14 +400,14 @@ onUnmounted(() => {
               </select>
             </div>
             <div>
-              <label class="mb-1 block text-xs font-medium text-slate-600">OUN</label>
+              <label class="mb-1 block text-xs font-medium text-slate-600">PTJ</label>
               <select v-model="smartFilter.oun" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <option value="">Any</option>
                 <option v-for="opt in options.smartFilter.oun" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
               </select>
             </div>
             <div>
-              <label class="mb-1 block text-xs font-medium text-slate-600">Cost Centre</label>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Cost Center</label>
               <select v-model="smartFilter.ccr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <option value="">Any</option>
                 <option v-for="opt in options.smartFilter.ccr" :key="opt.id" :value="opt.id">{{ opt.label }}</option>

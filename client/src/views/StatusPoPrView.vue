@@ -417,15 +417,16 @@ onUnmounted(() => {
                       </router-link>
                       <span v-else>{{ row.poNo ?? "-" }}</span>
                     </td>
-                    <!--
-                      MENUID 1771 ("New Purchase Requisition") — the legacy
-                      target of the urlViewPr deep-link — is not in the
-                      current PAGE_SECOND_LEVEL_MENU migration scope, so PR
-                      No is rendered as plain text for now. The controller
-                      still emits urlViewPr on the payload; restore the
-                      router-link once MENUID 1771 lands.
-                    -->
-                    <td class="px-3 py-2">{{ row.prNo ?? "-" }}</td>
+                    <td class="px-3 py-2 font-medium text-slate-900">
+                      <router-link
+                        v-if="row.urlViewPr"
+                        :to="row.urlViewPr"
+                        class="text-sky-600 hover:underline"
+                      >
+                        {{ row.prNo ?? "-" }}
+                      </router-link>
+                      <span v-else>{{ row.prNo ?? "-" }}</span>
+                    </td>
                     <td class="px-3 py-2">{{ row.description ?? "-" }}</td>
                     <td class="px-3 py-2">{{ row.itemCode ?? "-" }}</td>
                     <td class="px-3 py-2">{{ row.itemDesc ?? "-" }}</td>

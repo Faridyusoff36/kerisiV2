@@ -54,11 +54,12 @@ async function loadOptions() {
 }
 
 async function loadRows() {
+  const yearTrimmed = yearFilter.value.trim();
   const params = new URLSearchParams({
     page: String(page.value),
     limit: String(limit.value),
     ...(q.value ? { q: q.value } : {}),
-    ...(yearFilter.value ? { yearFilter: yearFilter.value } : {}),
+    ...(yearTrimmed ? { year_filter: yearTrimmed } : {}),
   });
   const res = await listBudgetPlanningSchedules(`?${params.toString()}`);
   rows.value = res.data;
@@ -231,13 +232,21 @@ onUnmounted(() => {
         <div class="grid gap-3 p-4 md:grid-cols-3">
           <div>
             <label class="mb-1 block text-xs font-medium text-slate-600">Year</label>
-            <select
+            <input
+              id="bps-top-filter-year"
               v-model="yearFilter"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              maxlength="9"
+              placeholder="e.g. 2026"
+              list="budget-planning-schedule-year-hints"
               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-            >
-              <option value="">Any</option>
-              <option v-for="opt in options.topFilter.years" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
-            </select>
+              @keyup.enter="applyTopFilter"
+            />
+            <datalist id="budget-planning-schedule-year-hints">
+              <option v-for="opt in options.topFilter.years" :key="opt.id" :value="opt.label" />
+            </datalist>
           </div>
           <div class="md:col-span-2 flex items-end justify-end gap-2">
             <button

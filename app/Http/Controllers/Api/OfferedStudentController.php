@@ -103,10 +103,18 @@ class OfferedStudentController extends Controller
             $sortBy = 'matric';
         }
 
+        $variant = (string) $request->input('variant', '');
+        $isInsuranceNew = $variant === 'insurance_new';
+
         $programLevel = trim((string) $request->input('ost_program_level', ''));
         $offeredSemester = trim((string) $request->input('ost_offered_semester', ''));
 
         $base = $this->baseQuery($programLevel);
+
+        if ($isInsuranceNew) {
+            $base->where('os.ost_citizenship_status', '1')
+                ->where('os.ost_mode_study', '1');
+        }
 
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));

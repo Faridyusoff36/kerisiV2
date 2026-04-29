@@ -67,6 +67,16 @@ class StudentFinanceTest extends TestCase
         $this->assertUnauthorized('GET', '/api/student-finance/offered/options');
     }
 
+    public function test_insurance_student_list_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/insurance-student-list');
+    }
+
+    public function test_insurance_student_list_options_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/insurance-student-list/options');
+    }
+
     public function test_invoice_list_requires_authentication(): void
     {
         $this->assertUnauthorized('GET', '/api/student-finance/invoice');
@@ -190,5 +200,15 @@ class StudentFinanceTest extends TestCase
     public function test_manual_invoice_destroy_line_requires_authentication(): void
     {
         $this->assertUnauthorized('DELETE', '/api/student-finance/manual-invoice/1/lines/1');
+    }
+
+    public function test_report_list_of_sponsor_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/report/list-of-sponsor');
+    }
+
+    public function test_kerisi_sf_level3_list_requires_authentication(): void
+    {
+        $this->assertUnauthorized('GET', '/api/student-finance/kerisi-level3/1029');
     }
 }

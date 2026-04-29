@@ -212,6 +212,8 @@ import type {
   LedgerRow,
   OfferedStudentOptions,
   OfferedStudentRow,
+  StudentInsuranceListingOptions,
+  StudentInsuranceListingRow,
   InvestmentAccrualOptions,
   InvestmentAccrualPostResult,
   InvestmentAccrualRow,
@@ -241,6 +243,7 @@ import type {
   SponsorInvoiceGenerationFooter,
   SponsorInvoiceGenerationOptions,
   SponsorInvoiceGenerationRow,
+  SponsorListRow,
   SponsorProfileOptions,
   SponsorProfileRow,
   SponsorPtptnOptions,
@@ -2063,6 +2066,26 @@ export async function getOfferedStudentOptions() {
   );
 }
 
+/** Registry shell for PAGE_MENUID1019_LEVEL3 menus — {@link KerisiSfLevel3Controller}. */
+export async function listKerisiSfLevel3Data(menuId: number, params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/kerisi-level3/${menuId}${params}`,
+  );
+}
+
+// Insurance lists — MENUID 1039 / 2797 / 2799. {@link StudentInsuranceListingController}.
+export async function listStudentInsuranceListing(params = "") {
+  return apiRequest<{ data: StudentInsuranceListingRow[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/insurance-student-list${params}`,
+  );
+}
+
+export async function getStudentInsuranceListingOptions() {
+  return apiRequest<{ data: StudentInsuranceListingOptions }>(
+    "/api/student-finance/insurance-student-list/options",
+  );
+}
+
 // Legacy BLs `DT_SF_INVOICE` (main listing) + `DT_DEBIT_LIST`
 // (per-invoice debit detail drilldown).
 export async function listInvoices(params = "") {
@@ -3222,6 +3245,14 @@ export async function getSponsorProfileOptions() {
   );
 }
 
+// Student Finance > Sponsor > Report > List of Sponsor (PAGEID 1583 / MENUID 1916).
+// Legacy BL `API_SF_SPONSOR_LISTOFSPONSOR`.
+export async function listReportListOfSponsor(params = "") {
+  return apiRequest<{ data: SponsorListRow[]; meta: Record<string, unknown> }>(
+    `/api/student-finance/report/list-of-sponsor${params}`,
+  );
+}
+
 // Student Finance > Sponsor > Invoice Generation (PAGEID 1218 / MENUID 1491).
 // Legacy BL `V2_SFSI_API` (?listing=2).
 export async function listSponsorInvoiceGeneration(params = "") {
@@ -3257,4 +3288,199 @@ export async function listStudentJournalApprovalDebit(id: number, params = "") {
     data: StudentJournalApprovalRow[];
     meta: Record<string, unknown> & { footer?: StudentJournalApprovalFooter };
   }>(`/api/student-finance/student-journal-approval/${id}/debit${params}`);
+}
+
+// Account Receivable — PAGE_MENUID1024_LEVEL3 shell endpoint
+export async function listKerisiArData(menuId: number, params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/account-receivable/kerisi-ar/${menuId}${params}`,
+  );
+}
+
+export async function listKerisiPayrollData(menuId: number, params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/payroll/kerisi/${menuId}${params}`,
+  );
+}
+
+export async function listKerisiRemainingData(menuId: number, params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/kerisi/remaining/${menuId}${params}`,
+  );
+}
+
+/** Purchasing / Work Progress Note Cancel (2082) — legacy processcancelwpn_entry */
+export async function kerisiWpnCancel(payload: { selectedId: string }) {
+  return apiRequest<{
+    data: { status: string; successMessage?: string; wpnNo?: string };
+  }>("/api/kerisi/remaining/wpn-cancel", { method: "POST", body: JSON.stringify(payload) });
+}
+
+/** Purchasing / List of PR To Be Cancel (3038) — Details PR grid linked to PR no / id */
+export async function getKerisiPrToCancelDetails(query: string) {
+  const qs = query.startsWith("?") ? query : `?${query}`;
+  return apiRequest<{ data: Record<string, unknown>[] }>(`/api/kerisi/remaining/pr-to-cancel/details${qs}`);
+}
+
+/** Purchasing / Setup / Item Main (menu 1820) — mysql_secondary cascading lists */
+export type PurchasingItemMainGroupOpt = { value: string; label: string };
+
+export async function purchasingItemMainGroups() {
+  return apiRequest<{ data: PurchasingItemMainGroupOpt[] }>("/api/purchasing/item-main/groups");
+}
+
+export async function purchasingItemMainMainCategories(params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/purchasing/item-main/main-categories${params}`,
+  );
+}
+
+export async function purchasingItemMainSubcategories(params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/purchasing/item-main/subcategories${params}`,
+  );
+}
+
+export async function purchasingItemMainSubsiri(params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/purchasing/item-main/subsiri${params}`,
+  );
+}
+
+export async function purchasingItemMainItemLines(params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/purchasing/item-main/item-lines${params}`,
+  );
+}
+
+/** Purchasing / Setup / List Of Jobscope (menu 1932). */
+
+export type JobscopeDropdownOpt = { value: string; label: string };
+
+export async function purchasingJobscopeFormOptions() {
+  return apiRequest<{
+    data: {
+      levels: JobscopeDropdownOpt[];
+      categories: JobscopeDropdownOpt[];
+      smartCategories: JobscopeDropdownOpt[];
+      statuses: JobscopeDropdownOpt[];
+    };
+  }>("/api/purchasing/jobscope/form-options");
+}
+
+export async function purchasingJobscopeParentOptions(params = "") {
+  return apiRequest<{ data: JobscopeDropdownOpt[] }>(`/api/purchasing/jobscope/parent-options${params}`);
+}
+
+export async function listPurchasingJobscope(params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(`/api/purchasing/jobscope${params}`);
+}
+
+export async function getPurchasingJobscope(id: number) {
+  return apiRequest<{ data: Record<string, unknown> }>(`/api/purchasing/jobscope/${id}`);
+}
+
+export async function createPurchasingJobscope(input: {
+  level: string;
+  category: string;
+  parent?: string;
+  code: string;
+  name: string;
+  status: string;
+}) {
+  return apiRequest<{ data: { id: number } }>("/api/purchasing/jobscope", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updatePurchasingJobscope(
+  id: number,
+  input: {
+    level: string;
+    category: string;
+    parent?: string;
+    code: string;
+    name: string;
+    status: string;
+  },
+) {
+  return apiRequest<{ data: Record<string, unknown> }>(`/api/purchasing/jobscope/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+/** Purchasing / New Purchase Requisition (MENUID 1771) — `requisition_master` header + lookups on mysql_secondary. */
+export type PurchasingPrDropdownRow = { value: string; label: string };
+
+export type PurchasingPrOptionsPayload = {
+  requestBy: PurchasingPrDropdownRow[];
+  contactPerson: PurchasingPrDropdownRow[];
+  ptj: PurchasingPrDropdownRow[];
+  costCentres: PurchasingPrDropdownRow[];
+  fund: PurchasingPrDropdownRow[];
+  activity: PurchasingPrDropdownRow[];
+  vendor: PurchasingPrDropdownRow[];
+  agreementYesNo: PurchasingPrDropdownRow[];
+  agreementNo: PurchasingPrDropdownRow[];
+  foreignCurrencyCode: PurchasingPrDropdownRow[];
+  rateType: PurchasingPrDropdownRow[];
+  requisitionType: PurchasingPrDropdownRow[];
+  purchaseMethod: PurchasingPrDropdownRow[];
+  /** Code SO / `kod_so` (+ historic PR strings) — may be empty. */
+  soCode: PurchasingPrDropdownRow[];
+  /** Next workflow recipient — staff list mirroring legacy (not persisted unless workflow is ported). */
+  nextReceiver: PurchasingPrDropdownRow[];
+};
+
+export async function purchasingPurchaseRequisitionOptions() {
+  return apiRequest<{ data: PurchasingPrOptionsPayload }>("/api/purchasing/purchase-requisition/options");
+}
+
+export async function purchasingPurchaseRequisitionCostCentres(ounCode: string) {
+  const p =
+    typeof ounCode === "string" && ounCode.trim() !== ""
+      ? `?oun_code=${encodeURIComponent(ounCode.trim())}`
+      : "";
+  return apiRequest<{ data: { costCentres: PurchasingPrDropdownRow[] } }>(
+    `/api/purchasing/purchase-requisition/cost-centres${p}`,
+  );
+}
+
+export async function getPurchasingPurchaseRequisition(id: number) {
+  return apiRequest<{ data: Record<string, unknown> }>(`/api/purchasing/purchase-requisition/${id}`);
+}
+
+export async function purchasingPurchaseRequisitionCreate(input: Record<string, unknown>) {
+  return apiRequest<{ data: Record<string, unknown> }>(`/api/purchasing/purchase-requisition`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updatePurchasingPurchaseRequisition(id: number, input: Record<string, unknown>) {
+  return apiRequest<{ data: Record<string, unknown> }>(`/api/purchasing/purchase-requisition/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function listPurchasingPurchaseRequisitionLines(id: number) {
+  return apiRequest<{ data: Record<string, unknown>[] }>(`/api/purchasing/purchase-requisition/${id}/lines`);
+}
+
+/** Purchasing PR Cancel Partial — GRN / WPN / Bill rows tied to PO for this requisition (`pom_requisition_no`). */
+export async function listPurchasingPrPartialExistingDocs(id: number) {
+  return apiRequest<{ data: Record<string, unknown>[] }>(
+    `/api/purchasing/purchase-requisition/${id}/partial-existing-docs`,
+  );
+}
+
+/** Purchasing PR Cancel — save master + mandatory cancel reason (`requisition_master.rqm_cancel_remark`). */
+export async function updatePurchasingPrCancel(id: number, input: Record<string, unknown>) {
+  return apiRequest<{ data: Record<string, unknown> }>(`/api/purchasing/purchase-requisition/${id}/cancel`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
 }

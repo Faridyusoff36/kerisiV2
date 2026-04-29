@@ -21,6 +21,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import { generateKerisiAllMenuIds } from "./gen-kerisi-all-menu-ids.mjs";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
 const defaultSourceCsv = path.join(root, "client/src/config/kerisi-menu-source.csv");

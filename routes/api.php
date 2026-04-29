@@ -297,8 +297,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/budget/planning-new', [BudgetPlanningNewController::class, 'store']);
 
     // FIMS Budget > Reports > Total Allocation Report (PAGEID 1626 / MENUID 1968).
-    // Legacy BL: SWS_DT_REPORT_TOTAL_ALLOCATION — read-only report joining
-    // budget × structure_budget aggregated for initial + topup + virement.
+    // Legacy BL: SWS_DT_REPORT_TOTAL_ALLOCATION — budget × structure_budget with
+    // opening (carry-forward), allocated, commit, expenses, balance (RM columns).
     Route::get('/budget/report/total-allocation/options', [TotalAllocationReportController::class, 'options']);
     Route::get('/budget/report/total-allocation', [TotalAllocationReportController::class, 'index']);
 
@@ -462,6 +462,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/student-finance/sponsor-profile/options', [SponsorProfileController::class, 'options']);
     Route::get('/student-finance/sponsor-profile', [SponsorProfileController::class, 'index']);
 
+    // Student Finance > Sponsor > Report > List of Sponsor (PAGEID 1583 / MENUID 1916).
+    // Legacy BL `API_SF_SPONSOR_LISTOFSPONSOR` (?dt_listofsponsor=1).
+    Route::get('/student-finance/report/list-of-sponsor', [ListOfSponsorController::class, 'index']);
+
     // Student Finance > Sponsor > Invoice Generation (PAGEID 1218 / MENUID 1491).
     // Legacy BL `V2_SFSI_API` (?listing=2 + ?get_sponsorAmt=1 +
     // ?generateInvoice=1). Top filter (Sponsor / Program Level /
@@ -488,6 +492,12 @@ Route::middleware('auth:sanctum')->group(function () {
         ->whereNumber('id');
     Route::get('/student-finance/student-journal-approval/{id}/debit', [StudentJournalApprovalController::class, 'debit'])
         ->whereNumber('id');
+
+    // Student Finance > Insurance — Returning / iFAS / duplicate-multiple listings
+    // (PAGEIDs 859 / 2307 / 2308 — MENUID 1039 / 2797 / 2799). Variant query:
+    // returning | ifas | duplicate — see StudentInsuranceListingController.
+    Route::get('/student-finance/insurance-student-list/options', [StudentInsuranceListingController::class, 'options']);
+    Route::get('/student-finance/insurance-student-list', [StudentInsuranceListingController::class, 'index']);
 
     // Student Finance > Invoice (PAGEID 828 / MENUID 1023). Legacy BLs
     // `DT_SF_INVOICE` (main listing scoped to cim_cust_type IN ('A','E')
@@ -529,6 +539,21 @@ Route::middleware('auth:sanctum')->group(function () {
         ->whereNumber('id');
     Route::delete('/student-finance/manual-invoice/{id}', [ManualInvoiceListingController::class, 'destroy'])
         ->whereNumber('id');
+
+    // PAGE_MENUID1019_LEVEL3 registry shell — empty rows until per-menu BL is wired.
+    Route::get('/student-finance/kerisi-level3/{menuId}', [KerisiSfLevel3Controller::class, 'index'])
+        ->whereNumber('menuId');
+
+    // PAGE_MENUID1024_LEVEL3 Account Receivable shell — ORM queries in KerisiArShellListService.
+    Route::get('/payroll/kerisi/{menuId}', [KerisiPayrollController::class, 'index'])
+        ->whereNumber('menuId');
+    Route::get('/kerisi/remaining/pr-to-cancel/details', [KerisiRemainingController::class, 'prToCancelDetails']);
+    // Purchasing / WPN Cancel (menu 2082) — legacy processcancelwpn_entry
+    Route::post('/kerisi/remaining/wpn-cancel', [KerisiRemainingController::class, 'wpnCancel']);
+    Route::get('/kerisi/remaining/{menuId}', [KerisiRemainingController::class, 'index'])
+        ->whereNumber('menuId');
+    Route::get('/account-receivable/kerisi-ar/{menuId}', [KerisiArController::class, 'index'])
+        ->whereNumber('menuId');
 
     // Investment > List Of Accrual (PAGEID 1548 / MENUID 1877). Legacy BL
     // API_LIST_OF_ACCRUAL (action=listing_all_dt) — read-only datatable
@@ -628,6 +653,32 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/purchasing/status-po-pr/options', [StatusPoPrController::class, 'options']);
     Route::get('/purchasing/status-po-pr', [StatusPoPrController::class, 'index']);
     Route::get('/purchasing/vendors', [PurchasingVendorListController::class, 'index']);
+
+    // Purchasing / Setup / Item Main (menu 1820) — cascading grids + search group (mysql_secondary).
+    Route::get('/purchasing/item-main/groups', [PurchasingItemMainController::class, 'groups']);
+    Route::get('/purchasing/item-main/main-categories', [PurchasingItemMainController::class, 'mainCategories']);
+    Route::get('/purchasing/item-main/subcategories', [PurchasingItemMainController::class, 'subcategories']);
+    Route::get('/purchasing/item-main/subsiri', [PurchasingItemMainController::class, 'subsiri']);
+    Route::get('/purchasing/item-main/item-lines', [PurchasingItemMainController::class, 'itemLines']);
+
+    // Purchasing / Setup / List Of Jobscope (menu 1932) — `jobscope` read/write on mysql_secondary.
+    Route::get('/purchasing/jobscope/form-options', [PurchasingJobscopeController::class, 'formOptions']);
+    Route::get('/purchasing/jobscope/parent-options', [PurchasingJobscopeController::class, 'parentOptions']);
+    Route::post('/purchasing/jobscope', [PurchasingJobscopeController::class, 'store']);
+    Route::put('/purchasing/jobscope/{id}', [PurchasingJobscopeController::class, 'update'])->whereNumber('id');
+    Route::get('/purchasing/jobscope/{id}', [PurchasingJobscopeController::class, 'show'])->whereNumber('id');
+    Route::get('/purchasing/jobscope', [PurchasingJobscopeController::class, 'index']);
+
+    // Purchasing / Purchase Requisition / New Purchase Requisition (MENUID 1771).
+    Route::get('/purchasing/purchase-requisition/options', [PurchasingPurchaseRequisitionController::class, 'options']);
+    Route::get('/purchasing/purchase-requisition/cost-centres', [PurchasingPurchaseRequisitionController::class, 'costCentres']);
+    Route::post('/purchasing/purchase-requisition', [PurchasingPurchaseRequisitionController::class, 'store']);
+    Route::get('/purchasing/purchase-requisition/{id}/partial-existing-docs', [PurchasingPurchaseRequisitionController::class, 'partialExistingDocs'])
+        ->whereNumber('id');
+    Route::get('/purchasing/purchase-requisition/{id}/lines', [PurchasingPurchaseRequisitionController::class, 'lines'])->whereNumber('id');
+    Route::put('/purchasing/purchase-requisition/{id}/cancel', [PurchasingPurchaseRequisitionController::class, 'updateCancel'])->whereNumber('id');
+    Route::get('/purchasing/purchase-requisition/{id}', [PurchasingPurchaseRequisitionController::class, 'show'])->whereNumber('id');
+    Route::put('/purchasing/purchase-requisition/{id}', [PurchasingPurchaseRequisitionController::class, 'update'])->whereNumber('id');
 
     // General Ledger > Journal Listing (PAGEID 1700 / MENUID 2056). Legacy
     // BL SNA_API_GLREPORT_JOURNAL_LISTING — list + DR/CR details via
