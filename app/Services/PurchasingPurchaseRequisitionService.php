@@ -245,7 +245,7 @@ class PurchasingPurchaseRequisitionService
     }
 
     /**
-     * Requisition Type — store `lde_value` (fits `rqm_jenis_tender` varchar(15)).
+     * Requisition Type — legacy stores the lookup description in `rqm_jenis_tender`.
      *
      * @return array<int, array{value: string, label: string}>
      */
@@ -255,7 +255,7 @@ class PurchasingPurchaseRequisitionService
     }
 
     /**
-     * Purchase Method — `rqm_tender_type` varchar(30); store `lde_value` when present.
+     * Purchase Method — legacy stores the lookup description in `rqm_tender_type`.
      *
      * @return array<int, array{value: string, label: string}>
      */
@@ -285,8 +285,10 @@ class PurchasingPurchaseRequisitionService
             if ($val === '' && $desc === '') {
                 continue;
             }
-            $value = $val !== '' ? $val : $desc;
-            $label = $val !== '' && $desc !== '' ? $val.' — '.$desc : ($desc !== '' ? $desc : $value);
+            // Legacy PR forms store/display the lookup description for these fields
+            // (e.g. `BEKALAN`, `PEMBELIAN TERUS`), not the short lookup code.
+            $value = $desc !== '' ? $desc : $val;
+            $label = $desc !== '' ? $desc : $value;
             $out[] = ['value' => $value, 'label' => $label];
         }
 
@@ -320,6 +322,93 @@ class PurchasingPurchaseRequisitionService
     }
 
     /**
+     * Code SO (`requisition_master.so_code`) — populated from Structure Budget (`kod_so`) and historic PR strings.
+     *
+     * @return array<int, array{value: string, label: string}>
+     */
+    public function dropdownOptionsSoCodes(): array
+    {
+        $merged = [];
+
+        foreach ($this->conn()
+            ->table('structure_budget')
+            ->selectRaw('DISTINCT TRIM(kod_so) AS kod')
+            ->whereRaw("IFNULL(TRIM(kod_so), '') <> ''")
+            ->limit(4000)->get() as $r) {
+            $v = trim((string) ($r->kod ?? ''));
+            if ($v !== '') {
+                $merged[$v] = ['value' => $v, 'label' => $v];
+            }
+        }
+
+        foreach ($this->conn()
+            ->table('requisition_master')
+            ->selectRaw('DISTINCT TRIM(so_code) AS kod')
+            ->whereRaw("IFNULL(TRIM(so_code), '') <> ''")
+            ->limit(2000)->get() as $r) {
+            $v = trim((string) ($r->kod ?? ''));
+            if ($v !== '') {
+                $merged[$v] = ['value' => $v, 'label' => $v];
+            }
+        }
+
+        $list = array_values($merged);
+        usort($list, fn ($a, $b) => strcmp($a['value'], $b['value']));
+
+        return $list;
+    }
+
+    /**
+     * Detail lines for Purchasing PR Item grid (`requisition_details`).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listDetailLines(int $rqmRequisitionId): array
+    {
+        if ($rqmRequisitionId < 1) {
+            return [];
+        }
+
+        $rows = $this->conn()
+            ->table('requisition_details')
+            ->where('rqm_requisition_id', $rqmRequisitionId)
+            ->orderBy('rqd_line_no')
+            ->get();
+
+        $out = [];
+        foreach ($rows as $row) {
+            $out[] = $this->mapDetailRowToCamel((array) $row);
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    public function mapDetailRowToCamel(array $row): array
+    {
+        return [
+            'rqdRequisitionId' => (int) ($row['rqd_requisition_id'] ?? 0),
+            'rqmRequisitionId' => (int) ($row['rqm_requisition_id'] ?? 0),
+            'itmItemCode' => $row['itm_item_code'] ?? null,
+            'rqdSpecDesc' => $row['rqd_spec_desc'] ?? null,
+            'rqdQty' => $row['rqd_qty'] ?? null,
+            'rqdUom' => $row['rqd_uom'] ?? null,
+            'rqdPrice' => $row['rqd_price'] ?? null,
+            'rqdGrossAmt' => $row['rqd_gross_amt'] ?? null,
+            'rqdTaxcode' => $row['rqd_taxcode'] ?? null,
+            'rqdTaxpct' => $row['rqd_taxpct'] ?? null,
+            'rqdTaxamt' => $row['rqd_taxamt'] ?? null,
+            'rqdTotalPrice' => $row['rqd_total_price'] ?? null,
+            'acmAcctCode' => $row['acm_acct_code'] ?? null,
+            'bdgBudgetCode' => $row['bdg_budget_code'] ?? null,
+            'rqdStatus' => $row['rqd_status'] ?? null,
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function formOptionsPayload(): array
@@ -341,6 +430,8 @@ class PurchasingPurchaseRequisitionService
             'rateType' => $this->dropdownOptionsRateTypes(),
             'requisitionType' => $this->dropdownOptionsRequisitionTypes(),
             'purchaseMethod' => $this->dropdownOptionsPurchaseMethods(),
+            'soCode' => $this->dropdownOptionsSoCodes(),
+            'nextReceiver' => $this->dropdownOptionsStaff(),
         ];
     }
 
@@ -367,7 +458,116 @@ class PurchasingPurchaseRequisitionService
             return null;
         }
 
-        return $this->mapRowToCamel((array) $row);
+        $mapped = $this->mapRowToCamel((array) $row);
+        $mapped['rqmRequestByDisplay'] = $this->staffLabelForId($mapped['rqmRequestBy'] ?? null);
+        $mapped['rqmContactPersonDisplay'] = $this->staffLabelForId($mapped['rqmContactPerson'] ?? null);
+
+        return $mapped;
+    }
+
+    /**
+     * Humans-readable staff label for SPA read-only fields (`id — name`).
+     * Covers requester / contact person even when not in capped dropdown payloads.
+     */
+    public function staffLabelForId(mixed $rawId): string
+    {
+        $id = trim((string) ($rawId ?? ''));
+        if ($id === '') {
+            return '';
+        }
+        $row = $this->conn()->table('staff')->where('stf_staff_id', $id)->first();
+        $name = $row ? trim((string) ($row->stf_staff_name ?? '')) : '';
+
+        return $name !== '' ? $id.' — '.$name : $id;
+    }
+
+    /**
+     * Purchasing / Purchase Requisition / Cancel Partial — rows linked via PO (`pom_requisition_no`).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listPartialExistingPoWpnGrnBill(int $rqmRequisitionId): array
+    {
+        if ($rqmRequisitionId < 1) {
+            return [];
+        }
+
+        $rqmNo = trim((string) ($this->conn()->table('requisition_master')
+            ->where('rqm_requisition_id', $rqmRequisitionId)
+            ->value('rqm_requisition_no') ?? ''));
+        if ($rqmNo === '') {
+            return [];
+        }
+
+        $existsPom = $this->conn()->table('purchase_order_master')
+            ->where('pom_requisition_no', $rqmNo)
+            ->exists();
+        if (! $existsPom) {
+            return [];
+        }
+
+        $conn = $this->conn();
+
+        $grn = $conn->table('goods_receive_master as grm')
+            ->join('purchase_order_master as pom', 'pom.pom_order_no', '=', 'grm.pom_order_no')
+            ->where('pom.pom_requisition_no', $rqmNo)
+            ->selectRaw('grm.grm_receive_no AS application_no')
+            ->selectRaw('grm.pom_order_no AS pom_order_no')
+            ->selectRaw('COALESCE(grm.vcs_vendor_code, pom.vcs_vendor_code) AS vcs_vendor_code')
+            ->selectRaw('pom.pom_description AS pom_description')
+            ->selectRaw('grm.grm_total_amt AS grm_total_amt')
+            ->selectRaw('(SELECT SUM(grd.grd_receive_amt) FROM goods_receive_details grd WHERE grd.grm_receive_id = grm.grm_receive_id) AS grd_receive_amt')
+            ->selectRaw('grm.grm_status AS application_status')
+            ->selectRaw("'GRN' AS from_table")
+            ->get();
+
+        $wpn = $conn->table('work_progress_master as wpm')
+            ->join('purchase_order_master as pom', 'pom.pom_order_no', '=', 'wpm.pom_order_no')
+            ->where('pom.pom_requisition_no', $rqmNo)
+            ->selectRaw('wpm.wpm_progress_no AS application_no')
+            ->selectRaw('wpm.pom_order_no AS pom_order_no')
+            ->selectRaw('COALESCE(wpm.vcs_vendor_code, pom.vcs_vendor_code) AS vcs_vendor_code')
+            ->selectRaw('pom.pom_description AS pom_description')
+            ->selectRaw('wpm.wpm_total_amt AS grm_total_amt')
+            ->selectRaw('COALESCE(wpm.wpm_receive_amt_rm, wpm.wpm_total_amt_rm) AS grd_receive_amt')
+            ->selectRaw('wpm.wpm_status AS application_status')
+            ->selectRaw("'WPN' AS from_table")
+            ->get();
+
+        $bill = $conn->table('bills_master as bim')
+            ->join('purchase_order_master as pom', 'pom.pom_order_no', '=', 'bim.pom_order_no')
+            ->where('pom.pom_requisition_no', $rqmNo)
+            ->selectRaw('bim.bim_bills_no AS application_no')
+            ->selectRaw('bim.pom_order_no AS pom_order_no')
+            ->selectRaw('COALESCE(bim.vcs_vendor_code, pom.vcs_vendor_code) AS vcs_vendor_code')
+            ->selectRaw("COALESCE(NULLIF(TRIM(bim.bim_bills_desc), ''), pom.pom_description) AS pom_description")
+            ->selectRaw('bim.bim_bill_amt AS grm_total_amt')
+            ->selectRaw('bim.bim_ent_amt AS grd_receive_amt')
+            ->selectRaw('bim.bim_status AS application_status')
+            ->selectRaw("'BILL' AS from_table")
+            ->get();
+
+        $merged = [];
+
+        foreach (array_merge($grn->all(), $wpn->all(), $bill->all()) as $r) {
+            $arr = (array) $r;
+            $applicationNo = trim((string) ($arr['application_no'] ?? ''));
+            if ($applicationNo === '') {
+                continue;
+            }
+            $merged[] = [
+                'applicationNo' => $applicationNo,
+                'pomOrderNo' => $arr['pom_order_no'] ?? '',
+                'vcsVendorCode' => $arr['vcs_vendor_code'] ?? '',
+                'pomDescription' => $arr['pom_description'] ?? '',
+                'grmTotalAmt' => $arr['grm_total_amt'] ?? null,
+                'grdReceiveAmt' => $arr['grd_receive_amt'] ?? null,
+                'applicationStatus' => $arr['application_status'] ?? '',
+                'fromTable' => $arr['from_table'] ?? '',
+            ];
+        }
+
+        return $merged;
     }
 
     /**
@@ -411,6 +611,10 @@ class PurchasingPurchaseRequisitionService
             'rqmIsagreementExist' => $row['rqm_isagreement_exist'] ?? null,
             'rqmAggNo' => $row['rqm_agg_no'] ?? null,
             'pprRequisitionId' => $row['ppr_requisition_id'] ?? null,
+            /** Code SO (`requisition_master.so_code`). */
+            'soCode' => $row['so_code'] ?? null,
+            /** Purchasing PR cancel workflow — free text cancellation reason */
+            'rqmCancelRemark' => $row['rqm_cancel_remark'] ?? null,
         ];
     }
 
@@ -470,6 +674,8 @@ class PurchasingPurchaseRequisitionService
                 'rqm_isagreement_exist' => $v['rqm_isagreement_exist'] ?? 'N',
                 'rqm_agg_no' => ($v['rqm_isagreement_exist'] ?? 'N') === 'Y' ? ($v['rqm_agg_no'] ?? null) : null,
                 'rqm_payee_code' => $v['rqm_payee_code'] ?? null,
+                'so_code' => isset($v['so_code']) && trim((string) $v['so_code']) !== '' ? trim((string) $v['so_code']) : null,
+                'rqm_cancel_remark' => array_key_exists('rqm_cancel_remark', $v) ? ($v['rqm_cancel_remark'] ?? null) : null,
                 'createddate' => $now,
                 'createdby' => $user,
                 'updateddate' => $now,
@@ -522,6 +728,8 @@ class PurchasingPurchaseRequisitionService
             'rqm_isagreement_exist' => $v['rqm_isagreement_exist'] ?? 'N',
             'rqm_agg_no' => ($v['rqm_isagreement_exist'] ?? 'N') === 'Y' ? ($v['rqm_agg_no'] ?? null) : null,
             'rqm_payee_code' => $v['rqm_payee_code'] ?? null,
+            'so_code' => isset($v['so_code']) && trim((string) $v['so_code']) !== '' ? trim((string) $v['so_code']) : null,
+            'rqm_cancel_remark' => array_key_exists('rqm_cancel_remark', $v) ? ($v['rqm_cancel_remark'] ?? null) : null,
             'updateddate' => $now,
             'updatedby' => 'SPA',
         ];

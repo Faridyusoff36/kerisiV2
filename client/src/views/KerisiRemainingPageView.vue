@@ -19,13 +19,14 @@ import {
   Filter,
   MoreVertical,
   Pencil,
+  Info,
   Plus,
   Search,
   Trash2,
   X,
 } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
-import { listKerisiRemainingData } from "@/api/cms";
+import { getKerisiPrToCancelDetails, listKerisiRemainingData } from "@/api/cms";
 import {
   getKerisiMenuTrailByMenuId,
   parseKerisiNumericMenuIdFromPath,
@@ -233,15 +234,93 @@ function openEditModal(row: Record<string, unknown>) {
 // ── list state ────────────────────────────────────────────────────────────
 const rows    = ref<Record<string, unknown>[]>([]);
 const loading = ref(false);
+/** Menu 3038 — secondary "Details PR" grid (loaded on demand). */
+const showDetailsPr = ref(false);
+const detailRows = ref<Record<string, unknown>[]>([]);
+const detailLoading = ref(false);
 const total   = ref(0);
 const page    = ref(1);
 const limit   = ref(10);
+function resetPr3038Details() {
+  showDetailsPr.value = false;
+  detailRows.value = [];
+  detailLoading.value = false;
+}
+
+/** Primary key for navigating from List of PR To Be Cancel (3038) → Purchase Requisition Cancel (3039). */
+function extractRqmRequisitionId(row: Record<string, unknown>): number | null {
+  const raw = row.rqm_requisition_id ?? row.rqmRequisitionId;
+  if (typeof raw === "number") return Number.isFinite(raw) && raw > 0 ? raw : null;
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  return null;
+}
+
+/** Click a master row on menu 3038 to open cancel form with PR id (legacy PR Cancel / row navigation). */
+function navigateToPrCancelFrom3038(row: Record<string, unknown>) {
+  const id = extractRqmRequisitionId(row);
+  if (id === null) {
+    toast.error("Purchase Requisition Cancel", "Could not read requisition id from this row.");
+    return;
+  }
+  void router.push({ path: "/admin/kerisi/m/3039", query: { rqm_requisition_id: String(id) } });
+}
+
+function onShellMasterRowClick(di: number, row: Record<string, unknown>) {
+  if (menuId.value !== 3038 || di !== 0) return;
+  navigateToPrCancelFrom3038(row);
+}
+
+async function openPr3038Details(row: Record<string, unknown>) {
+  const noRaw = row.rqm_requisition_no ?? row.rqmRequisitionNo;
+  const idRaw = row.rqm_requisition_id ?? row.rqmRequisitionId;
+  const params = new URLSearchParams();
+  if (typeof noRaw === "string" && noRaw.trim() !== "") params.set("rqm_requisition_no", noRaw.trim());
+  else if (idRaw !== undefined && idRaw !== null && String(idRaw) !== "") params.set("rqm_requisition_id", String(idRaw));
+  else {
+    toast.error("Details", "Missing requisition reference.");
+    return;
+  }
+  detailLoading.value = true;
+  showDetailsPr.value = true;
+  try {
+    const res = await getKerisiPrToCancelDetails(params.toString());
+    detailRows.value = Array.isArray(res.data) ? res.data : [];
+  } catch (e) {
+    detailRows.value = [];
+    toast.error("Details", e instanceof Error ? e.message : "Unable to load Details PR.");
+  } finally {
+    detailLoading.value = false;
+  }
+}
+
+function shellRows(di: number): Record<string, unknown>[] {
+  /** Menu 3041 DT1 (Details PO/Bill) — not wired yet; dedicated API would populate this. Empty = "No records". */
+  if (menuId.value === 3041 && di > 0) return [];
+  if (menuId.value === 3038 && di > 0) return detailRows.value;
+  return rows.value;
+}
+
+function shellTableLoading(di: number): boolean {
+  if (menuId.value === 3041 && di > 0) return false;
+  if (menuId.value === 3038 && di > 0) return detailLoading.value;
+  return loading.value;
+}
+
+function showDetailSection(di: number): boolean {
+  if (menuId.value !== 3038 || di === 0) return true;
+  return showDetailsPr.value;
+}
+
 const q       = ref("");
 let searchDebounce: ReturnType<typeof setTimeout> | null = null;
 
 async function loadRows() {
   const id = menuId.value;
   if (id === null) return;
+  if (id === 3038) resetPr3038Details();
   loading.value = true;
 
   const params = new URLSearchParams({
@@ -376,6 +455,7 @@ onMounted(() => {
 
 watch(menuId, () => {
   initFilters();
+  resetPr3038Details();
   void loadRows();
 });
 
@@ -488,6 +568,7 @@ onUnmounted(() => {
         <!-- Datatable sections -->
         <section
           v-for="(dt, di) in spec?.datatables ?? []"
+          v-show="showDetailSection(di)"
           :key="dt.componentId + '-' + di"
           class="rounded-lg border border-slate-200 bg-white shadow-sm"
         >
@@ -495,7 +576,7 @@ onUnmounted(() => {
             <h2 class="text-base font-semibold text-slate-900">
               {{ dt.componentTitle || "Data" }}
             </h2>
-            <div class="flex items-center gap-2">
+            <div v-if="di === 0 || menuId !== 3038" class="flex items-center gap-2">
               <!-- Add button (only on popup-modal pages or default) -->
               <button
                 v-if="hasPopupForm || di === 0"
@@ -590,30 +671,45 @@ onUnmounted(() => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-if="loading">
+                  <tr v-if="shellTableLoading(di)">
                     <td :colspan="tableColspan(dt)" class="px-3 py-6 text-center text-sm text-slate-400">
                       Loading…
                     </td>
                   </tr>
-                  <tr v-else-if="rows.length === 0 && di === 0">
+                  <tr v-else-if="!shellTableLoading(di) && shellRows(di).length === 0">
                     <td :colspan="tableColspan(dt)" class="px-3 py-6 text-center text-sm text-slate-400">
                       No records found.
                     </td>
                   </tr>
                   <tr
                     v-else
-                    v-for="(row, ri) in rows"
+                    v-for="(row, ri) in shellRows(di)"
                     :key="ri"
                     class="border-b border-slate-100 hover:bg-slate-50"
+                    :class="menuId === 3038 && di === 0 ? 'cursor-pointer' : ''"
+                    @click="onShellMasterRowClick(di, row)"
                   >
                     <td
                       v-for="hi in visibleColIndices(dt)"
                       :key="'c-' + ri + '-' + hi"
                       class="px-3 py-2 text-slate-700"
                     >
-                      <template v-if="isNoCol(dt.dtBi[hi] ?? '')">{{ (page - 1) * limit + ri + 1 }}</template>
+                      <template v-if="isNoCol(dt.dtBi[hi] ?? '')">
+                        {{ menuId === 3038 && di > 0 ? ri + 1 : (page - 1) * limit + ri + 1 }}
+                      </template>
                       <template v-else-if="isActionCol(dt.dtBi[hi] ?? '')">
-                        <div class="flex items-center gap-1">
+                        <!-- Row click navigates to 3039; stop bubble so Details only loads the lower grid -->
+                        <div v-if="menuId === 3038 && di === 0" class="flex items-center gap-1" @click.stop>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="Open Details"
+                            @click="openPr3038Details(row)"
+                          >
+                            <Info class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div v-else class="flex items-center gap-1">
                           <button
                             type="button"
                             class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"

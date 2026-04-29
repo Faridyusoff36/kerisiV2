@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePurchaseRequisitionRequest;
+use App\Http\Requests\UpdatePurchasingPrCancelRequest;
 use App\Http\Traits\ApiResponse;
 use App\Services\PurchasingPurchaseRequisitionService;
 use Illuminate\Http\JsonResponse;
@@ -52,6 +53,65 @@ class PurchasingPurchaseRequisitionController extends Controller
         if ($row === null) {
             return $this->sendError(404, 'NOT_FOUND', 'Purchase Requisition not found');
         }
+
+        return $this->sendOk($row);
+    }
+
+    /**
+     * Line items for Purchasing PR grids (`requisition_details`).
+     */
+    public function lines(int $id): JsonResponse
+    {
+        if ($id < 1) {
+            return $this->sendError(400, 'BAD_REQUEST', 'Invalid rqm_requisition_id');
+        }
+        if ($this->service->findMasterForApi($id) === null) {
+            return $this->sendError(404, 'NOT_FOUND', 'Purchase Requisition not found');
+        }
+
+        return $this->sendOk($this->service->listDetailLines($id));
+    }
+
+    /**
+     * Purchase Requisition Cancel Partial — documents already raised (GRN / WPN / Bill) tied to PO for this PR.
+     */
+    public function partialExistingDocs(int $id): JsonResponse
+    {
+        if ($id < 1) {
+            return $this->sendError(400, 'BAD_REQUEST', 'Invalid rqm_requisition_id');
+        }
+        if ($this->service->findMasterForApi($id) === null) {
+            return $this->sendError(404, 'NOT_FOUND', 'Purchase Requisition not found');
+        }
+
+        return $this->sendOk($this->service->listPartialExistingPoWpnGrnBill($id));
+    }
+
+    /**
+     * Purchasing / Purchase Requisition Cancel (MENUID 3039) — save header + cancel reason.
+     */
+    public function updateCancel(UpdatePurchasingPrCancelRequest $request, int $id): JsonResponse
+    {
+        if ($id < 1) {
+            return $this->sendError(400, 'BAD_REQUEST', 'Invalid id');
+        }
+
+        if ($this->service->findMasterForApi($id) === null) {
+            return $this->sendError(404, 'NOT_FOUND', 'Purchase Requisition not found');
+        }
+
+        try {
+            $data = $request->sanitizedForPersist();
+            $data['rqm_isagreement_exist'] = 'N';
+            $data['rqm_agg_no'] = null;
+            $this->service->update($id, $data);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return $this->sendError(500, 'INTERNAL_ERROR', 'Unable to save Purchase Requisition Cancel');
+        }
+
+        $row = $this->service->findMasterForApi($id);
 
         return $this->sendOk($row);
     }

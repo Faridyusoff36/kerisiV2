@@ -58,5 +58,7 @@ class PurchasingTest extends TestCase
         $this->assertUnauthorized('GET', '/api/purchasing/purchase-requisition/1');
         $this->assertUnauthorized('POST', '/api/purchasing/purchase-requisition');
         $this->assertUnauthorized('PUT', '/api/purchasing/purchase-requisition/1');
+        $this->assertUnauthorized('GET', '/api/purchasing/purchase-requisition/1/partial-existing-docs');
+        $this->assertUnauthorized('PUT', '/api/purchasing/purchase-requisition/1/cancel');
     }
 }

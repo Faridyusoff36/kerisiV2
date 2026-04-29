@@ -205,7 +205,7 @@ class KerisiRemainingShellListService
             2042 => $this->purchasingPoUpdate($request, $page, $limit, $q),
             2082 => $this->purchasingVoList($request, $page, $limit, $q),
             2085 => $this->purchasingVendorAssessment($request, $page, $limit, $q),
-            2320 => $this->purchasingTenderBrief($request, $page, $limit, $q),
+            2320 => $this->purchasingPurchaseRequisitionCancellationList($request, $page, $limit, $q),
             2333 => $this->purchasingTenderEvaluation($request, $page, $limit, $q),
             2361 => $this->purchasingVendorListByItem($request, $page, $limit, $q),
             2642 => $this->purchasingListingOfVendor($request, $page, $limit, $q),
@@ -220,7 +220,8 @@ class KerisiRemainingShellListService
             2846 => $this->purchasingVoListAll($request, $page, $limit, $q),
             2847 => $this->purchasingTenderParticipant($request, $page, $limit, $q),
             2848 => $this->purchasingNewVo($request, $page, $limit, $q),
-            3038 => $this->purchasingPrToCancel($request, $page, $limit, $q),
+            /** List of PR To Be Cancel — `requisition_master` (PAGE 3038). */
+            3038 => $this->purchasingListOfPrToBeCancel($request, $page, $limit, $q),
             3039 => $this->purchasingPrCancelForm($request, $page, $limit, $q),
             3041 => $this->purchasingPrToCancelPartial($request, $page, $limit, $q),
             3042 => $this->purchasingPrCancelPartialForm($request, $page, $limit, $q),
@@ -1693,6 +1694,157 @@ class KerisiRemainingShellListService
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_purchase_requisition_list']);
     }
 
+    /**
+     * Purchasing / Purchase Requisition / List of Purchase Requisition Cancellation (menu 2320).
+     *
+     * Shell registry `dtKey`: rqm_requisition_no, rqm_requisition_title, rqm_amount, org_code, oun_code,
+     * fty_fund_type, ccr_costcentre, rqm_status, rqm_wflow_sts.
+     *
+     * @return array{rows: array<int, array<string, mixed>>, total: int, connector: string}
+     */
+    private function purchasingPurchaseRequisitionCancellationList(Request $r, int $page, int $limit, string $q): array
+    {
+        $base = $this->conn()->table('requisition_master as rm')
+            ->select([
+                'rm.rqm_requisition_id',
+                'rm.rqm_requisition_no',
+                'rm.rqm_requisition_title',
+                'rm.rqm_amount',
+                'rm.org_code',
+                'rm.oun_code',
+                'rm.fty_fund_type',
+                'rm.ccr_costcentre',
+                'rm.rqm_status',
+                'rm.rqm_wflow_sts',
+            ])
+            ->orderByDesc('rm.rqm_requisition_id');
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->whereRaw(
+                'LOWER(CONCAT_WS(\'|\', '
+                ."IFNULL(rm.rqm_requisition_no,''), IFNULL(rm.rqm_requisition_title,''), "
+                ."IFNULL(rm.rqm_status,''), IFNULL(rm.rqm_wflow_sts,''), IFNULL(rm.org_code,''), IFNULL(rm.oun_code,''), "
+                ."IFNULL(rm.fty_fund_type,''), IFNULL(rm.ccr_costcentre,''), IFNULL(CAST(rm.rqm_amount AS CHAR),''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_pr_cancellation_list']);
+    }
+
+    /**
+     * Purchasing / Purchase Requisition / List of PR To Be Cancel (menu 3038).
+     *
+     * Registry `dtKey`: rqm_requisition_id, rqm_requisition_no, rqm_request_by, fty_fund_type, ccr_costcentre,
+     * at_activity_code, rqm_requisition_title, rqm_amount, rqm_status.
+     *
+     * @return array{rows: array<int, array<string, mixed>>, total: int, connector: string}
+     */
+    private function purchasingListOfPrToBeCancel(Request $r, int $page, int $limit, string $q): array
+    {
+        $base = $this->conn()->table('requisition_master as rm')
+            ->select([
+                'rm.rqm_requisition_id',
+                'rm.rqm_requisition_no',
+                'rm.rqm_request_by',
+                'rm.fty_fund_type',
+                'rm.ccr_costcentre',
+                'rm.at_activity_code',
+                'rm.rqm_requisition_title',
+                'rm.rqm_amount',
+                'rm.rqm_status',
+            ])
+            ->orderByDesc('rm.rqm_requisition_id');
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->whereRaw(
+                'LOWER(CONCAT_WS(\'|\', '
+                ."IFNULL(rm.rqm_requisition_no,''), IFNULL(rm.rqm_request_by,''), IFNULL(rm.rqm_requisition_title,''), "
+                ."IFNULL(rm.rqm_status,''), IFNULL(rm.fty_fund_type,''), IFNULL(rm.ccr_costcentre,''), "
+                ."IFNULL(rm.at_activity_code,''), IFNULL(CAST(rm.rqm_amount AS CHAR),''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_pr_to_be_cancel_list']);
+    }
+
+    /**
+     * Purchasing / List of PR To Be Cancel — detail grid (menu 3038 DT1).
+     *
+     * Registry dtKeys: nogn, grnstatus, nowpm, wpnstatus, nopor, postatus, nobill, statusbill
+     * Join path: purchase_order_details.rqm_requisition_no → PO → goods_receive_master (driver),
+     * correlated subqueries for first WPN per PO and first bill per GRN.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function purchasingPrToCancelDetailRows(string $rqmRequisitionNo): array
+    {
+        $rqmRequisitionNo = trim($rqmRequisitionNo);
+        if ($rqmRequisitionNo === '') {
+            return [];
+        }
+
+        $cx = $this->conn();
+
+        $pomNos = $cx->table('purchase_order_details as pod')
+            ->join('purchase_order_master as pom', 'pod.pom_order_id', '=', 'pom.pom_order_id')
+            ->where('pod.rqm_requisition_no', $rqmRequisitionNo)
+            ->distinct()
+            ->pluck('pom.pom_order_no');
+
+        if ($pomNos->isEmpty()) {
+            return [];
+        }
+
+        $wpnNoSql = '(SELECT w2.wpm_progress_no FROM work_progress_master w2 WHERE w2.pom_order_no = pom.pom_order_no ORDER BY w2.wpm_progress_id ASC LIMIT 1)';
+        $wpnStsSql = '(SELECT w2.wpm_status FROM work_progress_master w2 WHERE w2.pom_order_no = pom.pom_order_no ORDER BY w2.wpm_progress_id ASC LIMIT 1)';
+        $billNoSql = '(SELECT b2.bim_bills_no FROM bills_master b2 WHERE b2.grm_receive_no = gm.grm_receive_no ORDER BY b2.bim_bills_id ASC LIMIT 1)';
+        $billStsSql = '(SELECT b2.bim_status FROM bills_master b2 WHERE b2.grm_receive_no = gm.grm_receive_no ORDER BY b2.bim_bills_id ASC LIMIT 1)';
+        $billNoPomSql = '(SELECT b2.bim_bills_no FROM bills_master b2 WHERE b2.pom_order_no = pom.pom_order_no ORDER BY b2.bim_bills_id ASC LIMIT 1)';
+        $billStsPomSql = '(SELECT b2.bim_status FROM bills_master b2 WHERE b2.pom_order_no = pom.pom_order_no ORDER BY b2.bim_bills_id ASC LIMIT 1)';
+
+        $gr = $cx->table('goods_receive_master as gm')
+            ->join('purchase_order_master as pom', 'gm.pom_order_no', '=', 'pom.pom_order_no')
+            ->whereIn('gm.pom_order_no', $pomNos)
+            ->select([
+                'gm.grm_receive_no as nogn',
+                'gm.grm_status as grnstatus',
+                DB::raw($wpnNoSql.' as nowpm'),
+                DB::raw($wpnStsSql.' as wpnstatus'),
+                'pom.pom_order_no as nopor',
+                'pom.pom_order_status as postatus',
+                DB::raw($billNoSql.' as nobill'),
+                DB::raw($billStsSql.' as statusbill'),
+            ])
+            ->orderBy('gm.grm_receive_id');
+
+        $payload = array_map(static fn (\stdClass $row) => (array) $row, $gr->get()->all());
+
+        if ($payload !== []) {
+            return $payload;
+        }
+
+        // PO exists for this PR but no GRN rows yet — one row per PO with PO-level WPN/bill hints.
+        $fallback = $cx->table('purchase_order_master as pom')
+            ->join('purchase_order_details as pod', 'pod.pom_order_id', '=', 'pom.pom_order_id')
+            ->where('pod.rqm_requisition_no', $rqmRequisitionNo)
+            ->groupBy('pom.pom_order_id', 'pom.pom_order_no', 'pom.pom_order_status')
+            ->select([
+                DB::raw('NULL as nogn'),
+                DB::raw('NULL as grnstatus'),
+                DB::raw($wpnNoSql.' as nowpm'),
+                DB::raw($wpnStsSql.' as wpnstatus'),
+                'pom.pom_order_no as nopor',
+                'pom.pom_order_status as postatus',
+                DB::raw($billNoPomSql.' as nobill'),
+                DB::raw($billStsPomSql.' as statusbill'),
+            ])
+            ->orderBy('pom.pom_order_no');
+
+        return array_map(static fn (\stdClass $row) => (array) $row, $fallback->get()->all());
+    }
+
     private function purchasingPoList(Request $r, int $page, int $limit, string $q): array
     {
         $base = $this->conn()->table('purchase_order_master as pom')
@@ -2222,17 +2374,53 @@ class KerisiRemainingShellListService
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_tender_participant']);
     }
 
-    private function purchasingPrToCancel(Request $r, int $page, int $limit, string $q): array
+    /**
+     * List of Cancel Partial PR — menu 3041 registry (`KerisiRemainingshell` datatable 0 keys):
+     * nopr, rqm_request_by, titlepr, statuspr, amountpr, amountguna, baki, etc.
+     *
+     * Driven by `requisition_master` rows linked to a pre-PR (`ppr_requisition_id`),
+     * enriched from `pre_purchase_requisition` when present — keys match camelCase outbound columns.
+     */
+    private function purchasingPartialCancelListFromPrePurchasing(Request $r, int $page, int $limit, string $q): array
     {
-        $base = $this->conn()->table('pre_purchase_requisition as ppr')
-            ->select(['ppr.ppr_requisition_id', 'ppr.ppr_pre_requisition_no', 'ppr.ppr_request_date', 'ppr.ppr_status'])
-            ->orderByDesc('ppr.ppr_requisition_id');
+        $base = $this->conn()->table('requisition_master as rm')
+            ->leftJoin('pre_purchase_requisition as ppr', 'rm.ppr_requisition_id', '=', 'ppr.ppr_requisition_id')
+            ->whereNotNull('rm.ppr_requisition_id')
+            ->where('rm.ppr_requisition_id', '>', 0)
+            ->select([
+                'rm.rqm_requisition_id',
+                DB::raw("COALESCE(NULLIF(TRIM(rm.rqm_requisition_no), ''), NULLIF(TRIM(ppr.ppr_pre_requisition_no), ''), '') AS nopr"),
+                'rm.rqm_request_by',
+                'rm.fty_fund_type',
+                'rm.ccr_costcentre',
+                'rm.at_activity_code',
+                DB::raw("COALESCE(NULLIF(TRIM(rm.rqm_requisition_title), ''), NULLIF(TRIM(ppr.ppr_requisition_title), '')) AS titlepr"),
+                DB::raw(
+                    'COALESCE('
+                    ."NULLIF(TRIM(ppr.ppr_partialcancel_status), ''), "
+                    ."NULLIF(TRIM(ppr.ppr_progress_status), ''), "
+                    ."NULLIF(TRIM(rm.rqm_status), '')"
+                    .') AS statuspr'
+                ),
+                DB::raw('CAST(IFNULL(rm.rqm_amount, 0) AS DECIMAL(15, 2)) AS amountpr'),
+                DB::raw('CAST(IFNULL(rm.rqm_bdg_expenses_amt, 0) AS DECIMAL(15, 2)) AS amountguna'),
+                DB::raw('CAST(IFNULL(rm.rqm_balance_bdgt, 0) AS DECIMAL(15, 2)) AS baki'),
+            ])
+            ->orderByDesc('rm.rqm_requisition_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw("LOWER(IFNULL(ppr.ppr_no,'')) LIKE ?", [$like]);
+            $base->whereRaw(
+                'LOWER(CONCAT_WS(\'|\', '
+                ."IFNULL(rm.rqm_requisition_no,''), IFNULL(rm.rqm_request_by,''), IFNULL(rm.rqm_requisition_title,''), "
+                ."IFNULL(rm.rqm_status,''), IFNULL(ppr.ppr_partialcancel_status,''), IFNULL(ppr.ppr_status,''), IFNULL(rm.fty_fund_type,''), "
+                .'IFNULL(rm.ccr_costcentre,\'\'), IFNULL(rm.at_activity_code,\'\'), '
+                ."IFNULL(CAST(IFNULL(rm.rqm_amount,0) AS CHAR),''), IFNULL(CAST(IFNULL(rm.rqm_bdg_expenses_amt,0) AS CHAR),''), "
+                ."IFNULL(CAST(IFNULL(rm.rqm_balance_bdgt,0) AS CHAR),''))) LIKE ?",
+                [$like]
+            );
         }
 
-        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_pr_to_cancel']);
+        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_partial_pr_linked_list']);
     }
 
     private function purchasingPrCancelForm(Request $r, int $page, int $limit, string $q): array
@@ -2242,7 +2430,7 @@ class KerisiRemainingShellListService
 
     private function purchasingPrToCancelPartial(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->purchasingPrToCancel($r, $page, $limit, $q);
+        return $this->purchasingPartialCancelListFromPrePurchasing($r, $page, $limit, $q);
     }
 
     private function purchasingPrCancelPartialForm(Request $r, int $page, int $limit, string $q): array

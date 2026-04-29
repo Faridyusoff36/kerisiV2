@@ -3128,6 +3128,12 @@ export async function listKerisiRemainingData(menuId: number, params = "") {
   );
 }
 
+/** Purchasing / List of PR To Be Cancel (3038) — Details PR grid linked to PR no / id */
+export async function getKerisiPrToCancelDetails(query: string) {
+  const qs = query.startsWith("?") ? query : `?${query}`;
+  return apiRequest<{ data: Record<string, unknown>[] }>(`/api/kerisi/remaining/pr-to-cancel/details${qs}`);
+}
+
 /** Purchasing / Setup / Item Main (menu 1820) — mysql_secondary cascading lists */
 export type PurchasingItemMainGroupOpt = { value: string; label: string };
 
@@ -3234,6 +3240,10 @@ export type PurchasingPrOptionsPayload = {
   rateType: PurchasingPrDropdownRow[];
   requisitionType: PurchasingPrDropdownRow[];
   purchaseMethod: PurchasingPrDropdownRow[];
+  /** Code SO / `kod_so` (+ historic PR strings) — may be empty. */
+  soCode: PurchasingPrDropdownRow[];
+  /** Next workflow recipient — staff list mirroring legacy (not persisted unless workflow is ported). */
+  nextReceiver: PurchasingPrDropdownRow[];
 };
 
 export async function purchasingPurchaseRequisitionOptions() {
@@ -3263,6 +3273,25 @@ export async function purchasingPurchaseRequisitionCreate(input: Record<string, 
 
 export async function updatePurchasingPurchaseRequisition(id: number, input: Record<string, unknown>) {
   return apiRequest<{ data: Record<string, unknown> }>(`/api/purchasing/purchase-requisition/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function listPurchasingPurchaseRequisitionLines(id: number) {
+  return apiRequest<{ data: Record<string, unknown>[] }>(`/api/purchasing/purchase-requisition/${id}/lines`);
+}
+
+/** Purchasing PR Cancel Partial — GRN / WPN / Bill rows tied to PO for this requisition (`pom_requisition_no`). */
+export async function listPurchasingPrPartialExistingDocs(id: number) {
+  return apiRequest<{ data: Record<string, unknown>[] }>(
+    `/api/purchasing/purchase-requisition/${id}/partial-existing-docs`,
+  );
+}
+
+/** Purchasing PR Cancel — save master + mandatory cancel reason (`requisition_master.rqm_cancel_remark`). */
+export async function updatePurchasingPrCancel(id: number, input: Record<string, unknown>) {
+  return apiRequest<{ data: Record<string, unknown> }>(`/api/purchasing/purchase-requisition/${id}/cancel`, {
     method: "PUT",
     body: JSON.stringify(input),
   });

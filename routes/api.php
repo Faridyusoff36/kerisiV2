@@ -522,6 +522,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // PAGE_MENUID1024_LEVEL3 Account Receivable shell — ORM queries in KerisiArShellListService.
     Route::get('/payroll/kerisi/{menuId}', [KerisiPayrollController::class, 'index'])
         ->whereNumber('menuId');
+    Route::get('/kerisi/remaining/pr-to-cancel/details', [KerisiRemainingController::class, 'prToCancelDetails']);
     Route::get('/kerisi/remaining/{menuId}', [KerisiRemainingController::class, 'index'])
         ->whereNumber('menuId');
     Route::get('/account-receivable/kerisi-ar/{menuId}', [KerisiArController::class, 'index'])
@@ -644,6 +645,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/purchasing/purchase-requisition/options', [PurchasingPurchaseRequisitionController::class, 'options']);
     Route::get('/purchasing/purchase-requisition/cost-centres', [PurchasingPurchaseRequisitionController::class, 'costCentres']);
     Route::post('/purchasing/purchase-requisition', [PurchasingPurchaseRequisitionController::class, 'store']);
+    Route::get('/purchasing/purchase-requisition/{id}/partial-existing-docs', [PurchasingPurchaseRequisitionController::class, 'partialExistingDocs'])
+        ->whereNumber('id');
+    Route::get('/purchasing/purchase-requisition/{id}/lines', [PurchasingPurchaseRequisitionController::class, 'lines'])->whereNumber('id');
+    Route::put('/purchasing/purchase-requisition/{id}/cancel', [PurchasingPurchaseRequisitionController::class, 'updateCancel'])->whereNumber('id');
     Route::get('/purchasing/purchase-requisition/{id}', [PurchasingPurchaseRequisitionController::class, 'show'])->whereNumber('id');
     Route::put('/purchasing/purchase-requisition/{id}', [PurchasingPurchaseRequisitionController::class, 'update'])->whereNumber('id');
 

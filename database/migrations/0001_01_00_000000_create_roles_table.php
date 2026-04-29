@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('roles', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
-            $table->text('description')->default('');
+            /* MySQL disallows DEFAULT on TEXT; keep nullable — seed fills descriptions. */
+            $table->text('description')->nullable();
             $table->json('permissions');
             $table->timestamps();
         });

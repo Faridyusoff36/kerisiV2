@@ -7,6 +7,7 @@ use App\Http\Traits\ApiResponse;
 use App\Services\KerisiRemainingShellListService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class KerisiRemainingController extends Controller
 {
@@ -45,5 +46,33 @@ class KerisiRemainingController extends Controller
         }
 
         return $this->sendOk($rows, $meta);
+    }
+
+    /**
+     * Purchasing / List of PR To Be Cancel — Details PR grid (linked GRN/WPN/PO/Bill rows).
+     *
+     * Query: ?rqm_requisition_no=… and/or ?rqm_requisition_id=…
+     */
+    public function prToCancelDetails(Request $request): JsonResponse
+    {
+        $rqmNo = trim((string) $request->input('rqm_requisition_no', ''));
+        if ($rqmNo === '') {
+            $rid = $request->input('rqm_requisition_id');
+            if ($rid !== null && $rid !== '') {
+                $rqmNo = (string) (DB::connection('mysql_secondary')
+                    ->table('requisition_master')
+                    ->where('rqm_requisition_id', (int) $rid)
+                    ->value('rqm_requisition_no') ?? '');
+                $rqmNo = trim($rqmNo);
+            }
+        }
+
+        if ($rqmNo === '') {
+            return $this->sendError(422, 'VALIDATION_ERROR', 'rqm_requisition_no or rqm_requisition_id is required');
+        }
+
+        $rows = app(KerisiRemainingShellListService::class)->purchasingPrToCancelDetailRows($rqmNo);
+
+        return $this->sendOk($rows);
     }
 }
