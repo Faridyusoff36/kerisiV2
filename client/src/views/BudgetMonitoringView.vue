@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import {
   Download,
   Eye,
@@ -23,12 +24,24 @@ import type {
   BudgetPtjOption,
 } from "@/types";
 
-// Page labels mirror legacy PAGETITLE / PAGEBREADCRUMBS for PAGEID 1201
-// (docs/migration/fims-budget/PAGE_1201.json).
-const PAGE_NAME = "Budget Monitoring";
-const PAGE_BREADCRUMB = "Budget / Monitoring";
+const props = withDefaults(
+  defineProps<{
+    /** Card / export label (PAGETITLE). */
+    pageTitle?: string;
+    /** Breadcrumb (PAGEBREADCRUMBS). */
+    pageBreadcrumb?: string;
+    /** Kerisi route for Budget Listing drill-down (MENUID 1831 / 2581). */
+    listingKerisiPath?: string;
+  }>(),
+  {
+    pageTitle: "Budget Monitoring",
+    pageBreadcrumb: "Budget / Monitoring",
+    listingKerisiPath: "/admin/kerisi/m/1831",
+  },
+);
 
 const toast = useToast();
+const router = useRouter();
 const rows = ref<BudgetMonitoringRow[]>([]);
 const footer = ref<BudgetMonitoringFooter | null>(null);
 const page = ref(1);
@@ -105,14 +118,12 @@ function formatAmount(v: unknown): string {
   return currency.format(n);
 }
 
-// Action column: the legacy dt_js renders a "View Budget" link that routes to
-// menuID 1831 (Budget detail screen). That page is not part of this migration
-// batch, so the button is rendered but emits a "not migrated" toast.
-function notMigrated() {
-  toast.info(
-    "Not migrated yet",
-    "The Budget detail screen (legacy menuID 1831) is not part of this migration batch.",
-  );
+// Action column: legacy "View Budget" → Budget Listing (MENUID 1831 / PAGEID 1510).
+function openBudgetListing(row: BudgetMonitoringRow) {
+  router.push({
+    path: props.listingKerisiPath,
+    query: { bgdId: row.budgetid ?? "", year: String(row.bdgYear ?? "") },
+  });
 }
 
 // Export column layout — all visible numeric / text columns must be present
@@ -179,7 +190,7 @@ function toExportRow(r: BudgetMonitoringRow): Record<string, string | number> {
 
 const datatableRef = ref<DatatableRefApi | null>(null);
 const { templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } = useDatatableFeatures({
-  pageName: PAGE_NAME,
+  pageName: props.pageTitle,
   apiDataPath: "/budget/monitoring",
   defaultExportColumns: exportColumns,
   getFilteredList: () => rows.value.map(toExportRow),
@@ -197,7 +208,7 @@ async function exportExcel() {
     }
     const ExcelJS = await import("exceljs");
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet(PAGE_NAME);
+    const ws = wb.addWorksheet(props.pageTitle);
     ws.addRow(["No", ...exportColumns]);
     rows.value.forEach((r, idx) => {
       const row = toExportRow(r);
@@ -210,7 +221,7 @@ async function exportExcel() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${PAGE_NAME.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = `${props.pageTitle.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Excel downloaded");
@@ -295,7 +306,7 @@ watch(
         class="hidden"
         @change="onTemplateFileChange"
       />
-      <h1 class="page-title">{{ PAGE_BREADCRUMB }}</h1>
+      <h1 class="page-title">{{ pageBreadcrumb }}</h1>
 
       <!-- Top filter (legacy "Monitoring Filter" form) -->
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -519,7 +530,7 @@ watch(
                         type="button"
                         class="rounded p-1 text-slate-500 hover:bg-slate-100"
                         title="View Budget"
-                        @click="notMigrated"
+                        @click="openBudgetListing(row)"
                       >
                         <Eye class="h-3.5 w-3.5" />
                       </button>

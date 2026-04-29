@@ -1,0 +1,225 @@
+    // HIDDEN_PAGE_LEVEL3 Payroll (`HIDDEN_PAGE_LEVEL3.json` ∩ `kerisi-payroll-hidden-routes`; must stay before `...kerisiPayrollHiddenRoutes`).
+    {
+      path: "/admin/kerisi/m/1216",
+      name: "kerisi-payroll-staff-allowance",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "Allowance",
+        breadcrumb: "Payroll / Staff Profile Information / Allowance",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Allowance" },
+    },
+    {
+      path: "/admin/kerisi/m/1219",
+      name: "kerisi-payroll-statutory-information",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "Statutory Information",
+        breadcrumb: "Payroll / Staff Profile Information / Statutory Information",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Statutory Information" },
+    },
+    {
+      path: "/admin/kerisi/m/1340",
+      name: "kerisi-payroll-new-allowance-and-deduction",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "New Allowance And Deduction",
+        breadcrumb: "Payroll / Allowance And Deduction / New Allowance And Deduction",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "New Allowance And Deduction" },
+    },
+    {
+      path: "/admin/kerisi/m/1439",
+      name: "kerisi-payroll-staff-profile",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "Profile",
+        breadcrumb: "Payroll / Staff Profile Information / Profile",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Profile" },
+    },
+    {
+      path: "/admin/kerisi/m/1459",
+      name: "kerisi-payroll-voucher-registration",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "Voucher Registration PY",
+        breadcrumb: "Payroll / Salary Crediting / Voucher Registration PY",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Voucher Registration PY" },
+    },
+    {
+      path: "/admin/kerisi/m/1460",
+      name: "kerisi-payroll-voucher-registration-details",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "Voucher Registration Details PY",
+        breadcrumb: "Payroll / Salary Crediting / Voucher Registration Details PY",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Voucher Registration Details PY" },
+    },
+    {
+      path: "/admin/kerisi/m/1466",
+      name: "kerisi-payroll-lookup-tax-group",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "Tax Group",
+        breadcrumb: "Payroll / Lookup / Tax Group",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Tax Group" },
+    },
+    {
+      path: "/admin/kerisi/m/1929",
+      name: "kerisi-payroll-journal-new",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "Journal New",
+        breadcrumb: "Payroll / Salary Crediting / Journal New",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Journal New" },
+    },
+    {
+      path: "/admin/kerisi/m/1931",
+      name: "kerisi-payroll-journal-details",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "Journal Details",
+        breadcrumb: "Payroll / Salary Crediting / Journal Details",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Journal Details" },
+    },
+    {
+      path: "/admin/kerisi/m/1989",
+      name: "kerisi-payroll-pcb-calculator",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "PCB Calculator",
+        breadcrumb: "Payroll / Report / PCB Calculator",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "PCB Calculator" },
+    },
+    {
+      path: "/admin/kerisi/m/2156",
+      name: "kerisi-payroll-report-pengajian-lanjutan",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "Penyata Perbelanjaan Pengajian Lanjutan",
+        breadcrumb: "Payroll / Report / Penyata Perbelanjaan Pengajian Lanjutan",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Penyata Perbelanjaan Pengajian Lanjutan" },
+    },
+    {
+      path: "/admin/kerisi/m/2503",
+      name: "kerisi-payroll-report-integration-allowance",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "Integration Allowance",
+        breadcrumb: "Payroll / Report / Integration Allowance",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Integration Allowance" },
+    },
+    {
+      path: "/admin/kerisi/m/2541",
+      name: "kerisi-payroll-integration-view-other-deduction",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "View Other Deduction",
+        breadcrumb: "Payroll / Integration / View Other Deduction",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "View Other Deduction" },
+    },
+    {
+      path: "/admin/kerisi/m/3332",
+      name: "kerisi-payroll-payslip-myfis-lite",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "Payslip From MyFis Lite",
+        breadcrumb: "Payroll / Staff Profile Information / Payslip From MyFis Lite",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Payslip From MyFis Lite" },
+    },
+    {
+      path: "/admin/kerisi/m/3340",
+      name: "kerisi-payroll-bonus",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "Bonus",
+        breadcrumb: "Payroll / Salary Processing / Bonus",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Bonus" },
+    },
+    {
+      path: "/admin/kerisi/m/3444",
+      name: "kerisi-payroll-kew8-profile",
+      component: PayrollLegacyPlaceholderView,
+      props: {
+        title: "Profile",
+        breadcrumb: "Payroll / Kew 8 / Profile",
+        description:
+          "This legacy Payroll setup, salary-crediting, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Profile" },
+    },

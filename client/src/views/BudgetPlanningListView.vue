@@ -43,7 +43,13 @@ const SCOPE_META: Record<BudgetPlanningScope, ScopeMeta> = {
   },
 };
 
-const props = defineProps<{ scope?: BudgetPlanningScope }>();
+const props = defineProps<{
+  scope?: BudgetPlanningScope;
+  /** Override SCOPE_META breadcrumb (hidden menu paths). */
+  breadcrumbOverride?: string;
+  /** Override SCOPE_META panel title. */
+  panelTitleOverride?: string;
+}>();
 
 const toast = useToast();
 const { confirm } = useConfirmDialog();
@@ -55,7 +61,13 @@ const scope = computed<BudgetPlanningScope>(() => {
     | undefined;
   return candidate && candidate in SCOPE_META ? candidate : "yearly";
 });
-const meta = computed<ScopeMeta>(() => SCOPE_META[scope.value] ?? SCOPE_META.yearly);
+const meta = computed<ScopeMeta>(() => {
+  const base = SCOPE_META[scope.value] ?? SCOPE_META.yearly;
+  return {
+    title: props.panelTitleOverride ?? base.title,
+    breadcrumb: props.breadcrumbOverride ?? base.breadcrumb,
+  };
+});
 
 const rows = ref<BudgetPlanningRow[]>([]);
 const total = ref(0);

@@ -409,6 +409,34 @@ export type BudgetMovementRow = {
   date: string | null;
 };
 
+/** Single structure_budget slot as embedded on a movement detail line (camelCase API). */
+export type BudgetMovementStructureSlot = {
+  sbgBudgetId: string | null;
+  ounCode: string | null;
+  ccrCostcentre: string | null;
+  ftyFundType: string | null;
+  atActivityCode: string | null;
+  lbcBudgetCode: string | null;
+};
+
+export type BudgetMovementFormDetailRow = {
+  bmdBgtMovementDetlId: string;
+  bmmBudgetMovementId: string;
+  sbgBudgetIdFrom: string | null;
+  sbgBudgetIdTo: string | null;
+  qbuQuarterId: string | number | null;
+  bmdMvtAmt: string | number | null;
+  sourceBudget: BudgetMovementStructureSlot | null;
+  destinationBudget: BudgetMovementStructureSlot | null;
+};
+
+export type BudgetMovementMasterDto = Omit<BudgetMovementRow, "index">;
+
+export type BudgetMovementFormData = {
+  master: BudgetMovementMasterDto;
+  details: BudgetMovementFormDetailRow[];
+};
+
 export type BudgetMovementOption = { id: string; label: string };
 
 export type BudgetMovementOptions = {
@@ -451,6 +479,99 @@ export type BudgetMonitoringRow = {
   acmAcctDesc: string | null;
   bdgClosing: string | null;
   bdgClosingBy: string | null;
+};
+
+/** Purchasing / List of Vendor (PAGEID 1376 / MENUID 1685). */
+export type PurchasingVendorRow = {
+  index: number;
+  vcsVendorCode: string | null;
+  vcsVendorName: string | null;
+  vcsAddress: string | null;
+  vcsRegistrationNo: string | null;
+  vcsRegExpDate: string | null;
+  vcsTelNo: string | null;
+  vcsFaxNo: string | null;
+  vcsContactPerson: string | null;
+  vcsIscreditor: string;
+  vcsIsdebtor: string;
+  vcsVendorStatus: string;
+};
+
+/** Credit Control / Post Dated Cheque (PAGEID 1436 / MENUID 1755). */
+export type PostDatedChequeRow = {
+  index: number;
+  crCustId: string | null;
+  crDrawerName: string | null;
+  crIssuerBank: string | null;
+  crBranchName: string | null;
+  crChequeNo: string | null;
+  crChequeDate: string | null;
+  crChequeAmt: number | null;
+  crReceivedDate: string | null;
+  crInvoiceNo: string | null;
+  crValidity: string | null;
+  crRemark: string | null;
+};
+
+/** Emergency Fund approved listing (PAGEID 1683 / MENUID 2038). Legacy NAD_API_CC_EF_LISTING. */
+export type EmergencyFundApprovedListingRow = {
+  listIndex: number;
+  emfId: string | number;
+  emfEmergencyFundNo?: string | null;
+  applyDateDisp?: string | null;
+  applyByDisp?: string | null;
+  categoryDisp?: string | null;
+  emfCorrespondenceAdd?: string | null;
+  applyForDisp?: string | null;
+  emfTakenAmt?: number | string | null;
+  emfStatus?: string | null;
+  clearanceDateDisp?: string | null;
+  pmtPostingNo?: string | null;
+  pmtPostingNoClearance?: string | null;
+  crmReminderBil?: string | null;
+};
+
+/** Emergency Fund reminder listing (PAGEID 1686 / MENUID 2037). Legacy NAD_API_CC_EF_REPORT_REMINDER. */
+export type EmergencyFundReminderReportRow = {
+  listIndex: number;
+  crmDebtorId?: string | null;
+  crmDebtorName?: string | null;
+  crmInvoiceNo?: string | null;
+  crmAmountInv?: number | string | null;
+  crmReminderBil?: string | null;
+  crmReminderDateDisp?: string | null;
+  fullAddress?: string | null;
+};
+
+/** Emergency Fund release queue (PAGEID 1676/2182). NAD_API_CC_EF_RELEASE. */
+export type EmergencyFundReleaseQueueRow = {
+  listIndex: number;
+  emfId?: string | number;
+  emfEmergencyFundNo?: string | null;
+  paidDateDisp?: string | null;
+  applyByDisp?: string | null;
+  categoryDisp?: string | null;
+  emfCategory?: string | null;
+  emfRemarkByQuery?: string | null;
+  emfTakenAmt?: number | string | null;
+  emfStatus?: string | null;
+  clearanceDateDisp?: string | null;
+  pmtPostingNo?: string | null;
+};
+
+/** Emergency Fund accrual worklist (PAGEID 1637). ZR_CREDITCTRL_EMERGENCYFUND_ACCRUAL_API. */
+export type EmergencyFundAccrualRow = {
+  listIndex: number;
+  emfId?: string | number;
+  emfEmergencyFundNo?: string | null;
+  applyDateDisp?: string | null;
+  applyByDisp?: string | null;
+  categoryDisp?: string | null;
+  emfCategory?: string | null;
+  emfCorrespondenceAdd?: string | null;
+  applyForDisp?: string | null;
+  emfTakenAmt?: number | string | null;
+  emfStatus?: string | null;
 };
 
 export type BudgetMonitoringFooter = {
@@ -513,6 +634,34 @@ export type BudgetInitialOptions = {
     quarter: BudgetInitialQuarterOption[];
     status: BudgetLookupOption[];
   };
+};
+
+/** Budget / New Initial V2 master (PAGEID 1277 / MENUID 1560). */
+export type BudgetInitialNewV2Master = {
+  bamId: number;
+  reference: string | null;
+  quarterId: string | null;
+  quarterLabel: string | null;
+  year: string | null;
+  endorseDoc: string | null;
+  fileName: string | null;
+  stat: string | null;
+  total: number | null;
+  unregisteredCount: number;
+  errorDataFileCount: number;
+};
+
+export type BudgetInitialNewV2DetailRow = {
+  index: number;
+  id: number;
+  budgetId: string | null;
+  fund: string | null;
+  activity: string | null;
+  ptj: string | null;
+  ccr: string | null;
+  budgetCode: string | null;
+  initialAmt: number | null;
+  stat: string | null;
 };
 
 // FIMS Budget Closing (PAGEID 1953 / MENUID 2389 & 3154). Form page; backend
@@ -1273,6 +1422,8 @@ export type PayeeRegistrationRow = {
   vcsVendorStatus: "ACTIVE" | "INACTIVE";
   vcsVendorStatusValue: number;
 };
+
+export type PayeeRegistrationDetail = Omit<PayeeRegistrationRow, "index">;
 
 export type PayeeRegistrationOptions = {
   smartFilter: {
@@ -2483,6 +2634,30 @@ export type GlYearMonthSmartFilter = {
   status: string;
 };
 
+// Setup & Maintenance > GL Structure > Floating Point for Profile Setup (PAGEID 1943 / MENUID 2375).
+// Legacy `NAD_API_PTJCOSTCENTER_LISTING` dt_listingProfile — read-only cascade rows without project.
+export type ProfileFloatingPointRow = {
+  oucOunitCostcentreId: number;
+  ftyFundType: string;
+  ftyFundDesc: string;
+  atActivityCode: string;
+  atActivityDescriptionBm: string;
+  ounCode: string;
+  ounDesc: string;
+  ccrCostcentre: string;
+  ccrCostcentreDesc: string;
+  oucStatus: string;
+  datecreate: string;
+};
+
+export type ProfileFloatingPointSmartFilter = {
+  ftyFundType: string;
+  atActivityCode: string;
+  ounCode: string;
+  ccrCostcentre: string;
+  oucStatus: "" | "ACTIVE" | "INACTIVE";
+};
+
 // General Ledger > Posting to GL (TB) (PAGEID 1139 / MENUID 1409).
 // Source: FIMS BL `POSTING_TO_TB`. Read-only listing over
 // posting_master + posting_details grouped per posting + document +
@@ -3555,6 +3730,21 @@ export type ProjectListRow = {
   cpaProjectStatus: string | null;
 };
 
+/** PATCH body for `/api/project-monitoring/projects/{no}` — camelCase for API middleware. Dates `DD/MM/YYYY`. */
+export type CapitalProjectProfilePatch = {
+  cpaProjectDesc?: string;
+  ftyFundType?: string;
+  latActivityCode?: string;
+  ounCode?: string;
+  ccrCostcentre?: string;
+  soCode?: string;
+  cpaProjectType?: string;
+  cpaStartDate?: string;
+  cpaEndDate?: string;
+  cpaSource?: string;
+  cpaProjectStatus?: string;
+};
+
 // Project Monitoring > Updated Balance (MENUID 2065). The legacy page is a
 // FORM (Project ID autosuggest + Information card + Cash Balance card +
 // Save). Backend payload mirrors the legacy autosuggest result of
@@ -3603,6 +3793,71 @@ export type ProjectMonitoringBalanceInput = {
     currBudgetBal?: string;
     seqBudgetBal: string;
   };
+};
+
+// Portal > Advance Staff / Recoupment (HIDDEN LEVEL5: MENUID 2442, 2714, 2712,
+// 2716). Legacy BL `API_AAD_RECOUP_BILL`, `API_AAD_DETAILSRECOUPMENTDRAFT`.
+
+export type PortalAdvanceGenerateBillBatchRow = {
+  index: number;
+  cabId: number | string | null;
+  cabBatchId: string | null;
+  cabTransNo: string | null;
+  cabBatchAmt: string | number | null;
+  cabLinkedBillsNo: string | null;
+  recoupMasterStatusRaw: string | null;
+  cabRecoupDate: string | null;
+  bimStatusLabel: string | null;
+};
+
+/** `dt_RecoupList` / `dt_RecoupListApproved` (MENUID 2714). */
+export type PortalAdvanceRecoupBillRow = {
+  index: number;
+  bimBillsId: string | number | null;
+  bimBillsNo: string | null;
+  bimBillsDesc: string | null;
+  bimBillAmt: string | number | null;
+  bimCustInvoiceNo: string | null;
+  bimCustInvoiceDate: string | null;
+  bimPaytoId: string | null;
+  bimPaytoName: string | null;
+  bimStatus: string | null;
+  createddate: string | null;
+  detailUrlKerisiPath: string | null;
+  draftDetailUrlKerisiPath: string | null;
+};
+
+/** Legacy `recoup_details` header (menus 2712 / 2716 drill-down). */
+export type PortalAdvanceRecoupHeader = {
+  id: string | number | null;
+  noBrc: string | null;
+  descBrc: string | null;
+  brcAmt: string | number | null;
+  invNo: string | null;
+  invDate: string | null;
+  payeeCode: string | null;
+  payeeName: string | null;
+  brcStatus: string | null;
+  batchNo: string | null;
+};
+
+/** Legacy `dt_debitRecoup` grouped debit lines (detail drill-down). */
+export type PortalAdvanceRecoupDebitLineRow = {
+  index: number;
+  bidPaytoType: string | null;
+  bidPaytoId: string | null;
+  bidPaytoName: string | null;
+  ftyFundType: string | null;
+  atActivityCode: string | null;
+  ounCode: string | null;
+  ccrCostcentre: string | null;
+  acmAcctCode: string | null;
+  bidAmt: string | number | null;
+  vsaVendorBank: string | null;
+  vsaBankAccno: string | null;
+  bank: string | null;
+  soCode: string | null;
+  xx: string | null;
 };
 
 // Portal > Staff Profile (PAGEID 1581 / MENUID 1914).
@@ -3987,6 +4242,31 @@ export type IntegrationActivityRow = {
 
 // General Ledger > Budget Not Exists (PAGEID 2200 / MENUID 2657).
 // Legacy BL: NAD_API_SM_REPORT_BUDGET_NOT_EXIST.
+/** Budget / Budget Advance Controlled (PAGEID 1784 / MENUID 2160). */
+export type BudgetAdvanceControlledRow = {
+  index: number;
+  bam_id: number;
+  bam_year: string | number | null;
+  tarikh: string | null;
+  bam_no: string | null;
+  bam_endorse_doc: string | null;
+  bam_total: number | null;
+  bam_status: string | null;
+};
+
+/** Single `budget_in_advance_master` row (detail / show; camelCase from API). */
+export type BudgetInAdvanceMasterShow = {
+  bamId: number;
+  bamYear: string | number | null;
+  tarikh: string | null;
+  bamNo: string | null;
+  bamEndorseDoc: string | null;
+  bamTotal: number | null;
+  bamStatus: string | null;
+  createdby: string | null;
+  updatedby: string | null;
+};
+
 export type BudgetNotExistsRow = {
   index: number;
   pmtPostingId: number;
@@ -4362,6 +4642,69 @@ export type TotalAllocationOptions = {
     ccr: IdLabel[];
     budgetCode: IdLabel[];
   };
+};
+
+// Budget / Report / Total Allocation / Umum Allocation by PTJ (PAGEID 2515 / MENUID 3044 — HIDDEN_PAGE_LEVEL4).
+export type UmumAllocationPtjRow = {
+  index: number;
+  atActivityCode: string | null;
+  atActivityDescriptionBm: string | null;
+  ounCode: string | null;
+  ounDesc: string | null;
+  ccrCostcentre: string | null;
+  ccrCostcentreDesc: string | null;
+  allocation: number | null;
+  lock: number | null;
+  request: number | null;
+  commitment: number | null;
+  expenses: number | null;
+  totalExpenses: number | null;
+  balance: number | null;
+};
+
+export type UmumAllocationPtjFooter = {
+  allocation?: number | null;
+  lock?: number | null;
+  request?: number | null;
+  commitment?: number | null;
+  expenses?: number | null;
+  totalExpenses?: number | null;
+  balance?: number | null;
+};
+
+export type UmumAllocationPtjOptions = {
+  topFilter: {
+    year: IdLabel[];
+    ptj: IdLabel[];
+    activity: IdLabel[];
+  };
+};
+
+/** Legacy `V2_BUDGET_SUMMARY_API` dt_listing (menus 3382, 3389, 3393 — HIDDEN_PAGE_LEVEL4). API keys are camelCased by middleware (`PTJ` becomes `pTJ`). */
+export type BudgetV2BudgetSummaryRow = {
+  indexing: number | null;
+  acctCode: string | null;
+  acmAcctDesc: string | null;
+  pTJ: string | null;
+  costcentre: string | null;
+  costCentreDup: string | null;
+  description: string | null;
+  fundTypeDisplay: string | null;
+  projectNo: string | null;
+  initial: number | null;
+  virement: number | null;
+  additional: number | null;
+  topup: number | null;
+  opening: number | null;
+  request: number | null;
+  commit: number | null;
+  expenses: number | null;
+  locked: number | null;
+  preRequest: number | null;
+  allocated: number | null;
+  balance: number | null;
+  total: number | null;
+  expensesPercent: string | null;
 };
 
 // Budget > Reports > Laporan Belanjawan (PAGEID 2873 / MENUID 3457).

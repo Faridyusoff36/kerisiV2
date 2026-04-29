@@ -29,8 +29,16 @@ import type {
 // Legacy BL: QLA_API_GLOBAL_UPLOADCURRENCY — datatable grouped by year/month
 // + manual-entry modal that bulk-inserts a `currency_details` row per
 // (currency, day) for the chosen period.
-const PAGE_NAME = "AG Rate";
-const PAGE_BREADCRUMB = "Setup and Maintenance / Currency / AG Rate";
+const props = withDefaults(
+  defineProps<{
+    pageName?: string;
+    pageBreadcrumb?: string;
+  }>(),
+  {
+    pageName: "AG Rate",
+    pageBreadcrumb: "Setup and Maintenance / Currency / AG Rate",
+  },
+);
 
 const MONTH_NAMES_BY_NUM: Record<number, string> = {
   1: "JANUARY", 2: "FEBRUARY", 3: "MARCH", 4: "APRIL", 5: "MAY", 6: "JUNE",
@@ -260,7 +268,7 @@ const {
   handleDownloadPDF,
   handleDownloadCSV,
 } = useDatatableFeatures({
-  pageName: PAGE_NAME,
+  pageName: props.pageName,
   apiDataPath: "/global/ag-rate",
   defaultExportColumns: ["Year", "Month", "Source"],
   getFilteredList: () => (datatableRef.value?.getExportConfig?.()?.data as Record<string, unknown>[]) ?? [],
@@ -280,7 +288,7 @@ async function exportExcel() {
     }
     const ExcelJS = await import("exceljs");
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet(PAGE_NAME);
+    const ws = wb.addWorksheet(props.pageName);
     ws.addRow(["No", ...columnsOut]);
     data.forEach((row, idx) => {
       const values = columnsOut.map((c) => (row[c] ?? "") as string | number);
@@ -291,7 +299,7 @@ async function exportExcel() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${PAGE_NAME.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = `${props.pageName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Excel downloaded");
@@ -332,11 +340,11 @@ onUnmounted(() => {
     <div class="space-y-4">
       <input ref="templateFileInputRef" type="file" accept=".json,application/json" class="hidden" @change="onTemplateFileChange" />
 
-      <h1 class="page-title">{{ PAGE_BREADCRUMB }}</h1>
+      <h1 class="page-title">{{ props.pageBreadcrumb }}</h1>
 
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
-          <h1 class="text-base font-semibold text-slate-900">{{ PAGE_NAME }}</h1>
+          <h1 class="text-base font-semibold text-slate-900">{{ props.pageName }}</h1>
           <div class="flex items-center gap-2">
             <button type="button" class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-slate-800" @click="openEntry">
               <Plus class="h-3.5 w-3.5" /> Manual Entry

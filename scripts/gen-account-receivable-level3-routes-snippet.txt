@@ -1,0 +1,435 @@
+    // HIDDEN_PAGE_LEVEL3 Account Receivable (`HIDDEN_PAGE_LEVEL3.json`; must stay before `...kerisiAccountReceivableHiddenRoutes`).
+    {
+      path: "/admin/kerisi/m/1653",
+      name: "kerisi-ar-cheque-new-cheque-registry",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "New Cheque Registry",
+        breadcrumb: "Account Receivable / Cheque / New Cheque Registry",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "New Cheque Registry" },
+    },
+    {
+      path: "/admin/kerisi/m/1735",
+      name: "kerisi-ar-cheque-return-status-return-cheque",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "List Of Status",
+        breadcrumb: "Account Receivable / Cheque Return / Status Return Cheque",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "List Of Status" },
+    },
+    {
+      path: "/admin/kerisi/m/1738",
+      name: "kerisi-ar-receipt-receipt-approval",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Receipt Approval",
+        breadcrumb: "Account Receivable / Receipt / Receipt Approval",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Receipt Approval" },
+    },
+    {
+      path: "/admin/kerisi/m/1749",
+      name: "kerisi-ar-reports-ar-invoice-data-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "ARr Invoice Data Listing",
+        breadcrumb: "Account Receivable / Reports / AR Invoice Data Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "ARr Invoice Data Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/1750",
+      name: "kerisi-ar-reports-receipt-entry-data-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Receipt Entry Data Entry",
+        breadcrumb: "Account Receivable / Reports / Receipt Entry Data Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Receipt Entry Data Entry" },
+    },
+    {
+      path: "/admin/kerisi/m/1751",
+      name: "kerisi-ar-reports-foreign-currency-data-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Foreign Currency Data Listing",
+        breadcrumb: "Account Receivable / Reports / Foreign Currency Data Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Foreign Currency Data Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/1752",
+      name: "kerisi-ar-reports-card-info-data-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Card Payment Data Listing",
+        breadcrumb: "Account Receivable / Reports / Card Info Data Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Card Payment Data Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/1754",
+      name: "kerisi-ar-reports-bankin-slip-data-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Bank-In Slip Data Listing",
+        breadcrumb: "Account Receivable / Reports / Bankin Slip Data Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Bank-In Slip Data Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/1759",
+      name: "kerisi-ar-reports-invoice-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Invoice Listing",
+        breadcrumb: "Account Receivable / Reports / Invoice Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Invoice Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/1772",
+      name: "kerisi-ar-cheque-return-list-of-cheque-return",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "List Of Cheque Return",
+        breadcrumb: "Account Receivable / Cheque Return / List Of Cheque Return",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "List Of Cheque Return" },
+    },
+    {
+      path: "/admin/kerisi/m/1774",
+      name: "kerisi-ar-invoice-invoice-processing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Invoice Processing",
+        breadcrumb: "Account Receivable / Invoice / Invoice Processing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Invoice Processing" },
+    },
+    {
+      path: "/admin/kerisi/m/1777",
+      name: "kerisi-ar-reports-recurring-invoice-data-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Recurring Invoice Data Listing",
+        breadcrumb: "Account Receivable / Reports / Recurring Invoice Data Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Recurring Invoice Data Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/1781",
+      name: "kerisi-ar-reports-cn-data-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "CN Report",
+        breadcrumb: "Account Receivable / Reports / CN Data Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "CN Report" },
+    },
+    {
+      path: "/admin/kerisi/m/1785",
+      name: "kerisi-ar-reports-dc-data-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "DC data Listing",
+        breadcrumb: "Account Receivable / Reports / DC data Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "DC data Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/1788",
+      name: "kerisi-ar-reports-dn-data-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "DN data Listing",
+        breadcrumb: "Account Receivable / Reports / DN data Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "DN data Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/1865",
+      name: "kerisi-ar-reports-open-payment-list",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "List of Open Payment",
+        breadcrumb: "Account Receivable / Reports / Open Payment List",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "List of Open Payment" },
+    },
+    {
+      path: "/admin/kerisi/m/1937",
+      name: "kerisi-ar-setup-non-invoice-structure-form",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Non - Fee Structure Form",
+        breadcrumb: "Account Receivable / Setup / Non-Invoice Structure Form",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Non - Fee Structure Form" },
+    },
+    {
+      path: "/admin/kerisi/m/1964",
+      name: "kerisi-ar-reports-unsuccessful-open-payment-list",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Unsuccessful Open Payment List",
+        breadcrumb: "Account Receivable / Reports / Unsuccessful Open Payment List",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Unsuccessful Open Payment List" },
+    },
+    {
+      path: "/admin/kerisi/m/2111",
+      name: "kerisi-ar-offline-receipt-receipt-collection-entry-form",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Receipt Collection Entry Form",
+        breadcrumb: "Account Receivable / Offline Receipt / Receipt Collection Entry Form",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Receipt Collection Entry Form" },
+    },
+    {
+      path: "/admin/kerisi/m/2116",
+      name: "kerisi-ar-invoice-revenue-item",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Revenue Item",
+        breadcrumb: "Account Receivable / Invoice / Revenue Item",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Revenue Item" },
+    },
+    {
+      path: "/admin/kerisi/m/2119",
+      name: "kerisi-ar-setup-invoice-structure-form",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Non - Fee Structure Form",
+        breadcrumb: "Account Receivable / Setup / Invoice Structure Form",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Non - Fee Structure Form" },
+    },
+    {
+      path: "/admin/kerisi/m/2129",
+      name: "kerisi-ar-invoice-revenue-item-form",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Revenue Item Form",
+        breadcrumb: "Account Receivable / Invoice / Revenue Item Form",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Revenue Item Form" },
+    },
+    {
+      path: "/admin/kerisi/m/2140",
+      name: "kerisi-ar-offline-receipt-approval-offline-receipt",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Approval Offline Receipt",
+        breadcrumb: "Account Receivable / Offline Receipt / Approval Offline Receipt",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Approval Offline Receipt" },
+    },
+    {
+      path: "/admin/kerisi/m/2147",
+      name: "kerisi-ar-invoice-revenue-item-account-code",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Revenue Item Account Code",
+        breadcrumb: "Account Receivable / Invoice / Revenue Item Account Code",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Revenue Item Account Code" },
+    },
+    {
+      path: "/admin/kerisi/m/2148",
+      name: "kerisi-ar-invoice-revenue-item-account-code-form",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Revenue Item Account Code Form",
+        breadcrumb: "Account Receivable / Invoice / Revenue Item Account Code Form",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Revenue Item Account Code Form" },
+    },
+    {
+      path: "/admin/kerisi/m/2294",
+      name: "kerisi-ar-reports-receipt-cancel-data-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Receipt Cancel or Delete Data Listing",
+        breadcrumb: "Account Receivable / Reports / Receipt Cancel Data Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Receipt Cancel or Delete Data Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/2356",
+      name: "kerisi-ar-receipt-receipt-on-behalf-approval",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Receipt on Behalf Approval",
+        breadcrumb: "Account Receivable / Receipt / Receipt on Behalf Approval",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Receipt on Behalf Approval" },
+    },
+    {
+      path: "/admin/kerisi/m/2385",
+      name: "kerisi-ar-offline-receipt-offline-receipt-application-approval",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Offline Receipt Application Approval",
+        breadcrumb: "Account Receivable / Offline Receipt / Offline Receipt Application Approval",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Offline Receipt Application Approval" },
+    },
+    {
+      path: "/admin/kerisi/m/2501",
+      name: "kerisi-ar-offline-receipt-counter-data-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Counter data Listing",
+        breadcrumb: "Account Receivable / Offline Receipt / Counter data Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Counter data Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/3219",
+      name: "kerisi-ar-reports-official-receipt-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Official Receipt Listing",
+        breadcrumb: "Account Receivable / Reports / Official Receipt Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Official Receipt Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/3418",
+      name: "kerisi-ar-reports-receipt-myfis-lite-listing",
+      component: AccountReceivableLegacyPlaceholderView,
+      props: {
+        title: "Receipt MyFis Lite Entry",
+        breadcrumb: "Account Receivable / Reports / Receipt MyFis Lite Listing",
+        description:
+          "This legacy Account Receivable invoice, receipt, cheque, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Receipt MyFis Lite Entry" },
+    },

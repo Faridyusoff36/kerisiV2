@@ -4,11 +4,33 @@
  * Read-only `capital_project` list. See ProjectMonitoringController.
  */
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { RouterLink } from "vue-router";
 import { Download, FileDown, FileSpreadsheet, Filter, MoreVertical, Search, X } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import { listProjectMonitoringProjects } from "@/api/cms";
 import { useToast } from "@/composables/useToast";
 import type { ProjectListRow } from "@/types";
+
+const props = withDefaults(
+  defineProps<{
+    /** Breadcrumb line (hidden Setup entries pass the legacy path). */
+    pageHeading?: string;
+    cardTitle?: string;
+    /** File name prefix for PDF/CSV/Excel (no extension). */
+    exportFileBase?: string;
+    /** Show fund / activity / cost centre / SO / type — matches legacy “list of project” under Edit Project Profile. */
+    extendedGlColumns?: boolean;
+    /** Show “Profile” link to MENUID 1615 with `cpaProjectNo` query. */
+    linkToProjectProfile?: boolean;
+  }>(),
+  {
+    pageHeading: "Project Monitoring / List of Project",
+    cardTitle: "List of project",
+    exportFileBase: "Project_List",
+    extendedGlColumns: false,
+    linkToProjectProfile: false,
+  },
+);
 
 const toast = useToast();
 const rows = ref<ProjectListRow[]>([]);
@@ -16,10 +38,22 @@ const total = ref(0);
 const page = ref(1);
 const limit = ref(10);
 const q = ref("");
-const sortBy = ref<
-  "cpa_project_id" | "cpa_project_no" | "cpa_project_desc" | "oun_code"
-  | "cpa_start_date" | "cpa_end_date" | "cpa_source" | "cpa_project_status"
->("cpa_project_no");
+type SortCol =
+  | "cpa_project_id"
+  | "cpa_project_no"
+  | "cpa_project_desc"
+  | "oun_code"
+  | "cpa_start_date"
+  | "cpa_end_date"
+  | "cpa_source"
+  | "cpa_project_status"
+  | "fty_fund_type"
+  | "lat_activity_code"
+  | "ccr_costcentre"
+  | "so_code"
+  | "cpa_project_type";
+
+const sortBy = ref<SortCol>("cpa_project_no");
 const sortDir = ref<"asc" | "desc">("asc");
 const loading = ref(false);
 
@@ -37,6 +71,11 @@ const smartFilter = ref({
 const totalPages = computed(() => (total.value ? Math.max(1, Math.ceil(total.value / limit.value)) : 1));
 const startIdx = computed(() => (total.value === 0 ? 0 : (page.value - 1) * limit.value + 1));
 const endIdx = computed(() => Math.min(page.value * limit.value, total.value));
+
+const tableColspan = computed(
+  () => 8 + (props.extendedGlColumns ? 5 : 0) + (props.linkToProjectProfile ? 1 : 0),
+);
+const tableMinWidth = computed(() => (props.extendedGlColumns ? "min-w-[1680px]" : "min-w-[1000px]"));
 
 function formatDate(s: string | null | undefined): string {
   if (!s) return "-";
@@ -83,24 +122,68 @@ function resetSmartFilter() {
   smartFilter.value = { cpaProjectStatus: "", cpaSource: "", ounCode: "", cpaStartDateFrom: "", cpaStartDateTo: "", cpaEndDateFrom: "", cpaEndDateTo: "" };
 }
 
-const exportCols = ["Project No", "Description", "PTJ", "Start", "End", "Source", "Status"];
-function asExport(r: ProjectListRow) {
-  return [r.cpaProjectNo ?? "", r.cpaProjectDesc ?? "", r.ounCode ?? "", formatDate(r.cpaStartDate), formatDate(r.cpaEndDate), r.cpaSource ?? "", r.cpaProjectStatus ?? ""];
+function exportCols(): string[] {
+  if (!props.extendedGlColumns) {
+    return ["Project No", "Description", "PTJ", "Start", "End", "Source", "Status"];
+  }
+  return [
+    "Project No",
+    "Description",
+    "Fund Type",
+    "Activity",
+    "PTJ",
+    "Cost Centre",
+    "SO Code",
+    "Project Type",
+    "Start",
+    "End",
+    "Source",
+    "Status",
+  ];
+}
+
+function rowExport(r: ProjectListRow): (string | number)[] {
+  if (!props.extendedGlColumns) {
+    return [
+      r.cpaProjectNo ?? "",
+      r.cpaProjectDesc ?? "",
+      r.ounCode ?? "",
+      formatDate(r.cpaStartDate),
+      formatDate(r.cpaEndDate),
+      r.cpaSource ?? "",
+      r.cpaProjectStatus ?? "",
+    ];
+  }
+  return [
+    r.cpaProjectNo ?? "",
+    r.cpaProjectDesc ?? "",
+    r.ftyFundType ?? "",
+    r.latActivityCode ?? "",
+    r.ounCode ?? "",
+    r.ccrCostcentre ?? "",
+    r.soCode ?? "",
+    r.cpaProjectType ?? "",
+    formatDate(r.cpaStartDate),
+    formatDate(r.cpaEndDate),
+    r.cpaSource ?? "",
+    r.cpaProjectStatus ?? "",
+  ];
 }
 
 async function exportRows(kind: "pdf" | "csv" | "excel") {
   if (rows.value.length === 0) { toast.info("No data", "There is nothing to export."); return; }
-  const filename = `Project_List_${new Date().toISOString().slice(0, 10)}`;
-  const body = rows.value.map(asExport);
+  const filename = `${props.exportFileBase}_${new Date().toISOString().slice(0, 10)}`;
+  const cols = exportCols();
+  const body = rows.value.map(rowExport);
   if (kind === "csv") {
     const esc = (v: string | number) => { const s = String(v); return /,|\n|"/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-    const csv = [["No", ...exportCols], ...body.map((r, i) => [i + 1, ...r])].map((r) => r.map(esc).join(",")).join("\n");
+    const csv = [["No", ...cols], ...body.map((r, i) => [i + 1, ...r])].map((r) => r.map(esc).join(",")).join("\n");
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); a.download = `${filename}.csv`; a.click();
     toast.success("CSV downloaded");
   } else if (kind === "excel") {
     const ExcelJS = await import("exceljs");
     const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet("Projects");
-    ws.addRow(["No", ...exportCols]);
+    ws.addRow(["No", ...cols]);
     body.forEach((r, i) => ws.addRow([i + 1, ...r]));
     const buf = await wb.xlsx.writeBuffer();
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })); a.download = `${filename}.xlsx`; a.click();
@@ -111,7 +194,7 @@ async function exportRows(kind: "pdf" | "csv" | "excel") {
     const autoTable = (await import("jspdf-autotable")).default;
     const doc = new jsPDF({ orientation: "landscape" });
     doc.text(filename, 14, 14);
-    autoTable(doc, { head: [["No", ...exportCols]], body: body.map((r, i) => [i + 1, ...r]), startY: 20, styles: { fontSize: 7 } });
+    autoTable(doc, { head: [["No", ...cols]], body: body.map((r, i) => [i + 1, ...r]), startY: 20, styles: { fontSize: 7 } });
     doc.save(`${filename}.pdf`);
     toast.success("PDF downloaded");
   }
@@ -130,10 +213,10 @@ onUnmounted(() => { if (qTimer) clearTimeout(qTimer); });
 <template>
   <AdminLayout>
     <div class="space-y-4">
-      <h1 class="page-title">Project Monitoring / List of Project</h1>
+      <h1 class="page-title">{{ props.pageHeading }}</h1>
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <h1 class="text-base font-semibold text-slate-900">List of project</h1>
+          <h1 class="text-base font-semibold text-slate-900">{{ props.cardTitle }}</h1>
           <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="More"><MoreVertical class="h-4 w-4" /></button>
         </div>
         <div class="space-y-4 p-4">
@@ -156,31 +239,60 @@ onUnmounted(() => { if (qTimer) clearTimeout(qTimer); });
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[1000px] text-sm">
+              <table class="w-full text-sm" :class="tableMinWidth">
                 <thead class="sticky top-0 bg-slate-50">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('cpa_project_no')">Project No</th>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('cpa_project_desc')">Description</th>
+                    <template v-if="extendedGlColumns">
+                      <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('fty_fund_type')">Fund</th>
+                      <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('lat_activity_code')">Activity</th>
+                    </template>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('oun_code')">PTJ</th>
+                    <template v-if="extendedGlColumns">
+                      <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('ccr_costcentre')">Cost Ctr.</th>
+                      <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('so_code')">SO</th>
+                      <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('cpa_project_type')">Type</th>
+                    </template>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('cpa_start_date')">Start</th>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('cpa_end_date')">End</th>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('cpa_source')">Source</th>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('cpa_project_status')">Status</th>
+                    <th v-if="linkToProjectProfile" class="px-3 py-2 text-xs font-semibold uppercase text-right">Profile</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-if="loading"><td colspan="8" class="px-3 py-6 text-center text-slate-500">Loading…</td></tr>
-                  <tr v-else-if="!rows.length"><td colspan="8" class="px-3 py-6 text-center text-slate-500">No projects found.</td></tr>
+                  <tr v-if="loading"><td :colspan="tableColspan" class="px-3 py-6 text-center text-slate-500">Loading…</td></tr>
+                  <tr v-else-if="!rows.length"><td :colspan="tableColspan" class="px-3 py-6 text-center text-slate-500">No projects found.</td></tr>
                   <tr v-for="row in rows" :key="row.cpaProjectId" class="border-b border-slate-100 hover:bg-slate-50">
                     <td class="px-3 py-2">{{ row.index }}</td>
                     <td class="px-3 py-2 font-medium text-slate-900">{{ row.cpaProjectNo ?? "—" }}</td>
                     <td class="px-3 py-2 text-slate-700">{{ row.cpaProjectDesc ?? "—" }}</td>
+                    <template v-if="extendedGlColumns">
+                      <td class="px-3 py-2">{{ row.ftyFundType ?? "—" }}</td>
+                      <td class="px-3 py-2">{{ row.latActivityCode ?? "—" }}</td>
+                    </template>
                     <td class="px-3 py-2">{{ row.ounCode ?? "—" }}</td>
+                    <template v-if="extendedGlColumns">
+                      <td class="px-3 py-2">{{ row.ccrCostcentre ?? "—" }}</td>
+                      <td class="px-3 py-2">{{ row.soCode ?? "—" }}</td>
+                      <td class="px-3 py-2">{{ row.cpaProjectType ?? "—" }}</td>
+                    </template>
                     <td class="px-3 py-2">{{ formatDate(row.cpaStartDate) }}</td>
                     <td class="px-3 py-2">{{ formatDate(row.cpaEndDate) }}</td>
                     <td class="px-3 py-2">{{ row.cpaSource ?? "—" }}</td>
                     <td class="px-3 py-2">{{ row.cpaProjectStatus ?? "—" }}</td>
+                    <td v-if="linkToProjectProfile" class="px-3 py-2 text-right">
+                      <RouterLink
+                        v-if="row.cpaProjectNo"
+                        :to="{ name: 'kerisi-setup-gl-project-profile-so-code', query: { cpaProjectNo: row.cpaProjectNo } }"
+                        class="text-sm font-medium text-sky-700 hover:underline"
+                      >
+                        Profile
+                      </RouterLink>
+                      <span v-else class="text-slate-400">—</span>
+                    </td>
                   </tr>
                 </tbody>
               </table>

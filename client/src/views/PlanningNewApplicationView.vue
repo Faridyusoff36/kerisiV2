@@ -15,6 +15,15 @@ import type {
   BudgetPlanningNewOptions,
 } from "@/types";
 
+const props = withDefaults(
+  defineProps<{
+    pageHeading?: string;
+  }>(),
+  {
+    pageHeading: "Budget / Planning / Planning New Application",
+  },
+);
+
 const router = useRouter();
 const toast = useToast();
 const { confirm } = useConfirmDialog();
@@ -358,7 +367,7 @@ onMounted(loadOptions);
           <ChevronLeft class="h-3.5 w-3.5" />
           Back
         </button>
-        <h1 class="page-title">Budget / Planning / Planning New Application</h1>
+        <h1 class="page-title">{{ props.pageHeading }}</h1>
       </div>
 
       <!-- Planning Info card -->

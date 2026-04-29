@@ -7,10 +7,6 @@ use App\Http\Controllers\Api\AccountCodeController;
 use App\Http\Controllers\Api\AccountCodePpiController;
 use App\Http\Controllers\Api\ActivityCodeController;
 use App\Http\Controllers\Api\AdvancePaymentController;
-use App\Http\Controllers\Api\SponsorInvoiceGenerationController;
-use App\Http\Controllers\Api\SponsorProfileController;
-use App\Http\Controllers\Api\SponsorPtptnController;
-use App\Http\Controllers\Api\StudentJournalApprovalController;
 use App\Http\Controllers\Api\AgRateController;
 use App\Http\Controllers\Api\AssetInventoryListController;
 use App\Http\Controllers\Api\AuditLogController;
@@ -22,19 +18,21 @@ use App\Http\Controllers\Api\BankAccountController;
 use App\Http\Controllers\Api\BankAccountUpdateController;
 use App\Http\Controllers\Api\BankMasterController;
 use App\Http\Controllers\Api\BankSetupController;
+use App\Http\Controllers\Api\BudgetAdvanceControlledController;
 use App\Http\Controllers\Api\BudgetClosingController;
 use App\Http\Controllers\Api\BudgetCodeController;
+use App\Http\Controllers\Api\BudgetInAdvanceController;
 use App\Http\Controllers\Api\BudgetInitialController;
+use App\Http\Controllers\Api\BudgetInitialNewV2Controller;
+use App\Http\Controllers\Api\BudgetMonitoringController;
+use App\Http\Controllers\Api\BudgetMonitoringListingController;
+use App\Http\Controllers\Api\BudgetMovementController;
+use App\Http\Controllers\Api\BudgetNotExistsController;
 use App\Http\Controllers\Api\BudgetPlanningListController;
 use App\Http\Controllers\Api\BudgetPlanningNewController;
 use App\Http\Controllers\Api\BudgetPlanningScheduleController;
-use App\Http\Controllers\Api\BudgetMonitoringController;
-use App\Http\Controllers\Api\LaporanBelanjawanController;
-use App\Http\Controllers\Api\QuarterBudgetController;
-use App\Http\Controllers\Api\StructureBudgetListController;
-use App\Http\Controllers\Api\TotalAllocationReportController;
-use App\Http\Controllers\Api\BudgetMovementController;
-use App\Http\Controllers\Api\BudgetNotExistsController;
+use App\Http\Controllers\Api\BudgetUmumAllocationPtjController;
+use App\Http\Controllers\Api\BudgetV2BudgetSummaryController;
 use App\Http\Controllers\Api\CascadeStructureController;
 use App\Http\Controllers\Api\CashbookListController;
 use App\Http\Controllers\Api\CashbookPtjController;
@@ -55,6 +53,10 @@ use App\Http\Controllers\Api\DepositFormController;
 use App\Http\Controllers\Api\DevelopersGuideController;
 use App\Http\Controllers\Api\DiscountNoteController;
 use App\Http\Controllers\Api\DiscountNoteFormController;
+use App\Http\Controllers\Api\EmergencyFundAccrualListingController;
+use App\Http\Controllers\Api\EmergencyFundApprovedListingController;
+use App\Http\Controllers\Api\EmergencyFundReleaseQueueListingController;
+use App\Http\Controllers\Api\EmergencyFundReminderListingController;
 use App\Http\Controllers\Api\FundTypeController;
 use App\Http\Controllers\Api\GeneralLedgerListingController;
 use App\Http\Controllers\Api\GlYearMonthController;
@@ -69,14 +71,15 @@ use App\Http\Controllers\Api\InvestmentToBeWithdrawnController;
 use App\Http\Controllers\Api\InvoiceBalanceController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\JournalListingController;
+use App\Http\Controllers\Api\LaporanBelanjawanController;
 use App\Http\Controllers\Api\LedgerController;
 use App\Http\Controllers\Api\LetterPhraseController;
 use App\Http\Controllers\Api\ListOfAccrualController;
 use App\Http\Controllers\Api\ListOfCurrencyController;
 use App\Http\Controllers\Api\ListOfDepositController;
 use App\Http\Controllers\Api\ListOfInvestmentsController;
-use App\Http\Controllers\Api\ManualJournalListingController;
 use App\Http\Controllers\Api\ManualInvoiceListingController;
+use App\Http\Controllers\Api\ManualJournalListingController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\OfferedStudentController;
 use App\Http\Controllers\Api\PageController;
@@ -90,21 +93,32 @@ use App\Http\Controllers\Api\PettyCashRecoupController;
 use App\Http\Controllers\Api\PettyCashReleasePaidController;
 use App\Http\Controllers\Api\PettyCashRequestListController;
 use App\Http\Controllers\Api\PettyCashVoucherListController;
+use App\Http\Controllers\Api\PortalAdvanceRecoupmentController;
 use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\PostDatedChequeController;
 use App\Http\Controllers\Api\PostingToTbController;
+use App\Http\Controllers\Api\ProfileFloatingPointListingController;
 use App\Http\Controllers\Api\ProjectMonitoringController;
 use App\Http\Controllers\Api\PtjCodeController;
 use App\Http\Controllers\Api\PtptnDataController;
 use App\Http\Controllers\Api\PublicController;
+use App\Http\Controllers\Api\PurchasingVendorListController;
+use App\Http\Controllers\Api\QuarterBudgetController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\SetupBudgetStructureSearchController;
+use App\Http\Controllers\Api\SponsorInvoiceGenerationController;
 use App\Http\Controllers\Api\SponsorLetterController;
+use App\Http\Controllers\Api\SponsorProfileController;
+use App\Http\Controllers\Api\SponsorPtptnController;
 use App\Http\Controllers\Api\StaffProfileController;
 use App\Http\Controllers\Api\StatusPoPrController;
+use App\Http\Controllers\Api\StructureBudgetListController;
 use App\Http\Controllers\Api\StudentInvoiceGenerationController;
+use App\Http\Controllers\Api\StudentJournalApprovalController;
 use App\Http\Controllers\Api\SummaryListInvestmentsController;
 use App\Http\Controllers\Api\TenderQuotationController;
+use App\Http\Controllers\Api\TotalAllocationReportController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UtilityRegistrationController;
 use App\Http\Controllers\Api\VcTncController;
@@ -182,9 +196,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/setup/cost-centre/{id}', [CostCentreController::class, 'show']);
     Route::post('/setup/cost-centre', [CostCentreController::class, 'store']);
     Route::put('/setup/cost-centre/{id}', [CostCentreController::class, 'update']);
-    // FIMS Budget (Increment / Decrement / Virement) list screens. Read-only; the
-    // add/edit/cancel actions live on editor pages that are not yet migrated.
+    // FIMS Budget (Increment / Decrement / Virement) list + read-only form payload.
     Route::get('/budget/movements/{type}/options', [BudgetMovementController::class, 'options'])
+        ->whereIn('type', ['increment', 'decrement', 'virement']);
+    Route::get('/budget/movements/{type}/{id}/form', [BudgetMovementController::class, 'form'])
         ->whereIn('type', ['increment', 'decrement', 'virement']);
     Route::get('/budget/movements/{type}', [BudgetMovementController::class, 'index'])
         ->whereIn('type', ['increment', 'decrement', 'virement']);
@@ -193,11 +208,29 @@ Route::middleware('auth:sanctum')->group(function () {
     // FIMS Budget Monitoring (PAGEID 1201 / MENUID 1471) – read-only aggregated list.
     Route::get('/budget/monitoring/options', [BudgetMonitoringController::class, 'options']);
     Route::get('/budget/monitoring', [BudgetMonitoringController::class, 'index']);
+    Route::get('/budget/monitoring/listing', [BudgetMonitoringListingController::class, 'index']);
 
-    // FIMS Budget Initial V2 (PAGEID 1264 / MENUID 1541) – documented stub; legacy
-    // BL SWS_DT_BUDGET_INITIAL_V2 was not shipped in the migration export.
+    // Umum Allocation, Expenditure & Balance by PTJ (PAGEID 2515 / MENUID 3044 — HIDDEN_PAGE_LEVEL4).
+    Route::get('/budget/report/umum-allocation-ptj/options', [BudgetUmumAllocationPtjController::class, 'options']);
+    Route::get('/budget/report/umum-allocation-ptj', [BudgetUmumAllocationPtjController::class, 'index']);
+
+    // V2 Budget Summary By Date / Variation / By PTJ (menus 3382, 3389, 3393 — legacy V2_BUDGET_SUMMARY_API).
+    Route::post('/budget/report/v2-budget-summary/listing', [BudgetV2BudgetSummaryController::class, 'listing']);
+
+    // FIMS Budget / Budget Advance Controlled (PAGEID 1784 / MENUID 2160).
+    Route::get('/budget/advance-controlled', [BudgetAdvanceControlledController::class, 'index']);
+    Route::get('/budget/in-advance', [BudgetInAdvanceController::class, 'index']);
+    Route::get('/budget/in-advance/{id}', [BudgetInAdvanceController::class, 'show']);
+
+    // FIMS Budget Initial listing (PAGEID 1264 / MENUID 1541).
     Route::get('/budget/initial/options', [BudgetInitialController::class, 'options']);
     Route::get('/budget/initial', [BudgetInitialController::class, 'index']);
+
+    // Budget / New Initial V2 (PAGEID 1277 / MENUID 1560). Detail lines:
+    // legacy `SWS_DT_BUDGET_INITIAL_NEW_V2` (read-only header + lines).
+    Route::get('/budget/initial-new-v2/master/{bamId}', [BudgetInitialNewV2Controller::class, 'master'])
+        ->whereNumber('bamId');
+    Route::get('/budget/initial-new-v2/details', [BudgetInitialNewV2Controller::class, 'details']);
 
     // FIMS Budget Closing (PAGEID 1953 / MENUID 2389) – filter + Start/Reverse
     // Process buttons. Server-side BL NAD_API_BUDGET_BUDGETCLOSING is not ported;
@@ -309,6 +342,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // whose bank details drift from the payee master + bulk re-sync). See the
     // respective controllers for full details.
     Route::get('/account-payable/payee-registration/options', [PayeeRegistrationController::class, 'options']);
+    Route::get('/account-payable/payee-registration/{id}', [PayeeRegistrationController::class, 'show']);
     Route::get('/account-payable/payee-registration', [PayeeRegistrationController::class, 'index']);
 
     // Petty Cash Recoup list (PAGEID 1255 / MENUID 1532). Legacy BL API_PETTYCASH_PETTYCASHRECOUP.
@@ -593,6 +627,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // group 22/271 / PTJ 'S10400' bursar rules (see controller docblock).
     Route::get('/purchasing/status-po-pr/options', [StatusPoPrController::class, 'options']);
     Route::get('/purchasing/status-po-pr', [StatusPoPrController::class, 'index']);
+    Route::get('/purchasing/vendors', [PurchasingVendorListController::class, 'index']);
 
     // General Ledger > Journal Listing (PAGEID 1700 / MENUID 2056). Legacy
     // BL SNA_API_GLREPORT_JOURNAL_LISTING — list + DR/CR details via
@@ -762,6 +797,29 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/credit-control/invoice-balance/search-invoice', [InvoiceBalanceController::class, 'searchInvoice']);
     Route::get('/credit-control/invoice-balance', [InvoiceBalanceController::class, 'index']);
 
+    // Post Dated Cheque (PAGEID 1436 / MENUID 1755). Legacy BL
+    // ZR_CREDITCONTROL_POSTDATEDCHEQUE_BL — `cheque_registry` with future
+    // cheque date and non-cleared flag filter.
+    Route::get('/credit-control/post-dated-cheques', [PostDatedChequeController::class, 'index']);
+
+    // Emergency Fund — Report / Listing (PAGEID 1683 / MENUID 2038). NAD_API_CC_EF_LISTING.
+    Route::get('/credit-control/emergency-fund-approved-listing', [
+        EmergencyFundApprovedListingController::class,
+        'index',
+    ]);
+    // Emergency Fund — Report / Reminder (PAGEID 1686 / MENUID 2037). NAD_API_CC_EF_REPORT_REMINDER.
+    Route::get('/credit-control/emergency-fund-reminder-report', [
+        EmergencyFundReminderListingController::class,
+        'index',
+    ]);
+    // Emergency Fund accrual listing (PAGEID 1637). ZR_CREDITCTRL_EMERGENCYFUND_ACCRUAL_API dt_emergencyFundAccrual.
+    Route::get('/credit-control/emergency-fund-accrual-listing', [EmergencyFundAccrualListingController::class, 'index']);
+    // Emergency Fund release queue (PAGEID 1676 & 2182). NAD_API_CC_EF_RELEASE dt_emergencyFundRelease.
+    Route::get('/credit-control/emergency-fund-release-queue-listing', [
+        EmergencyFundReleaseQueueListingController::class,
+        'index',
+    ]);
+
     // Detail of Deposit (PAGEID 2688 / MENUID 3397). Legacy BL
     // NAD_API_CC_DEPOSIT_DETAILS — master form + detail datatable + popup
     // modal. Only updates are supported; no new-record flow exists in legacy.
@@ -845,6 +903,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/portal/staff-profile/spouses', [StaffProfileController::class, 'spouses']);
     Route::get('/portal/staff-profile/spouses/{seq}/children', [StaffProfileController::class, 'spouseChildren']);
 
+    // Portal > Advance Staff / Recoupment (LEVEL5: MENUID 2442, 2714, 2712, 2716).
+    Route::get('/portal/advance-recoup/generate-bill-batches', [PortalAdvanceRecoupmentController::class, 'generateBillBatches']);
+    Route::get('/portal/advance-recoup/recoup-bills', [PortalAdvanceRecoupmentController::class, 'recoupBillsIndex']);
+    Route::get('/portal/advance-recoup/recoup-bills/{bimBillsId}/header', [PortalAdvanceRecoupmentController::class, 'header']);
+    Route::get('/portal/advance-recoup/recoup-bills/{bimBillsId}/debit-lines', [PortalAdvanceRecoupmentController::class, 'debitLines']);
+
     // Asset > List of Asset (PAGEID 1271 / MENUID 1548). Legacy BL
     // API_ASSET_INVENTORY_LISTOFASSET (?dt_listingAssetInventory=1).
     // Read-only listing of asset_inventory_main with a smart filter; the
@@ -859,6 +923,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // search/show return null for the deferred Cash-Balance fields. See
     // ProjectMonitoringController docblock.
     Route::get('/project-monitoring/projects', [ProjectMonitoringController::class, 'projects']);
+    Route::get('/project-monitoring/projects/{cpaProjectNo}', [ProjectMonitoringController::class, 'showProject'])
+        ->where('cpaProjectNo', '.*');
+    Route::patch('/project-monitoring/projects/{cpaProjectNo}', [ProjectMonitoringController::class, 'updateProject'])
+        ->where('cpaProjectNo', '.*');
     Route::get('/project-monitoring/updated-balance/search', [ProjectMonitoringController::class, 'searchProjects']);
     Route::get('/project-monitoring/updated-balance/{cpaProjectNo}', [ProjectMonitoringController::class, 'showBalance'])
         ->where('cpaProjectNo', '.*');
@@ -974,6 +1042,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // budget_transaction.bgt_ref. Server-side CSV export is replaced by the
     // kitchen-sink client-side CSV/Excel/PDF export buttons.
     Route::get('/general-ledger/budget-not-exists', [BudgetNotExistsController::class, 'index']);
+
+    // Setup & Maintenance > GL Structure > Floating Point for Profile Setup (PAGEID 1943 / MENUID 2375).
+    // Legacy BL `NAD_API_PTJCOSTCENTER_LISTING` dt_listingProfile.
+    Route::get('/general-ledger/profile-floating-point-listing', [ProfileFloatingPointListingController::class, 'index']);
 
     // Setup and Maintenance > Global > List of Currency (PAGEID 2636 / MENUID 3198).
     // Legacy BL: QLA_API_GLOBAL_LISTOFCURRENCY — datatable + popup-modal CRUD.
