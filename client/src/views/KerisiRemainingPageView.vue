@@ -98,7 +98,7 @@ function formatPurchasingPoAmountCell(mid: number | null, dt: KerisiRemainingDat
 
 /** Work Progress Note grids — Tax/Amount/Unit Price columns use legacy grouping. */
 function formatKerisiWpnMoney(mid: number | null, dt: KerisiRemainingDatatable, colIdx: number, raw: string): string {
-  if (mid !== 1840 && mid !== 2082 && mid !== 1838 && mid !== 1839 && mid !== 2085 && mid !== 2624 && mid !== 2626) return raw;
+  if (mid !== 1840 && mid !== 2082 && mid !== 1838 && mid !== 1839 && mid !== 2085 && mid !== 2624 && mid !== 2626 && mid !== 1828 && mid !== 2663) return raw;
   const dk = String(dt.dtKey[colIdx] ?? "").toLowerCase();
   const lab = String(dt.dtBi[colIdx] ?? "")
     .toLowerCase()
@@ -118,7 +118,7 @@ function formatKerisiWpnMoney(mid: number | null, dt: KerisiRemainingDatatable, 
 }
 
 function formatKerisiWpnDateIfNeeded(mid: number | null, dt: KerisiRemainingDatatable, colIdx: number, raw: string): string {
-  if (mid !== 2082 && mid !== 1839 && mid !== 2085) return raw;
+  if (mid !== 2082 && mid !== 1839 && mid !== 2085 && mid !== 1828 && mid !== 2663) return raw;
   const dk = String(dt.dtKey[colIdx] ?? "").toLowerCase();
   if (
     mid === 2082 &&
@@ -129,6 +129,7 @@ function formatKerisiWpnDateIfNeeded(mid: number | null, dt: KerisiRemainingData
   }
   if (mid === 1839 && !dk.includes("created") && !dk.includes("date")) return raw;
   if (mid === 2085 && !dk.includes("tarikh") && !dk.includes("date")) return raw;
+  if ((mid === 1828 || mid === 2663) && !dk.includes("date")) return raw;
   const t = raw.trim();
   if (!t) return "";
   // SQL date-only strings → DD/MM/YYYY without timezone shift
@@ -174,6 +175,26 @@ function displayCell(row: Record<string, unknown>, dt: KerisiRemainingDatatable,
           }
         }
       }
+    }
+  }
+
+  if (menuId.value === 2846) {
+    const lowerKey = key.toLowerCase();
+    if (lowerKey === "agg_amtnew") {
+      const raw = row.agg_amt_new ?? row.aggAmtNew ?? row.agg_amtNew ?? row.aggAmtnew;
+      return raw !== undefined && raw !== null ? formatMoneyInput(String(raw)) : "";
+    }
+    if (lowerKey.includes("amt")) return formatMoneyInput(resolved ?? "");
+    if (lowerKey.includes("date")) return formatKerisiWpnDateIfNeeded(2082, dt, colIdx, resolved ?? "");
+  }
+
+  if (menuId.value === 3320) {
+    const lowerKey = key.toLowerCase();
+    if (["createddate", "startdate", "enddate"].includes(lowerKey)) {
+      return formatKerisiWpnDateIfNeeded(2082, dt, colIdx, resolved ?? "");
+    }
+    if (["amount", "amountbalance", "amountmonthly"].includes(lowerKey)) {
+      return formatMoneyInput(resolved ?? "");
     }
   }
 
@@ -293,7 +314,7 @@ function wpnNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
 /** Purchasing GRN / GRN Cancel / Vendor Assessment GRN+WPN — amount columns. */
 function purchasingGrnNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
   const mid = menuId.value;
-  if (mid !== 1839 && mid !== 2085 && mid !== 2624) return "";
+  if (mid !== 1839 && mid !== 2085 && mid !== 2624 && mid !== 2846 && mid !== 3320 && mid !== 1828 && mid !== 2663) return "";
   const dk = String(dt.dtKey[hi] ?? "").toLowerCase();
   const lab = String(dt.dtBi[hi] ?? "")
     .toLowerCase()
@@ -312,6 +333,17 @@ function tableNumericColClass(dt: KerisiRemainingDatatable, hi: number): string 
 const kerisiPurchasingPurpleShell = computed(() => {
   const m = menuId.value;
   return m === 1839 || m === 2085 || m === 2624 || m === 2626;
+});
+
+const tenderQuotationMenuIds = new Set([2333, 3272, 2724, 2762, 2845, 2827]);
+const isTenderQuotationPage = computed(() => {
+  const m = menuId.value;
+  return m !== null && tenderQuotationMenuIds.has(m);
+});
+const newVariationOrderMenuIds = new Set([2848, 3323]);
+const isNewVariationOrderPage = computed(() => {
+  const m = menuId.value;
+  return m !== null && newVariationOrderMenuIds.has(m);
 });
 
 function hasFreezeLeft(dt: KerisiRemainingDatatable): boolean {
@@ -335,7 +367,15 @@ function wpnDropdownOptions(which: "wpn_type" | "po_pr_no" | "vendor" | "currenc
   return Array.isArray(a) && a.length ? a : Array.isArray(b) && b.length ? b : [];
 }
 
-type KerisiOption = { value: string; label: string; category?: string; ounCode?: string };
+type KerisiOption = {
+  value: string;
+  label: string;
+  category?: string;
+  ounCode?: string;
+  agreementNo?: string;
+  agreementRef?: string;
+  agreementAmount?: string;
+};
 
 function advertisementOptions(key: string): KerisiOption[] {
   const raw = kerisiFormOptions.value[key];
@@ -382,6 +422,74 @@ function advertisementPopupModelKey(f: KerisiRemainingFormField): string {
 
 function selectedOptionLabel(options: KerisiOption[], value: string): string {
   return options.find((o) => o.value === value)?.label ?? value;
+}
+
+function variationOrderOptions(key: string): KerisiOption[] {
+  const raw = kerisiFormOptions.value[key];
+  return Array.isArray(raw) ? (raw as KerisiOption[]) : [];
+}
+
+function onVariationAgreementChange(): void {
+  const selected = variationOrderOptions("agreements").find((o) => o.value === kerisiFormValues.value.aggId);
+  if (!selected) return;
+  kerisiFormValues.value.aggNo = selected.agreementNo ?? "";
+  kerisiFormValues.value.aggRefDoc = selected.agreementRef ?? "";
+  kerisiFormValues.value.aggAmt = selected.agreementAmount ?? "";
+}
+
+function formatMoneyInput(value: string | undefined): string {
+  const n = Number(String(value ?? "").replace(/,/g, ""));
+  if (!Number.isFinite(n)) return value ?? "";
+  return new Intl.NumberFormat("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+}
+
+function bankUpdatedFieldKey(title: string): string {
+  const map: Record<string, string> = {
+    "Vendor Code": "vendorCode",
+    "Vendor Name": "vendorName",
+    "IC No": "icNo",
+    "Telephone No": "telNo",
+    "Creditor": "creditor",
+    "Fax No": "faxNo",
+    "Contact Person": "contactPerson",
+    "Vendor Status": "vendorStatus",
+    "Debtor": "debtor",
+    "Taraf": "taraf",
+    "No. GST": "gstNo",
+    "Email": "email",
+    "Registration Date": "registrationDate",
+    "Expiry Date": "expiryDate",
+    "KWSP No": "kwspNo",
+    "SOCSO No": "socsoNo",
+    "Company Category": "companyCategory",
+    "Registration No(SSM)": "registrationNoSsm",
+    "Registration No (MOF)": "registrationNoMof",
+    "Registration Date (SSM)": "registrationDateSsm",
+    "Registration Expiry Date (MOF)": "registrationExpiryDateMof",
+    "Registration Expiry Date (SSM)": "registrationExpiryDateSsm",
+    "Registration No (MOTAC)": "registrationNoMotac",
+    "Registration Expired Date (MOTAC)": "registrationExpiredDateMotac",
+    "Registration Date (MOTAC)": "registrationDateMotac",
+    "ROS No": "rosNo",
+    "Name": "approvalName",
+    "Position": "approvalPosition",
+    "Date": "approvalDate",
+    "Approval Status": "approvalStatus",
+    "Remark *": "approvalRemark",
+  };
+  return map[title] ?? title.replace(/[^a-zA-Z0-9]+(.)/g, (_, c: string) => c.toUpperCase()).replace(/^[A-Z]/, (c) => c.toLowerCase());
+}
+
+function bankUpdatedFieldDisabled(field: KerisiRemainingPageSpec["formSections"][number]): boolean {
+  return String(field.additionalAttribute ?? "").toLowerCase().includes("disabled");
+}
+
+function bankUpdatedOptions(title: string): { value: string; label: string }[] {
+  const options = kerisiFormOptions.value as Record<string, { value: string; label: string }[] | undefined>;
+  if (title === "Creditor" || title === "Debtor") return options.yesNo ?? [];
+  if (title === "Taraf") return options.taraf ?? [];
+  if (title === "Approval Status") return options.approvalStatus ?? [];
+  return [];
 }
 
 // ── layout: form-before-datatable ─────────────────────────────────────────
@@ -727,6 +835,7 @@ function shellRows(di: number): Record<string, unknown>[] {
   }
   if (menuId.value === 2618 && di === 1) return extraDatatableRowsStore.value[0] ?? [];
   if (menuId.value === 2618 && di === 2) return extraDatatableRowsStore.value[1] ?? [];
+  if (menuId.value === 1955 && di > 0) return extraDatatableRowsStore.value[di - 1] ?? [];
   return rows.value;
 }
 
@@ -1031,7 +1140,7 @@ onUnmounted(() => {
         </article>
 
         <!-- Form sections BEFORE datatable -->
-        <template v-if="formBeforeDataTable && menuId !== 1838 && menuId !== 2618 && menuId !== 3306">
+        <template v-if="formBeforeDataTable && menuId !== 1838 && menuId !== 1955 && menuId !== 2618 && menuId !== 3306 && !isNewVariationOrderPage">
           <article
             v-for="grp in formSectionGroups"
             :key="grp.title"
@@ -1049,6 +1158,139 @@ onUnmounted(() => {
                   :placeholder="f.fieldType"
                   value=""
                 />
+              </div>
+            </div>
+          </article>
+        </template>
+        <template v-else-if="formBeforeDataTable && menuId === 1955">
+          <article
+            v-for="grp in formSectionGroups"
+            :key="'bank-update-' + grp.title"
+            class="rounded-lg border border-slate-200 bg-white shadow-sm"
+          >
+            <div class="border-b border-slate-100 px-4 py-3">
+              <h2 class="text-base font-semibold text-slate-900">{{ grp.title }}</h2>
+            </div>
+            <div class="grid gap-x-6 gap-y-3 p-4 lg:grid-cols-2">
+              <div
+                v-for="(f, fi) in grp.fields"
+                :key="'bank-update-field-' + fi"
+                :class="[
+                  f.fieldType === 'dropzone' || f.fieldType === 'textarea' ? 'lg:col-span-2' : '',
+                  'grid items-start gap-2 md:grid-cols-[13rem_0.5rem_1fr]',
+                ]"
+              >
+                <label class="pt-2 text-xs font-semibold text-slate-700">{{ f.title }}</label>
+                <span class="pt-2">:</span>
+                <div v-if="f.fieldType === 'dropzone'" class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-xs text-slate-500">
+                  <input type="file" class="block w-full text-xs text-slate-500 file:mr-3 file:rounded file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-xs file:text-white" />
+                </div>
+                <textarea
+                  v-else-if="f.fieldType === 'textarea'"
+                  v-model="kerisiFormValues[bankUpdatedFieldKey(f.title)]"
+                  rows="3"
+                  :disabled="bankUpdatedFieldDisabled(f)"
+                  class="rounded border border-slate-300 px-2 py-1 text-xs disabled:bg-slate-100 disabled:text-slate-500"
+                />
+                <select
+                  v-else-if="f.fieldType === 'dropdown'"
+                  v-model="kerisiFormValues[bankUpdatedFieldKey(f.title)]"
+                  :disabled="bankUpdatedFieldDisabled(f)"
+                  class="h-8 rounded border border-slate-300 bg-white px-2 text-xs disabled:bg-slate-100 disabled:text-slate-500"
+                >
+                  <option value="">— Select —</option>
+                  <option
+                    v-for="opt in bankUpdatedOptions(f.title)"
+                    :key="'bank-update-option-' + f.title + '-' + opt.value"
+                    :value="opt.value"
+                  >
+                    {{ opt.label }}
+                  </option>
+                </select>
+                <input
+                  v-else
+                  v-model="kerisiFormValues[bankUpdatedFieldKey(f.title)]"
+                  :type="f.fieldType === 'date' ? 'date' : 'text'"
+                  :disabled="bankUpdatedFieldDisabled(f)"
+                  class="h-8 rounded border border-slate-300 px-2 text-xs disabled:bg-slate-100 disabled:text-slate-500"
+                />
+              </div>
+            </div>
+          </article>
+        </template>
+        <template v-else-if="formBeforeDataTable && isNewVariationOrderPage">
+          <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-4 py-3">
+              <h2 class="text-base font-semibold text-slate-900">Details</h2>
+            </div>
+            <div class="grid gap-x-6 gap-y-3 p-4 lg:grid-cols-2">
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">VO No <span class="text-red-600">*</span></label>
+                <span>:</span>
+                <input v-model="kerisiFormValues.agvNo" disabled placeholder="Auto Assigned" class="h-8 rounded border border-slate-200 bg-slate-100 px-2 text-xs text-slate-500" />
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Date of Letter <span class="text-red-600">*</span></label>
+                <span>:</span>
+                <input v-model="kerisiFormValues.agvLetterDate" type="date" class="h-8 rounded border border-slate-300 px-2 text-xs" />
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Reference No <span class="text-red-600">*</span></label>
+                <span>:</span>
+                <input v-model="kerisiFormValues.agvReferenceNo" class="h-8 rounded border border-slate-300 px-2 text-xs" />
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Agreement No <span class="text-red-600">*</span></label>
+                <span>:</span>
+                <select v-model="kerisiFormValues.aggId" class="h-8 rounded border border-slate-300 bg-white px-2 text-xs" @change="onVariationAgreementChange">
+                  <option value="">— Select —</option>
+                  <option v-for="opt in variationOrderOptions('agreements')" :key="'ag-' + opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+              </div>
+              <div class="hidden">
+                <input v-model="kerisiFormValues.aggId" />
+                <input v-model="kerisiFormValues.agvDocument" />
+                <input v-model="kerisiFormValues.agvId" />
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Agreement Amount (RM) <span class="text-red-600">*</span></label>
+                <span>:</span>
+                <div class="flex">
+                  <span class="inline-flex h-8 items-center rounded-l border border-r-0 border-slate-300 bg-slate-100 px-2 text-xs">MYR</span>
+                  <input :value="formatMoneyInput(kerisiFormValues.aggAmt)" disabled class="h-8 flex-1 rounded-r border border-slate-200 bg-slate-100 px-2 text-right text-xs text-slate-500" />
+                </div>
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Agreement Ref</label>
+                <span>:</span>
+                <input v-model="kerisiFormValues.aggRefDoc" disabled class="h-8 rounded border border-slate-200 bg-slate-100 px-2 text-xs text-slate-500" />
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Amount VO (RM) <span class="text-red-600">*</span></label>
+                <span>:</span>
+                <div class="flex">
+                  <span class="inline-flex h-8 items-center rounded-l border border-r-0 border-slate-300 bg-slate-100 px-2 text-xs">MYR</span>
+                  <input v-model="kerisiFormValues.agvAmt" class="h-8 flex-1 rounded-r border border-slate-300 px-2 text-right text-xs" />
+                </div>
+              </div>
+              <div class="grid items-start gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="pt-2 text-xs font-semibold text-slate-700">Reason <span class="text-red-600">*</span></label>
+                <span class="pt-2">:</span>
+                <textarea v-model="kerisiFormValues.reason" rows="4" class="rounded border border-slate-300 px-2 py-1 text-xs" />
+              </div>
+              <div class="grid items-start gap-2 lg:col-span-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="pt-2 text-xs font-semibold text-slate-700">Upload Document</label>
+                <span class="pt-2">:</span>
+                <div class="flex h-24 items-center justify-center rounded border border-slate-200 bg-slate-50 text-slate-400">
+                  <Download class="h-5 w-5" />
+                </div>
+              </div>
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Status</label>
+                <span>:</span>
+                <input v-model="kerisiFormValues.agvStatus" disabled placeholder="DRAFT" class="h-8 rounded border border-slate-200 bg-slate-100 px-2 text-xs text-slate-500" />
               </div>
             </div>
           </article>
@@ -1348,7 +1590,7 @@ onUnmounted(() => {
             <div v-if="di === 0 || menuId !== 3038" class="flex items-center gap-2">
               <!-- Add button (only on popup-modal pages or default) -->
               <button
-                v-if="menuId === 3306 ? false : menuId === 2618 ? di < 2 : hasPopupForm || di === 0"
+                v-if="menuId === 1955 || menuId === 3306 || menuId === 2846 || menuId === 3320 || isTenderQuotationPage ? false : menuId === 2618 ? di < 2 : hasPopupForm || di === 0"
                 type="button"
                 class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
                 @click="onAddPrimaryClick(di)"
@@ -1495,7 +1737,7 @@ onUnmounted(() => {
                         {{
                           (menuId === 3038 && di > 0) ||
                           (menuId === 1838 && di > 0) ||
-                          ((menuId === 2624 || menuId === 2626 || menuId === 2618) && di > 0)
+                          ((menuId === 1955 || menuId === 2624 || menuId === 2626 || menuId === 2618) && di > 0)
                             ? ri + 1
                             : (page - 1) * limit + ri + 1
                         }}
@@ -1756,6 +1998,52 @@ onUnmounted(() => {
           </div>
         </section>
 
+        <template v-if="isNewVariationOrderPage">
+          <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="grid gap-3 p-4 lg:grid-cols-2">
+              <div class="grid items-center gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="text-xs font-semibold text-slate-700">Status</label>
+                <span>:</span>
+                <select v-model="kerisiFormValues.workflowStatus" class="h-8 rounded border border-slate-300 bg-white px-2 text-xs">
+                  <option value="">— Select —</option>
+                  <option v-for="opt in variationOrderOptions('statusOptions')" :key="'vos-' + opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+              </div>
+              <div class="grid items-start gap-2 md:grid-cols-[13rem_0.5rem_1fr]">
+                <label class="pt-2 text-xs font-semibold text-slate-700">Remarks</label>
+                <span class="pt-2">:</span>
+                <textarea v-model="kerisiFormValues.workflowRemarks" rows="1" class="rounded border border-slate-300 px-2 py-1 text-xs" />
+              </div>
+            </div>
+          </article>
+
+          <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="grid items-center gap-2 p-4 md:grid-cols-[13rem_0.5rem_1fr]">
+              <label class="text-xs font-semibold text-slate-700">Next Receiver <span class="text-red-600">*</span></label>
+              <span>:</span>
+              <select v-model="kerisiFormValues.nextReceiver" class="h-8 rounded border border-slate-300 bg-white px-2 text-xs">
+                <option value="">— Select —</option>
+                <option v-for="opt in variationOrderOptions('nextReceivers')" :key="'vonr-' + opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
+              </select>
+            </div>
+          </article>
+
+          <div class="flex justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+            <button type="button" class="inline-flex items-center gap-1 rounded bg-violet-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-600">
+              <Download class="h-3 w-3" />
+              Save
+            </button>
+            <button type="button" class="inline-flex items-center gap-1 rounded bg-violet-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-600">
+              <Download class="h-3 w-3" />
+              Save &amp; Submit
+            </button>
+          </div>
+        </template>
+
         <template v-if="menuId === 2618">
           <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
             <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
@@ -1873,7 +2161,7 @@ onUnmounted(() => {
         </template>
 
         <!-- Form sections AFTER datatable -->
-        <template v-if="!formBeforeDataTable">
+        <template v-if="!formBeforeDataTable && menuId !== 2845">
           <article
             v-for="grp in formSectionGroups"
             :key="grp.title"
