@@ -10,7 +10,7 @@ import {
 } from "lucide-vue-next";
 
 import AdminLayout from "@/layouts/AdminLayout.vue";
-import { DEFAULT_MENU, type AdminMenuPrefs } from "@/config/admin-menu";
+import { DEFAULT_MENU, type AdminMenuPrefs, type MenuNode } from "@/config/admin-menu";
 import { useConfirmDialog } from "@/composables/useConfirmDialog";
 import { useToast } from "@/composables/useToast";
 import { useMenuStore } from "@/stores/menu";
@@ -46,6 +46,9 @@ function buildDefaultPrefs(): AdminMenuPrefs {
     hiddenChildren: [],
     hiddenGrandchildren: [],
     hiddenGroups: [],
+    shownItems: [],
+    shownChildren: [],
+    shownGrandchildren: [],
   };
 }
 
@@ -112,6 +115,9 @@ function mergeWithDefaults(prefs: AdminMenuPrefs): AdminMenuPrefs {
     hiddenChildren: (prefs.hiddenChildren || []).filter((id) => allChildIds.has(id)),
     hiddenGrandchildren: (prefs.hiddenGrandchildren || []).filter((id) => allGrandchildIds.has(id)),
     hiddenGroups: (prefs.hiddenGroups || []).filter((groupId) => defaults.groupOrder.includes(groupId)),
+    shownItems: (prefs.shownItems || []).filter((id) => allItemIds.has(id)),
+    shownChildren: (prefs.shownChildren || []).filter((id) => allChildIds.has(id)),
+    shownGrandchildren: (prefs.shownGrandchildren || []).filter((id) => allGrandchildIds.has(id)),
   };
 }
 
@@ -142,15 +148,28 @@ function isGroupHidden(groupId: string): boolean {
   return localPrefs.value.hiddenGroups.includes(groupId);
 }
 
-function isItemHidden(itemId: string): boolean {
+function isItemHiddenByDefault(node: MenuNode | undefined): boolean {
+  return Boolean(node?.hiddenByDefault);
+}
+
+function isItemHidden(itemId: string, node?: MenuNode): boolean {
+  if (isItemHiddenByDefault(node)) {
+    return !(localPrefs.value.shownItems || []).includes(itemId);
+  }
   return localPrefs.value.hidden.includes(itemId);
 }
 
-function isChildHidden(childId: string): boolean {
+function isChildHidden(childId: string, node?: MenuNode): boolean {
+  if (isItemHiddenByDefault(node)) {
+    return !(localPrefs.value.shownChildren || []).includes(childId);
+  }
   return localPrefs.value.hiddenChildren.includes(childId);
 }
 
-function isGrandchildHidden(grandchildId: string): boolean {
+function isGrandchildHidden(grandchildId: string, node?: MenuNode): boolean {
+  if (isItemHiddenByDefault(node)) {
+    return !(localPrefs.value.shownGrandchildren || []).includes(grandchildId);
+  }
   return localPrefs.value.hiddenGrandchildren.includes(grandchildId);
 }
 
@@ -197,8 +216,19 @@ async function toggleGroupVisibility(groupId: string) {
   toast.info(hiding ? "Group hidden" : "Group shown");
 }
 
-async function toggleItemVisibility(itemId: string) {
-  const hiding = !isItemHidden(itemId);
+function toggleIdInArray(arr: string[], id: string): boolean {
+  const idx = arr.indexOf(id);
+  if (idx >= 0) {
+    arr.splice(idx, 1);
+    return false;
+  }
+  arr.push(id);
+  return true;
+}
+
+async function toggleItemVisibility(groupId: string, itemId: string) {
+  const node = getItemDef(groupId, itemId);
+  const hiding = !isItemHidden(itemId, node);
   const allowed = await confirmDialog.confirm({
     title: hiding ? "Hide menu item?" : "Show menu item?",
     message: hiding ? "This item will disappear from the sidebar." : "This item will be visible again.",
@@ -207,15 +237,19 @@ async function toggleItemVisibility(itemId: string) {
   });
   if (!allowed) return;
 
-  const idx = localPrefs.value.hidden.indexOf(itemId);
-  if (idx >= 0) localPrefs.value.hidden.splice(idx, 1);
-  else localPrefs.value.hidden.push(itemId);
+  if (isItemHiddenByDefault(node)) {
+    if (!localPrefs.value.shownItems) localPrefs.value.shownItems = [];
+    toggleIdInArray(localPrefs.value.shownItems, itemId);
+  } else {
+    toggleIdInArray(localPrefs.value.hidden, itemId);
+  }
 
   toast.info(hiding ? "Item hidden" : "Item shown");
 }
 
-async function toggleChildVisibility(childId: string) {
-  const hiding = !isChildHidden(childId);
+async function toggleChildVisibility(groupId: string, itemId: string, childId: string) {
+  const node = getChildDef(groupId, itemId, childId);
+  const hiding = !isChildHidden(childId, node);
   const allowed = await confirmDialog.confirm({
     title: hiding ? "Hide submenu item?" : "Show submenu item?",
     message: hiding ? "This submenu item will be hidden." : "This submenu item will be visible again.",
@@ -224,15 +258,19 @@ async function toggleChildVisibility(childId: string) {
   });
   if (!allowed) return;
 
-  const idx = localPrefs.value.hiddenChildren.indexOf(childId);
-  if (idx >= 0) localPrefs.value.hiddenChildren.splice(idx, 1);
-  else localPrefs.value.hiddenChildren.push(childId);
+  if (isItemHiddenByDefault(node)) {
+    if (!localPrefs.value.shownChildren) localPrefs.value.shownChildren = [];
+    toggleIdInArray(localPrefs.value.shownChildren, childId);
+  } else {
+    toggleIdInArray(localPrefs.value.hiddenChildren, childId);
+  }
 
   toast.info(hiding ? "Submenu hidden" : "Submenu shown");
 }
 
-async function toggleGrandchildVisibility(grandchildId: string) {
-  const hiding = !isGrandchildHidden(grandchildId);
+async function toggleGrandchildVisibility(groupId: string, itemId: string, childId: string, grandchildId: string) {
+  const node = getGrandchildDef(groupId, itemId, childId, grandchildId);
+  const hiding = !isGrandchildHidden(grandchildId, node);
   const allowed = await confirmDialog.confirm({
     title: hiding ? "Hide second-level submenu?" : "Show second-level submenu?",
     message: hiding ? "This nested submenu item will be hidden." : "This nested submenu item will be visible again.",
@@ -241,9 +279,12 @@ async function toggleGrandchildVisibility(grandchildId: string) {
   });
   if (!allowed) return;
 
-  const idx = localPrefs.value.hiddenGrandchildren.indexOf(grandchildId);
-  if (idx >= 0) localPrefs.value.hiddenGrandchildren.splice(idx, 1);
-  else localPrefs.value.hiddenGrandchildren.push(grandchildId);
+  if (isItemHiddenByDefault(node)) {
+    if (!localPrefs.value.shownGrandchildren) localPrefs.value.shownGrandchildren = [];
+    toggleIdInArray(localPrefs.value.shownGrandchildren, grandchildId);
+  } else {
+    toggleIdInArray(localPrefs.value.hiddenGrandchildren, grandchildId);
+  }
 
   toast.info(hiding ? "Nested submenu hidden" : "Nested submenu shown");
 }
@@ -353,24 +394,30 @@ async function resetToDefaults() {
               v-for="(itemId, itemIndex) in (localPrefs.itemOrder[groupId] || [])"
               :key="itemId"
               class="rounded-md border border-slate-100"
-              :class="{ 'opacity-40': isItemHidden(itemId) }"
+              :class="{ 'opacity-40': isItemHidden(itemId, getItemDef(groupId, itemId)) }"
             >
               <div class="flex items-center gap-3 px-3 py-2 transition-colors hover:bg-slate-50">
                 <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-100">
                   <component :is="getItemDef(groupId, itemId)?.icon" class="h-3.5 w-3.5 text-slate-500" />
                 </div>
                 <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-slate-900">{{ getItemDef(groupId, itemId)?.label }}</p>
+                  <p class="truncate text-sm font-medium text-slate-900">
+                    {{ getItemDef(groupId, itemId)?.label }}
+                    <span
+                      v-if="isItemHiddenByDefault(getItemDef(groupId, itemId))"
+                      class="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+                    >hidden by default</span>
+                  </p>
                   <p class="truncate text-xs text-slate-400">{{ getItemDef(groupId, itemId)?.to }}</p>
                 </div>
                 <button
                   class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors"
-                  :class="isItemHidden(itemId) ? 'bg-slate-400' : 'bg-violet-600'"
-                  @click="toggleItemVisibility(itemId)"
+                  :class="isItemHidden(itemId, getItemDef(groupId, itemId)) ? 'bg-slate-400' : 'bg-violet-600'"
+                  @click="toggleItemVisibility(groupId, itemId)"
                 >
                   <span
                     class="inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform"
-                    :class="isItemHidden(itemId) ? 'translate-x-[2px]' : 'translate-x-[14px]'"
+                    :class="isItemHidden(itemId, getItemDef(groupId, itemId)) ? 'translate-x-[2px]' : 'translate-x-[14px]'"
                   />
                 </button>
                 <button
@@ -397,22 +444,28 @@ async function resetToDefaults() {
                   v-for="(childId, childIndex) in localPrefs.childOrder[itemId] || []"
                   :key="childId"
                   class="rounded-md border border-slate-100 bg-white"
-                  :class="{ 'opacity-40': isChildHidden(childId) }"
+                  :class="{ 'opacity-40': isChildHidden(childId, getChildDef(groupId, itemId, childId)) }"
                 >
                   <div class="flex items-center gap-3 px-3 py-1.5">
                     <div class="h-2 w-2 rounded-full bg-slate-300" />
                     <div class="min-w-0 flex-1">
-                      <p class="truncate text-sm font-medium text-slate-800">{{ getChildDef(groupId, itemId, childId)?.label }}</p>
+                      <p class="truncate text-sm font-medium text-slate-800">
+                        {{ getChildDef(groupId, itemId, childId)?.label }}
+                        <span
+                          v-if="isItemHiddenByDefault(getChildDef(groupId, itemId, childId))"
+                          class="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+                        >hidden by default</span>
+                      </p>
                       <p class="truncate text-xs text-slate-400">{{ getChildDef(groupId, itemId, childId)?.to }}</p>
                     </div>
                     <button
                       class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors"
-                      :class="isChildHidden(childId) ? 'bg-slate-400' : 'bg-violet-600'"
-                      @click="toggleChildVisibility(childId)"
+                      :class="isChildHidden(childId, getChildDef(groupId, itemId, childId)) ? 'bg-slate-400' : 'bg-violet-600'"
+                      @click="toggleChildVisibility(groupId, itemId, childId)"
                     >
                       <span
                         class="inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform"
-                        :class="isChildHidden(childId) ? 'translate-x-[2px]' : 'translate-x-[14px]'"
+                        :class="isChildHidden(childId, getChildDef(groupId, itemId, childId)) ? 'translate-x-[2px]' : 'translate-x-[14px]'"
                       />
                     </button>
                     <button
@@ -439,21 +492,27 @@ async function resetToDefaults() {
                       v-for="(grandchildId, grandchildIndex) in localPrefs.grandchildOrder[childId] || []"
                       :key="grandchildId"
                       class="flex items-center gap-3 rounded-md border border-slate-100 bg-white px-3 py-1"
-                      :class="{ 'opacity-40': isGrandchildHidden(grandchildId) }"
+                      :class="{ 'opacity-40': isGrandchildHidden(grandchildId, getGrandchildDef(groupId, itemId, childId, grandchildId)) }"
                     >
                       <div class="h-1.5 w-1.5 rounded-full bg-slate-300" />
                       <div class="min-w-0 flex-1">
-                        <p class="truncate text-xs font-medium text-slate-800">{{ getGrandchildDef(groupId, itemId, childId, grandchildId)?.label }}</p>
+                        <p class="truncate text-xs font-medium text-slate-800">
+                          {{ getGrandchildDef(groupId, itemId, childId, grandchildId)?.label }}
+                          <span
+                            v-if="isItemHiddenByDefault(getGrandchildDef(groupId, itemId, childId, grandchildId))"
+                            class="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+                          >hidden by default</span>
+                        </p>
                         <p class="truncate text-[11px] text-slate-400">{{ getGrandchildDef(groupId, itemId, childId, grandchildId)?.to }}</p>
                       </div>
                       <button
                         class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors"
-                        :class="isGrandchildHidden(grandchildId) ? 'bg-slate-400' : 'bg-violet-600'"
-                        @click="toggleGrandchildVisibility(grandchildId)"
+                        :class="isGrandchildHidden(grandchildId, getGrandchildDef(groupId, itemId, childId, grandchildId)) ? 'bg-slate-400' : 'bg-violet-600'"
+                        @click="toggleGrandchildVisibility(groupId, itemId, childId, grandchildId)"
                       >
                         <span
                           class="inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform"
-                          :class="isGrandchildHidden(grandchildId) ? 'translate-x-[2px]' : 'translate-x-[14px]'"
+                          :class="isGrandchildHidden(grandchildId, getGrandchildDef(groupId, itemId, childId, grandchildId)) ? 'translate-x-[2px]' : 'translate-x-[14px]'"
                         />
                       </button>
                       <button

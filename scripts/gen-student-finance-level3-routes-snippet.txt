@@ -1,0 +1,547 @@
+    // HIDDEN_PAGE_LEVEL3 Student Finance (`HIDDEN_PAGE_LEVEL3.json`; must stay before `...kerisiStudentFinanceHiddenRoutes`).
+    {
+      path: "/admin/kerisi/m/1034",
+      name: "kerisi-sf-barring",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Barring",
+        breadcrumb: "Student Finance / Barring / Barring",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Barring" },
+    },
+    {
+      path: "/admin/kerisi/m/1062",
+      name: "kerisi-sf-form-invoice",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Invoice Form",
+        breadcrumb: "Student Finance / form / invoice form",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Invoice Form" },
+    },
+    {
+      path: "/admin/kerisi/m/1065",
+      name: "kerisi-sf-activity-tag-sponsor-masri",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Tag Sponsor to Student (Masri)",
+        breadcrumb: "Student Finance / Activity / Tag Sponsor to Student (Masri)",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Tag Sponsor to Student (Masri)" },
+    },
+    {
+      path: "/admin/kerisi/m/1068",
+      name: "kerisi-sf-sponsor-invoice-form",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Invoice Form",
+        breadcrumb: "Student Finance / Sponsor / Sponsor Details",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1025",
+        relatedLabel: "Open sponsor profile",
+      },
+      meta: { requiresAuth: true, title: "Invoice Form" },
+    },
+    {
+      path: "/admin/kerisi/m/1076",
+      name: "kerisi-sf-activity-process-data",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Process Data",
+        breadcrumb: "Student Finance / Activity / Process Data",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Process Data" },
+    },
+    {
+      path: "/admin/kerisi/m/1077",
+      name: "kerisi-sf-activity-generate-invoice",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Generate Invoice",
+        breadcrumb: "Student Finance / Activity / Generate Invoice",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Generate Invoice" },
+    },
+    {
+      path: "/admin/kerisi/m/1078",
+      name: "kerisi-sf-activity-export-data",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Export Data",
+        breadcrumb: "Student Finance / Activity / Export Data",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Export Data" },
+    },
+    {
+      path: "/admin/kerisi/m/1079",
+      name: "kerisi-sf-activity-generate-refund",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Generate Data for Refund",
+        breadcrumb: "Student Finance / Activity / Generate Data for Refund",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Generate Data for Refund" },
+    },
+    {
+      path: "/admin/kerisi/m/1080",
+      name: "kerisi-sf-activity-generate-renewal",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Generate Data for Inv. Renewal",
+        breadcrumb: "Student Finance / Activity / Generate Data for Inv. Renewal",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Generate Data for Inv. Renewal" },
+    },
+    {
+      path: "/admin/kerisi/m/1478",
+      name: "kerisi-sf-sponsor-student",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Sponsor Student",
+        breadcrumb: "Student Finance / Sponsor / Sponsor Student",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1025",
+        relatedLabel: "Open sponsor profile",
+      },
+      meta: { requiresAuth: true, title: "Sponsor Student" },
+    },
+    {
+      path: "/admin/kerisi/m/1479",
+      name: "kerisi-sf-sponsor-student-details",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Sponsor Student Details",
+        breadcrumb: "Student Finance / Sponsor / Sponsor Student Details",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1025",
+        relatedLabel: "Open sponsor profile",
+      },
+      meta: { requiresAuth: true, title: "Sponsor Student Details" },
+    },
+    {
+      path: "/admin/kerisi/m/1492",
+      name: "kerisi-sf-activity-approval-invoice",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Approval For Invoice",
+        breadcrumb: "Student Finance / Activity / Approval For Invoice",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Approval For Invoice" },
+    },
+    {
+      path: "/admin/kerisi/m/1501",
+      name: "kerisi-sf-activity-tag-sponsor",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Tag Sponsor to Student",
+        breadcrumb: "Student Finance / Activity / Tag Sponsor to Student",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Tag Sponsor to Student" },
+    },
+    {
+      path: "/admin/kerisi/m/1502",
+      name: "kerisi-sf-sponsor-v2-sfsp-tsts",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "V2_SFSP_TSTS_FORM",
+        breadcrumb: "Student Finance / Sponsor / V2_SFSP_TSTS_FORM",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1025",
+        relatedLabel: "Open sponsor profile",
+      },
+      meta: { requiresAuth: true, title: "V2_SFSP_TSTS_FORM" },
+    },
+    {
+      path: "/admin/kerisi/m/1503",
+      name: "kerisi-sf-sponsor-details",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Sponsor Details",
+        breadcrumb: "Student Finance / Sponsor / Sponsor Details",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1025",
+        relatedLabel: "Open sponsor profile",
+      },
+      meta: { requiresAuth: true, title: "Sponsor Details" },
+    },
+    {
+      path: "/admin/kerisi/m/1525",
+      name: "kerisi-sf-form-fee-structure",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Fee Structure Form",
+        breadcrumb: "Student Finance / form / Fee Structure Form",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Fee Structure Form" },
+    },
+    {
+      path: "/admin/kerisi/m/1536",
+      name: "kerisi-sf-sponsor-sfsi-approval-invoice",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "SFSI Approval For Invoice",
+        breadcrumb: "Student Finance / Sponsor / SFSI Approval For Invoice",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1025",
+        relatedLabel: "Open sponsor profile",
+      },
+      meta: { requiresAuth: true, title: "SFSI Approval For Invoice" },
+    },
+    {
+      path: "/admin/kerisi/m/1569",
+      name: "kerisi-sf-setup-discount-form",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "V2_SFS_DISCOUNT_FORM",
+        breadcrumb: "Student Finance / setup / V2_SFS_DISCOUNT_FORM",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "V2_SFS_DISCOUNT_FORM" },
+    },
+    {
+      path: "/admin/kerisi/m/1658",
+      name: "kerisi-sf-letter-cover-invoice",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Cover Letter Invoice",
+        breadcrumb: "Student Finance / Letter / 1.Cover Letter Invoice",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Cover Letter Invoice" },
+    },
+    {
+      path: "/admin/kerisi/m/1765",
+      name: "kerisi-sf-letter-confirm-debt",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Confirmation of Student Debt",
+        breadcrumb: "Student Finance / Letter / 2.Confirmation of Student Debt",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Confirmation of Student Debt" },
+    },
+    {
+      path: "/admin/kerisi/m/1768",
+      name: "kerisi-sf-letter-sponsorship-status",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Student Sponsorship Status",
+        breadcrumb: "Student Finance / Letter / 3.Student Sponsorship Status",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Student Sponsorship Status" },
+    },
+    {
+      path: "/admin/kerisi/m/1769",
+      name: "kerisi-sf-letter-study-fee",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Study and Fee Information",
+        breadcrumb: "Student Finance / Letter / 4.Study and Fee Information",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Study and Fee Information" },
+    },
+    {
+      path: "/admin/kerisi/m/1770",
+      name: "kerisi-sf-letter-confirm-payment",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Confirmation of Payment Received",
+        breadcrumb: "Student Finance / Letter / 5.Confirmation of Payment Received",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Confirmation of Payment Received" },
+    },
+    {
+      path: "/admin/kerisi/m/1775",
+      name: "kerisi-sf-letter-outstanding",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Outstanding Letter",
+        breadcrumb: "Student Finance / Letter / 6.Outstanding Letter",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Outstanding Letter" },
+    },
+    {
+      path: "/admin/kerisi/m/1776",
+      name: "kerisi-sf-letter-tuition",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Tuition Fees",
+        breadcrumb: "Student Finance / Letter / 7.Tuition Fees",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Tuition Fees" },
+    },
+    {
+      path: "/admin/kerisi/m/1912",
+      name: "kerisi-sf-form-non-fee-structure",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Non-fee Structure Form",
+        breadcrumb: "Student Finance / form / Non-fee Structure Form",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Non-fee Structure Form" },
+    },
+    {
+      path: "/admin/kerisi/m/2011",
+      name: "kerisi-sf-report-bill-payment-bank",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Bill Payment Data From Bank",
+        breadcrumb: "Student Finance / Report / Bill Payment Data From Bank",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Bill Payment Data From Bank" },
+    },
+    {
+      path: "/admin/kerisi/m/2021",
+      name: "kerisi-sf-sponsor-advance-process",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Advance Payment Process",
+        breadcrumb: "Student Finance / Sponsor / Advance Payment Process",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/2020",
+        relatedLabel: "Open advance payment",
+      },
+      meta: { requiresAuth: true, title: "Advance Payment Process" },
+    },
+    {
+      path: "/admin/kerisi/m/2049",
+      name: "kerisi-sf-sponsor-advance-journal-approval",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Advance Payment Journal Approval",
+        breadcrumb: "Student Finance / Sponsor / Advance Payment Journal Approval",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/2020",
+        relatedLabel: "Open advance payment",
+      },
+      meta: { requiresAuth: true, title: "Advance Payment Journal Approval" },
+    },
+    {
+      path: "/admin/kerisi/m/2076",
+      name: "kerisi-sf-sponsor-account-statement",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Sponsorship Account Statement",
+        breadcrumb: "Student Finance / Sponsor / Sponsorship Account Statement",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1025",
+        relatedLabel: "Open sponsor profile",
+      },
+      meta: { requiresAuth: true, title: "Sponsorship Account Statement" },
+    },
+    {
+      path: "/admin/kerisi/m/2169",
+      name: "kerisi-sf-sponsor-journal-knockoff",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Journal Advance Knockoff",
+        breadcrumb: "Student Finance / Sponsor / Journal Advance Knockoff",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/2020",
+        relatedLabel: "Open advance payment",
+      },
+      meta: { requiresAuth: true, title: "Journal Advance Knockoff" },
+    },
+    {
+      path: "/admin/kerisi/m/2170",
+      name: "kerisi-sf-sponsor-journal-knockoff-details",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Journal Advance Knockoff Details",
+        breadcrumb: "Student Finance / Sponsor / Journal Advance Knockoff Details",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/2020",
+        relatedLabel: "Open advance payment",
+      },
+      meta: { requiresAuth: true, title: "Journal Advance Knockoff Details" },
+    },
+    {
+      path: "/admin/kerisi/m/2354",
+      name: "kerisi-sf-sponsor-advance-transfer-student",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Advance Payment Transfer To Student",
+        breadcrumb: "Student Finance / Sponsor / Advance Payment Transfer To Student",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/2020",
+        relatedLabel: "Open advance payment",
+      },
+      meta: { requiresAuth: true, title: "Advance Payment Transfer To Student" },
+    },
+    {
+      path: "/admin/kerisi/m/2395",
+      name: "kerisi-sf-sponsor-journal-approval-one-off",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Student Journal Approval by One Off",
+        breadcrumb: "Student Finance / Sponsor / Student Journal Approval by One Off",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/2390",
+        relatedLabel: "Open student journal approval",
+      },
+      meta: { requiresAuth: true, title: "Student Journal Approval by One Off" },
+    },
+    {
+      path: "/admin/kerisi/m/2560",
+      name: "kerisi-sf-barring-student-info",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Student Barring Information",
+        breadcrumb: "Student Finance / Barring / Student Barring Information",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Student Barring Information" },
+    },
+    {
+      path: "/admin/kerisi/m/2602",
+      name: "kerisi-sf-barring-registration-info",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Student Registration Barring Information",
+        breadcrumb: "Student Finance / Barring / Student Registration Barring Information",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Student Registration Barring Information" },
+    },
+    {
+      path: "/admin/kerisi/m/2646",
+      name: "kerisi-sf-barring-report",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Report Barring",
+        breadcrumb: "Student Finance / Barring / Report Barring",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Report Barring" },
+    },
+    {
+      path: "/admin/kerisi/m/2745",
+      name: "kerisi-sf-barring-report-alt",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Report Barring",
+        breadcrumb: "Student Finance / Barring / Report Barring",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1023",
+        relatedLabel: "Open invoice listing",
+      },
+      meta: { requiresAuth: true, title: "Report Barring" },
+    },
+    {
+      path: "/admin/kerisi/m/2764",
+      name: "kerisi-sf-barring-report-offered",
+      component: StudentFinanceLegacyPlaceholderView,
+      props: {
+        title: "Report Barring Student Offered",
+        breadcrumb: "Student Finance / Barring / Report Barring Student Offered",
+        description:
+          "This legacy Student Finance workflow, letter, or report is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/2636",
+        relatedLabel: "Open list of offered",
+      },
+      meta: { requiresAuth: true, title: "Report Barring Student Offered" },
+    },

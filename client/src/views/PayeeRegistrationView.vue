@@ -3,12 +3,12 @@
  * Account Payable / Payee Registration (PAGEID 1403, MENUID 1711)
  *
  * Source: FIMS component `NF_BL_AP_PAY_REGISTRATION` — read-only datatable with
- * a smart filter (payee code / state / status / year register). The legacy
- * "Edit" action deep-linked to menuID 1713 which is NOT in the migrated menu
- * set, so this screen intentionally ships without row-level CRUD.
+ * a smart filter (payee code / state / status / year register). Row **View**
+ * opens read-only detail (MENUID 1713); editing remains in Kerisi Classic.
  */
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { Download, FileDown, FileSpreadsheet, Filter, MoreVertical, Search, X } from "lucide-vue-next";
+import { Download, Eye, FileDown, FileSpreadsheet, Filter, MoreVertical, Search, X } from "lucide-vue-next";
+import { useRouter } from "vue-router";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import { useDatatableFeatures } from "@/composables/useDatatableFeatures";
 import type { DatatableRefApi } from "@/composables/useDatatableFeatures";
@@ -17,6 +17,7 @@ import { useToast } from "@/composables/useToast";
 import type { PayeeRegistrationOptions, PayeeRegistrationRow } from "@/types";
 
 const toast = useToast();
+const router = useRouter();
 const datatableRef = ref<DatatableRefApi | null>(null);
 const rows = ref<PayeeRegistrationRow[]>([]);
 const page = ref(1);
@@ -218,6 +219,10 @@ onMounted(async () => {
 onUnmounted(() => {
   if (searchDebounce) clearTimeout(searchDebounce);
 });
+
+function openPayeeDetail(row: PayeeRegistrationRow) {
+  void router.push({ path: "/admin/kerisi/m/1713", query: { id: row.vcsId } });
+}
 </script>
 
 <template>
@@ -285,14 +290,15 @@ onUnmounted(() => {
                     <th class="px-3 py-2 text-xs font-semibold uppercase">IC No</th>
                     <th class="px-3 py-2 text-xs font-semibold uppercase">SSM No</th>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('vcs_vendor_status')">Vendor Status</th>
+                    <th class="px-3 py-2 text-xs font-semibold uppercase">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="loading">
-                    <td colspan="17" class="px-3 py-6 text-center text-sm text-slate-500">Loading...</td>
+                    <td colspan="18" class="px-3 py-6 text-center text-sm text-slate-500">Loading...</td>
                   </tr>
                   <tr v-else-if="rows.length === 0">
-                    <td colspan="17" class="px-3 py-6 text-center text-sm text-slate-500">No records found.</td>
+                    <td colspan="18" class="px-3 py-6 text-center text-sm text-slate-500">No records found.</td>
                   </tr>
                   <tr v-for="row in rows" :key="row.vcsId" class="border-b border-slate-100 hover:bg-slate-50">
                     <td class="px-3 py-2">{{ row.index }}</td>
@@ -318,6 +324,17 @@ onUnmounted(() => {
                       >
                         {{ row.vcsVendorStatus }}
                       </span>
+                    </td>
+                    <td class="px-3 py-2">
+                      <button
+                        type="button"
+                        class="rounded p-1 text-slate-500 hover:bg-slate-100"
+                        title="View"
+                        aria-label="View payee"
+                        @click="openPayeeDetail(row)"
+                      >
+                        <Eye class="h-3.5 w-3.5" />
+                      </button>
                     </td>
                   </tr>
                 </tbody>

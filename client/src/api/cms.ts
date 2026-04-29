@@ -1,5 +1,5 @@
 import { API_BASE_URL } from "@/env";
-import { apiRequest } from "./client";
+import { apiRequest, ensureCsrfCookie } from "./client";
 import type {
   AccountBankByPayeeGenericRow,
   AccountBankByPayeeInvestmentRow,
@@ -14,6 +14,7 @@ import type {
   AccountBankUpdatedVoucherRow,
   AuditLog,
   AssetInventoryRow,
+  CapitalProjectProfilePatch,
   ProjectListRow,
   ProjectMonitoringBalance,
   ProjectMonitoringBalanceInput,
@@ -82,10 +83,15 @@ import type {
   BudgetCodeInput,
   BudgetCodeOptions,
   BudgetCodeRow,
+  BudgetAdvanceControlledRow,
+  BudgetInAdvanceMasterShow,
   BudgetInitialOptions,
   BudgetInitialRow,
+  BudgetInitialNewV2DetailRow,
+  BudgetInitialNewV2Master,
   BudgetMonitoringOptions,
   BudgetMonitoringRow,
+  BudgetMovementFormData,
   BudgetMovementOptions,
   BudgetMovementRow,
   BudgetMovementType,
@@ -138,6 +144,7 @@ import type {
   Page,
   PageInput,
   PayeeRegistrationOptions,
+  PayeeRegistrationDetail,
   PayeeRegistrationRow,
   PettyCashApplicationDetail,
   PettyCashApplicationListOptions,
@@ -178,6 +185,7 @@ import type {
   GlYearMonthInput,
   GlYearMonthOptions,
   GlYearMonthRow,
+  ProfileFloatingPointRow,
   JournalListingHeader,
   JournalListingLine,
   JournalListingOptions,
@@ -245,11 +253,25 @@ import type {
   StudentJournalApprovalRow,
   StatusPoPrOptions,
   StatusPoPrRow,
+  PurchasingVendorRow,
+  PostDatedChequeRow,
+  PortalAdvanceGenerateBillBatchRow,
+  PortalAdvanceRecoupBillRow,
+  PortalAdvanceRecoupDebitLineRow,
+  PortalAdvanceRecoupHeader,
+  EmergencyFundApprovedListingRow,
+  EmergencyFundReminderReportRow,
+  EmergencyFundAccrualRow,
+  EmergencyFundReleaseQueueRow,
   StructureBudgetListOptions,
   StructureBudgetListRow,
   TotalAllocationOptions,
   TotalAllocationRow,
   TotalAllocationTotals,
+  BudgetV2BudgetSummaryRow,
+  UmumAllocationPtjFooter,
+  UmumAllocationPtjOptions,
+  UmumAllocationPtjRow,
   StudentInvoiceGenerationGenerateInput,
   StudentInvoiceGenerationGenerateResult,
   StudentInvoiceGenerationOptions,
@@ -720,7 +742,7 @@ export async function updateCascadeStructure(id: number, input: CascadeStructure
   return apiRequest<{ data: { success: boolean } }>(`/api/setup/cascade-structure/${id}`, { method: "PUT", body: JSON.stringify(input) });
 }
 
-// FIMS Budget (Increment / Decrement / Virement) — read-only list.
+// FIMS Budget (Increment / Decrement / Virement) — list + read-only movement form payload.
 export async function listBudgetMovements(type: BudgetMovementType, params = "") {
   return apiRequest<{ data: BudgetMovementRow[]; meta: Record<string, unknown> }>(
     `/api/budget/movements/${encodeURIComponent(type)}${params}`,
@@ -729,6 +751,12 @@ export async function listBudgetMovements(type: BudgetMovementType, params = "")
 
 export async function getBudgetMovement(id: string | number) {
   return apiRequest<{ data: BudgetMovementRow }>(`/api/budget/movements/show/${encodeURIComponent(String(id))}`);
+}
+
+export async function getBudgetMovementForm(type: BudgetMovementType, id: string | number) {
+  return apiRequest<{ data: BudgetMovementFormData }>(
+    `/api/budget/movements/${encodeURIComponent(type)}/${encodeURIComponent(String(id))}/form`,
+  );
 }
 
 export async function getBudgetMovementOptions(type: BudgetMovementType) {
@@ -746,11 +774,46 @@ export async function getBudgetMonitoringOptions() {
   return apiRequest<{ data: BudgetMonitoringOptions }>("/api/budget/monitoring/options");
 }
 
-// FIMS Budget Initial V2 (PAGEID 1264 / MENUID 1541) — stubbed list (backend BL missing).
+export async function listBudgetMonitoringListing(params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/budget/monitoring/listing${params}`,
+  );
+}
+
+// FIMS Budget / Budget Advance Controlled (PAGEID 1784 / MENUID 2160).
+export async function listBudgetAdvanceControlled(params = "") {
+  return apiRequest<{ data: BudgetAdvanceControlledRow[]; meta: Record<string, unknown> }>(
+    `/api/budget/advance-controlled${params}`,
+  );
+}
+
+/** Budget In Advance full list (PAGEID 1737 / MENUID 2098). */
+export async function listBudgetInAdvance(params = "") {
+  return apiRequest<{ data: BudgetAdvanceControlledRow[]; meta: Record<string, unknown> }>(
+    `/api/budget/in-advance${params}`,
+  );
+}
+
+export async function getBudgetInAdvanceMaster(id: string | number) {
+  return apiRequest<{ data: BudgetInAdvanceMasterShow }>(`/api/budget/in-advance/${encodeURIComponent(String(id))}`);
+}
+
+// FIMS Budget Initial listing (PAGEID 1264 / MENUID 1541).
 export async function listBudgetInitial(params = "") {
   return apiRequest<{ data: BudgetInitialRow[]; meta: Record<string, unknown> }>(
     `/api/budget/initial${params}`,
   );
+}
+
+export async function getBudgetInitialNewV2Master(bamId: number) {
+  return apiRequest<{ data: BudgetInitialNewV2Master }>(`/api/budget/initial-new-v2/master/${bamId}`);
+}
+
+export async function listBudgetInitialNewV2Details(params = "") {
+  return apiRequest<{
+    data: BudgetInitialNewV2DetailRow[];
+    meta: Record<string, unknown>;
+  }>(`/api/budget/initial-new-v2/details${params}`);
 }
 
 export async function getBudgetInitialOptions() {
@@ -1246,6 +1309,13 @@ export async function listPayeeRegistration(params = "") {
 
 export async function getPayeeRegistrationOptions() {
   return apiRequest<{ data: PayeeRegistrationOptions }>("/api/account-payable/payee-registration/options");
+}
+
+/** Payee Registration detail (hidden MENUID 1713). */
+export async function getPayeeRegistrationDetail(id: string | number) {
+  return apiRequest<{ data: PayeeRegistrationDetail }>(
+    `/api/account-payable/payee-registration/${encodeURIComponent(String(id))}`,
+  );
 }
 
 // Utility Registration — PAGEID 2881 / MENUID 3466 (list + inline add/edit).
@@ -2311,6 +2381,46 @@ export async function getStatusPoPrOptions() {
   );
 }
 
+export async function listPurchasingVendors(params = "") {
+  return apiRequest<{ data: PurchasingVendorRow[]; meta: Record<string, unknown> }>(
+    `/api/purchasing/vendors${params}`,
+  );
+}
+
+export async function listPostDatedCheques(params = "") {
+  return apiRequest<{ data: PostDatedChequeRow[]; meta: Record<string, unknown> }>(
+    `/api/credit-control/post-dated-cheques${params}`,
+  );
+}
+
+// Credit Control — Emergency Fund / Report / Listing (PAGEID 1683 / MENUID 2038).
+export async function listEmergencyFundApprovedListing(params = "") {
+  return apiRequest<{ data: EmergencyFundApprovedListingRow[]; meta: Record<string, unknown> }>(
+    `/api/credit-control/emergency-fund-approved-listing${params}`,
+  );
+}
+
+// Credit Control — Emergency Fund / Report / Reminder (PAGEID 1686 / MENUID 2037).
+export async function listEmergencyFundReminderReport(params = "") {
+  return apiRequest<{ data: EmergencyFundReminderReportRow[]; meta: Record<string, unknown> }>(
+    `/api/credit-control/emergency-fund-reminder-report${params}`,
+  );
+}
+
+/** PAGEID 1637 — ZR_CREDITCTRL_EMERGENCYFUND_ACCRUAL_API (dt_emergencyFundAccrual). */
+export async function listEmergencyFundAccrualListing(params = "") {
+  return apiRequest<{ data: EmergencyFundAccrualRow[]; meta: Record<string, unknown> }>(
+    `/api/credit-control/emergency-fund-accrual-listing${params}`,
+  );
+}
+
+/** PAGEID 1676 & 2182 — NAD_API_CC_EF_RELEASE (dt_emergencyFundRelease). */
+export async function listEmergencyFundReleaseQueueListing(params = "") {
+  return apiRequest<{ data: EmergencyFundReleaseQueueRow[]; meta: Record<string, unknown> }>(
+    `/api/credit-control/emergency-fund-release-queue-listing${params}`,
+  );
+}
+
 // General Ledger > Journal Listing (PAGEID 1700 / MENUID 2056).
 export async function listJournalListing(params = "") {
   return apiRequest<{ data: JournalListingRow[]; meta: Record<string, unknown> }>(
@@ -2387,6 +2497,13 @@ export async function getManualJournalDetail(id: number) {
 export async function listGlYearMonth(params = "") {
   return apiRequest<{ data: GlYearMonthRow[]; meta: Record<string, unknown> }>(
     `/api/general-ledger/year-month${params}`,
+  );
+}
+
+// Setup & Maintenance > Floating Point for Profile Setup (PAGEID 1943 / MENUID 2375).
+export async function listProfileFloatingPointListing(params = "") {
+  return apiRequest<{ data: ProfileFloatingPointRow[]; meta: Record<string, unknown> }>(
+    `/api/general-ledger/profile-floating-point-listing${params}`,
   );
 }
 
@@ -2532,6 +2649,20 @@ export async function listProjectMonitoringProjects(params = "") {
   );
 }
 
+export async function getProjectMonitoringProject(cpaProjectNo: string) {
+  return apiRequest<{ data: ProjectListRow }>(
+    `/api/project-monitoring/projects/${encodeURIComponent(cpaProjectNo)}`,
+  );
+}
+
+export async function patchProjectMonitoringProject(cpaProjectNo: string, body: CapitalProjectProfilePatch) {
+  await ensureCsrfCookie();
+  return apiRequest<{ data: ProjectListRow }>(
+    `/api/project-monitoring/projects/${encodeURIComponent(cpaProjectNo)}`,
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
 // Project Monitoring > Updated Balance (MENUID 2065). Form-driven:
 //   - search: autosuggest typed search (Project ID dropdown). Joined
 //             select over capital_project / fund_type / costcentre /
@@ -2559,6 +2690,33 @@ export async function saveProjectMonitoringBalance(
   return apiRequest<{ data: { success: boolean } }>(
     `/api/project-monitoring/updated-balance`,
     { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+// Portal > Advance Staff / Recoupment (LEVEL5 menus 2442, 2714, 2712, 2716).
+
+export async function listPortalAdvanceGenerateBillBatches(params = "") {
+  return apiRequest<{ data: PortalAdvanceGenerateBillBatchRow[]; meta: Record<string, unknown> }>(
+    `/api/portal/advance-recoup/generate-bill-batches${params}`,
+  );
+}
+
+export async function listPortalAdvanceRecoupBills(params = "") {
+  return apiRequest<{
+    data: PortalAdvanceRecoupBillRow[];
+    meta: Record<string, unknown> & { section?: string };
+  }>(`/api/portal/advance-recoup/recoup-bills${params}`);
+}
+
+export async function getPortalAdvanceRecoupHeader(bimBillsId: string) {
+  return apiRequest<{ data: PortalAdvanceRecoupHeader }>(
+    `/api/portal/advance-recoup/recoup-bills/${encodeURIComponent(bimBillsId)}/header`,
+  );
+}
+
+export async function listPortalAdvanceRecoupDebitLines(bimBillsId: string, params = "") {
+  return apiRequest<{ data: PortalAdvanceRecoupDebitLineRow[]; meta: Record<string, unknown> }>(
+    `/api/portal/advance-recoup/recoup-bills/${encodeURIComponent(bimBillsId)}/debit-lines${params}`,
   );
 }
 
@@ -3006,6 +3164,29 @@ export async function getTotalAllocationReportOptions() {
   return apiRequest<{ data: TotalAllocationOptions }>(
     "/api/budget/report/total-allocation/options",
   );
+}
+
+// Umum Allocation, Expenditure & Balance by PTJ (PAGEID 2515 / MENUID 3044 — HIDDEN_PAGE_LEVEL4).
+export async function listUmumAllocationPtj(params = "") {
+  return apiRequest<{
+    data: UmumAllocationPtjRow[];
+    meta: Record<string, unknown> & { footer?: UmumAllocationPtjFooter };
+  }>(`/api/budget/report/umum-allocation-ptj${params}`);
+}
+
+export async function getUmumAllocationPtjOptions() {
+  return apiRequest<{ data: UmumAllocationPtjOptions }>("/api/budget/report/umum-allocation-ptj/options");
+}
+
+// Budget Summary By Date / Variation / By PTJ OLD (menus 3382, 3389, 3393 — legacy `V2_BUDGET_SUMMARY_API`).
+export async function postBudgetV2BudgetSummaryListing(body: Record<string, string>) {
+  return apiRequest<{
+    data: BudgetV2BudgetSummaryRow[];
+    meta?: { aggregateExpensesPercent?: string | null };
+  }>("/api/budget/report/v2-budget-summary/listing", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 // Budget > Reports > Laporan Belanjawan (PAGEID 2873 / MENUID 3457).

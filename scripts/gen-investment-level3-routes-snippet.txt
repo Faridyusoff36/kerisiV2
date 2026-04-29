@@ -1,0 +1,141 @@
+    // HIDDEN_PAGE_LEVEL3 Investment (`HIDDEN_PAGE_LEVEL3.json`; must stay before `...kerisiInvestmentHiddenRoutes`).
+    {
+      path: "/admin/kerisi/m/1406",
+      name: "kerisi-investment-setup-institution",
+      component: InvestmentLegacyPlaceholderView,
+      props: {
+        title: "Institution Information",
+        breadcrumb: "Investment / Setup / Institution Information",
+        description:
+          "This legacy investment setup, application, or approval screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1448",
+        relatedLabel: "Open list of investments",
+      },
+      meta: { requiresAuth: true, title: "Institution Information" },
+    },
+    {
+      path: "/admin/kerisi/m/1419",
+      name: "kerisi-investment-setup-create-type-gl",
+      component: InvestmentLegacyPlaceholderView,
+      props: {
+        title: "Create Investment Type & GL Code",
+        breadcrumb: "Investment / Setup / Create Investment Type & GL Code",
+        description:
+          "This legacy investment setup, application, or approval screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1448",
+        relatedLabel: "Open list of investments",
+      },
+      meta: { requiresAuth: true, title: "Create Investment Type & GL Code" },
+    },
+    {
+      path: "/admin/kerisi/m/1426",
+      name: "kerisi-investment-setup-update-type-gl",
+      component: InvestmentLegacyPlaceholderView,
+      props: {
+        title: "Update Investment Type & GL Code",
+        breadcrumb: "Investment / Setup / Update Investment Type & GL Code",
+        description:
+          "This legacy investment setup, application, or approval screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1448",
+        relatedLabel: "Open list of investments",
+      },
+      meta: { requiresAuth: true, title: "Update Investment Type & GL Code" },
+    },
+    {
+      path: "/admin/kerisi/m/1430",
+      name: "kerisi-investment-setup-fund-type",
+      component: InvestmentLegacyPlaceholderView,
+      props: {
+        title: "Fund Type",
+        breadcrumb: "Investment / Setup / Fund Type",
+        description:
+          "This legacy investment setup, application, or approval screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1448",
+        relatedLabel: "Open list of investments",
+      },
+      meta: { requiresAuth: true, title: "Fund Type" },
+    },
+    {
+      path: "/admin/kerisi/m/1434",
+      name: "kerisi-investment-setup-gl-code",
+      component: InvestmentLegacyPlaceholderView,
+      props: {
+        title: "GL Code Setup",
+        breadcrumb: "Investment / Setup / GL Code Setup",
+        description:
+          "This legacy investment setup, application, or approval screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1448",
+        relatedLabel: "Open list of investments",
+      },
+      meta: { requiresAuth: true, title: "GL Code Setup" },
+    },
+    {
+      path: "/admin/kerisi/m/1447",
+      name: "kerisi-investment-setup-update-institution",
+      component: InvestmentLegacyPlaceholderView,
+      props: {
+        title: "Update Institution Information",
+        breadcrumb: "Investment / Setup / Update Institution Information",
+        description:
+          "This legacy investment setup, application, or approval screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1448",
+        relatedLabel: "Open list of investments",
+      },
+      meta: { requiresAuth: true, title: "Update Institution Information" },
+    },
+    {
+      path: "/admin/kerisi/m/1449",
+      name: "kerisi-investment-application-new",
+      component: InvestmentLegacyPlaceholderView,
+      props: {
+        title: "New Application",
+        breadcrumb: "Investment / Investment Application / New Application",
+        description:
+          "This legacy investment setup, application, or approval screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1448",
+        relatedLabel: "Open list of investments",
+      },
+      meta: { requiresAuth: true, title: "New Application" },
+    },
+    {
+      path: "/admin/kerisi/m/1473",
+      name: "kerisi-investment-application-draft",
+      component: InvestmentLegacyPlaceholderView,
+      props: {
+        title: "List of Investment - Draft",
+        breadcrumb: "Investment / Investment Application / List of Investment - Draft",
+        description:
+          "This legacy investment setup, application, or approval screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1448",
+        relatedLabel: "Open list of investments",
+      },
+      meta: { requiresAuth: true, title: "List of Investment - Draft" },
+    },
+    {
+      path: "/admin/kerisi/m/1477",
+      name: "kerisi-investment-application-rejected",
+      component: InvestmentLegacyPlaceholderView,
+      props: {
+        title: "List of Investment - Rejected",
+        breadcrumb: "Investment / Investment Application / List of Investment - Rejected",
+        description:
+          "This legacy investment setup, application, or approval screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1448",
+        relatedLabel: "Open list of investments",
+      },
+      meta: { requiresAuth: true, title: "List of Investment - Rejected" },
+    },
+    {
+      path: "/admin/kerisi/m/3233",
+      name: "kerisi-investment-application-approval",
+      component: InvestmentLegacyPlaceholderView,
+      props: {
+        title: "Approval for Investment",
+        breadcrumb: "Investment / Investment Application / Approval for Investment",
+        description:
+          "This legacy investment setup, application, or approval screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1448",
+        relatedLabel: "Open list of investments",
+      },
+      meta: { requiresAuth: true, title: "Approval for Investment" },
+    },
