@@ -1,9 +1,21 @@
 /**
- * Reads client/src/config/kerisi-menu-source.csv → client/src/config/kerisi-menu-migrated.ts
- * Usage: node scripts/build-kerisi-menu.mjs [path-to.csv]
+ * Reads:
+ *   client/src/config/kerisi-menu-source.csv         (visible Kerisi menu)
+ *   client/src/config/kerisi-hidden-menu-source.csv  (Kerisi menus hidden by default)
  *
- * Roots: MENUPARENT === 0 (or self-parent). Missing parent rows get a synthetic root;
- * title from kerisi-missing-parent-titles.json (optional) or inferred from first child titles.
+ * Writes:
+ *   client/src/config/kerisi-menu-migrated.ts (auto-generated tree + hidden-id lists)
+ *
+ * Usage: node scripts/build-kerisi-menu.mjs [path-to-source.csv] [path-to-hidden.csv]
+ *
+ * Roots: MENUPARENT === 0 (or self-parent). Missing parent rows get a synthetic
+ * root; title from kerisi-missing-parent-titles.json (optional) or inferred
+ * from first child titles.
+ *
+ * Hidden rows (sourced from the hidden CSV) are tagged with `hiddenByDefault: true`
+ * on each emitted node so the sidebar + admin menu UI can keep them collapsed
+ * until an admin opts in. Synthetic parents that exist solely to host hidden
+ * children inherit the flag.
  */
 import fs from "fs";
 import path from "path";
@@ -13,11 +25,13 @@ import { generateKerisiAllMenuIds } from "./gen-kerisi-all-menu-ids.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
-const defaultCsv = path.join(root, "client/src/config/kerisi-menu-source.csv");
+const defaultSourceCsv = path.join(root, "client/src/config/kerisi-menu-source.csv");
+const defaultHiddenCsv = path.join(root, "client/src/config/kerisi-hidden-menu-source.csv");
 const outFile = path.join(root, "client/src/config/kerisi-menu-migrated.ts");
 const missingParentTitlesFile = path.join(root, "client/src/config/kerisi-missing-parent-titles.json");
 
-const csvPath = process.argv[2] || defaultCsv;
+const sourceCsvPath = process.argv[2] || defaultSourceCsv;
+const hiddenCsvPath = process.argv[3] || defaultHiddenCsv;
 
 function loadMissingParentTitles() {
   try {
@@ -51,6 +65,29 @@ function parseCsvLine(line) {
   return out;
 }
 
+function readCsvRows(csvPath, hiddenByDefault, rowOrder) {
+  if (!fs.existsSync(csvPath)) return [];
+  const raw = fs.readFileSync(csvPath, "utf8").replace(/^\uFEFF/, "");
+  const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length < 2) return [];
+
+  const out = [];
+  for (let li = 1; li < lines.length; li++) {
+    const cols = parseCsvLine(lines[li]);
+    if (cols.length < 5) continue;
+    const menuId = Number.parseInt(cols[0].trim(), 10);
+    if (Number.isNaN(menuId)) continue;
+    let title = cols[1].trim();
+    if (title.startsWith('"') && title.endsWith('"')) title = title.slice(1, -1);
+    const parentId = Number.parseInt(cols[2].trim(), 10);
+    if (Number.isNaN(parentId)) continue;
+    const menuOrder = Number.parseInt(cols[4].trim(), 10);
+    rowOrder.set(menuId, Number.isNaN(menuOrder) ? 0 : menuOrder);
+    out.push({ menuId, title, parentId, virtual: false, hiddenByDefault });
+  }
+  return out;
+}
+
 function inferSyntheticTitle(pid, childRows, rowOrder) {
   if (!childRows.length) return "Menu";
   const sorted = [...childRows].sort(
@@ -64,33 +101,26 @@ function inferSyntheticTitle(pid, childRows, rowOrder) {
 }
 
 function main() {
-  if (!fs.existsSync(csvPath)) {
-    console.error("CSV not found:", csvPath);
+  if (!fs.existsSync(sourceCsvPath)) {
+    console.error("Source CSV not found:", sourceCsvPath);
     process.exit(1);
   }
   const missingParentTitles = loadMissingParentTitles();
-  const raw = fs.readFileSync(csvPath, "utf8").replace(/^\uFEFF/, "");
-  const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  if (lines.length < 2) {
-    console.error("CSV has no data rows");
+  const rowOrder = new Map();
+
+  const visibleRows = readCsvRows(sourceCsvPath, false, rowOrder);
+  if (visibleRows.length === 0) {
+    console.error("Source CSV has no data rows");
     process.exit(1);
   }
+  const hiddenRows = readCsvRows(hiddenCsvPath, true, rowOrder);
 
-  const rowOrder = new Map();
+  const seen = new Set();
   const rows = [];
-
-  for (let li = 1; li < lines.length; li++) {
-    const cols = parseCsvLine(lines[li]);
-    if (cols.length < 5) continue;
-    const menuId = Number.parseInt(cols[0].trim(), 10);
-    if (Number.isNaN(menuId)) continue;
-    let title = cols[1].trim();
-    if (title.startsWith('"') && title.endsWith('"')) title = title.slice(1, -1);
-    const parentId = Number.parseInt(cols[2].trim(), 10);
-    if (Number.isNaN(parentId)) continue;
-    const menuOrder = Number.parseInt(cols[4].trim(), 10);
-    rowOrder.set(menuId, Number.isNaN(menuOrder) ? 0 : menuOrder);
-    rows.push({ menuId, title, parentId, virtual: false });
+  for (const r of [...visibleRows, ...hiddenRows]) {
+    if (seen.has(r.menuId)) continue;
+    seen.add(r.menuId);
+    rows.push(r);
   }
 
   const idSet = new Set(rows.map((r) => r.menuId));
@@ -111,16 +141,18 @@ function main() {
     const key = String(pid);
     const mapped = missingParentTitles[key];
     const kids = byParentId.get(pid) || [];
-    let title =
+    const title =
       typeof mapped === "string" && mapped.trim()
         ? mapped.trim()
         : inferSyntheticTitle(pid, kids, rowOrder);
+    const allKidsHidden = kids.length > 0 && kids.every((k) => k.hiddenByDefault === true);
 
     rows.push({
       menuId: pid,
       title,
       parentId: 0,
       virtual: true,
+      hiddenByDefault: allKidsHidden,
     });
     idSet.add(pid);
   }
@@ -154,29 +186,45 @@ function main() {
     sortRows(kids);
     const label = r.title || `(Menu ${r.menuId})`;
     const to = `/admin/kerisi/m/${r.menuId}`;
-    if (kids.length === 0) {
-      return { menuId: r.menuId, label, to };
+    const node = { menuId: r.menuId, label, to };
+    if (r.hiddenByDefault === true) node.hiddenByDefault = true;
+    if (kids.length > 0) {
+      node.children = kids.map(buildNode);
     }
-    return {
-      menuId: r.menuId,
-      label,
-      to,
-      children: kids.map(buildNode),
-    };
+    return node;
   }
 
   const tree = roots.map(buildNode);
 
-  const header = `/** Auto-generated by scripts/build-kerisi-menu.mjs from kerisi-menu-source.csv — do not edit. */\n\nexport type KerisiMigratedMenuNode = {\n  menuId: number;\n  label: string;\n  to: string;\n  children?: KerisiMigratedMenuNode[];\n};\n\nexport const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = `;
+  const hiddenItemIds = [];
+  const hiddenChildIds = [];
+  const hiddenGrandchildIds = [];
 
-  const body = JSON.stringify(tree, null, 2)
+  function collectHiddenIds(nodes, depth) {
+    for (const n of nodes) {
+      if (n.hiddenByDefault === true) {
+        const id = `kerisi-${n.menuId}`;
+        if (depth === 0) hiddenItemIds.push(id);
+        else if (depth === 1) hiddenChildIds.push(id);
+        else if (depth === 2) hiddenGrandchildIds.push(id);
+      }
+      if (n.children && n.children.length > 0) collectHiddenIds(n.children, depth + 1);
+    }
+  }
+  collectHiddenIds(tree, 0);
+
+  const header = `/** Auto-generated by scripts/build-kerisi-menu.mjs from kerisi-menu-source.csv + kerisi-hidden-menu-source.csv — do not edit. */\n\nexport type KerisiMigratedMenuNode = {\n  menuId: number;\n  label: string;\n  to: string;\n  /** When true, the node is hidden in the sidebar by default but kept in the data model so it can be enabled in the admin Menus UI. */\n  hiddenByDefault?: boolean;\n  children?: KerisiMigratedMenuNode[];\n};\n\nexport const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = `;
+
+  const treeBody = JSON.stringify(tree, null, 2)
     .replace(/"menuId":/g, "menuId:")
     .replace(/"label":/g, "label:")
     .replace(/"to":/g, "to:")
+    .replace(/"hiddenByDefault":/g, "hiddenByDefault:")
     .replace(/"children":/g, "children:");
 
-  fs.writeFileSync(outFile, `${header}${body};\n`, "utf8");
-  generateKerisiAllMenuIds();
+  const idsBlock = `\n\n/** Top-level Kerisi item IDs (kerisi-{menuId}) hidden by default. */\nexport const KERISI_DEFAULT_HIDDEN_ITEM_IDS: readonly string[] = ${JSON.stringify(hiddenItemIds, null, 2)};\n\n/** Level-2 (child) Kerisi IDs hidden by default. */\nexport const KERISI_DEFAULT_HIDDEN_CHILD_IDS: readonly string[] = ${JSON.stringify(hiddenChildIds, null, 2)};\n\n/** Level-3 (grandchild) Kerisi IDs hidden by default. */\nexport const KERISI_DEFAULT_HIDDEN_GRANDCHILD_IDS: readonly string[] = ${JSON.stringify(hiddenGrandchildIds, null, 2)};\n`;
+
+  fs.writeFileSync(outFile, `${header}${treeBody};${idsBlock}`, "utf8");
   console.log(
     "Wrote",
     outFile,
@@ -186,6 +234,8 @@ function main() {
     rows.filter((r) => !r.virtual).length,
     "synthetic parents:",
     missingParents.size,
+    "hidden-by-default:",
+    hiddenItemIds.length + hiddenChildIds.length + hiddenGrandchildIds.length,
   );
 }
 

@@ -20,6 +20,15 @@ import type { AccountActivityInput, AccountActivityRow, AccountCodeInput, Accoun
 type LevelKey = "activity" | "class" | "subClass" | "siri" | "subSiri" | "accountCode";
 type ModalMode = "create" | "edit" | "view";
 
+const props = withDefaults(
+  defineProps<{
+    pageHeading?: string;
+  }>(),
+  {
+    pageHeading: "Setup and Maintenance / General Ledger Structure / Account Code",
+  },
+);
+
 const toast = useToast();
 const columns: { key: LevelKey; title: string; level: number }[] = [
   { key: "activity", title: "ACCOUNT ACTIVITY", level: 0 },
@@ -459,7 +468,7 @@ onUnmounted(() => {
 <template>
   <AdminLayout>
     <div class="space-y-4">
-      <h1 class="page-title">Setup and Maintenance / General Ledger Structure / Account Code</h1>
+      <h1 class="page-title">{{ props.pageHeading }}</h1>
       <div class="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <h1 class="text-lg font-semibold text-slate-900">Account Code</h1>

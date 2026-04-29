@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import { Download, FileDown, FileSpreadsheet, Filter, MoreVertical, Plus, Search, X } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import {
@@ -14,6 +15,23 @@ import type { DatatableRefApi } from "@/composables/useDatatableFeatures";
 import { useToast } from "@/composables/useToast";
 import type { BudgetCodeInput, BudgetCodeOptions, BudgetCodeRow } from "@/types";
 
+const props = withDefaults(
+  defineProps<{
+    /** Hidden entry MENUID 1304 (PAGEID 1044): open the create modal after load. */
+    openCreateOnMount?: boolean;
+    pageHeading?: string;
+    cardTitle?: string;
+    exportPageName?: string;
+  }>(),
+  {
+    openCreateOnMount: false,
+    pageHeading: "Budget / Setup / Budget Code",
+    cardTitle: "Budget Code",
+    exportPageName: "Budget Code",
+  },
+);
+
+const route = useRoute();
 const toast = useToast();
 const rows = ref<BudgetCodeRow[]>([]);
 const page = ref(1);
@@ -108,7 +126,7 @@ function toExportRow(r: BudgetCodeRow): Record<string, string | number> {
 
 const datatableRef = ref<DatatableRefApi | null>(null);
 const { templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } = useDatatableFeatures({
-  pageName: "Budget Code",
+  pageName: props.exportPageName,
   apiDataPath: "/budget/budget-code",
   defaultExportColumns: exportColumns,
   getFilteredList: () => rows.value.map(toExportRow),
@@ -137,7 +155,7 @@ async function exportExcel() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Budget_Code_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = `${props.exportPageName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Excel downloaded");
@@ -174,7 +192,23 @@ function resetSmartFilter() {
 onMounted(async () => {
   await loadOptions();
   await loadRows();
+  if (props.openCreateOnMount) {
+    await nextTick();
+    openCreate();
+  }
 });
+watch(
+  () => `${route.path}::${props.openCreateOnMount}`,
+  async (_nv, oldKey) => {
+    if (oldKey === undefined) return;
+    page.value = 1;
+    await loadRows();
+    if (props.openCreateOnMount) {
+      await nextTick();
+      openCreate();
+    }
+  },
+);
 onUnmounted(() => {
   if (searchDebounce) clearTimeout(searchDebounce);
 });
@@ -190,10 +224,10 @@ onUnmounted(() => {
         class="hidden"
         @change="onTemplateFileChange"
       />
-      <h1 class="page-title">Budget / Setup / Budget Code</h1>
+      <h1 class="page-title">{{ pageHeading }}</h1>
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <h1 class="text-base font-semibold text-slate-900">Budget Code</h1>
+          <h1 class="text-base font-semibold text-slate-900">{{ cardTitle }}</h1>
           <button class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="More">
             <MoreVertical class="h-4 w-4" />
           </button>

@@ -1,0 +1,29 @@
+    // HIDDEN_PAGE_LEVEL3 Asset (`HIDDEN_PAGE_LEVEL3.json` ∩ `kerisi-asset-hidden-routes`; must stay before `...kerisiAssetHiddenRoutes`).
+    {
+      path: "/admin/kerisi/m/1671",
+      name: "kerisi-asset-registration-donation-special",
+      component: AssetLegacyPlaceholderView,
+      props: {
+        title: "Donation / Special Category",
+        breadcrumb: "Asset / Asset Registration / Donation / Special Category",
+        description:
+          "This legacy asset registration, workflow, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1548",
+        relatedLabel: "Open list of asset",
+      },
+      meta: { requiresAuth: true, title: "Donation / Special Category" },
+    },
+    {
+      path: "/admin/kerisi/m/2401",
+      name: "kerisi-asset-registration-list-hidden",
+      component: AssetLegacyPlaceholderView,
+      props: {
+        title: "Asset Registration List",
+        breadcrumb: "Asset / Asset Registration / Asset Registration List",
+        description:
+          "This legacy asset registration, workflow, integration, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1548",
+        relatedLabel: "Open list of asset",
+      },
+      meta: { requiresAuth: true, title: "Asset Registration List" },
+    },

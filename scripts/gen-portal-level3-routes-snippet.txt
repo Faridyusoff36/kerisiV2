@@ -1,0 +1,155 @@
+    // HIDDEN_PAGE_LEVEL3 Portal (`HIDDEN_PAGE_LEVEL3.json` ∩ `kerisi-portal-hidden-routes`; must stay before `...kerisiPortalHiddenRoutes`).
+    {
+      path: "/admin/kerisi/m/1195",
+      name: "kerisi-portal-work-order-instruction",
+      component: PortalLegacyPlaceholderView,
+      props: {
+        title: "Instruction Information",
+        breadcrumb: "Portal / Work Order / Instruction Information",
+        description:
+          "This legacy Portal workflow, application, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Instruction Information" },
+    },
+    {
+      path: "/admin/kerisi/m/1416",
+      name: "kerisi-portal-payslip-generate",
+      component: PortalLegacyPlaceholderView,
+      props: {
+        title: "Generate Payslip",
+        breadcrumb: "Portal / Payslip / Generate Payslip",
+        description:
+          "This legacy Portal workflow, application, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Generate Payslip" },
+    },
+    {
+      path: "/admin/kerisi/m/1675",
+      name: "kerisi-portal-overtime-edit",
+      component: PortalLegacyPlaceholderView,
+      props: {
+        title: "Edit Overtime Claim Application",
+        breadcrumb: "Portal / Overtime Claim / Edit Overtime Claim Application",
+        description:
+          "This legacy Portal workflow, application, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Edit Overtime Claim Application" },
+    },
+    {
+      path: "/admin/kerisi/m/1712",
+      name: "kerisi-portal-overtime-workflow",
+      component: PortalLegacyPlaceholderView,
+      props: {
+        title: "Workflow Overtime Claim Application",
+        breadcrumb: "Portal / Overtime Claim / Workflow Overtime Claim Application",
+        description:
+          "This legacy Portal workflow, application, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Workflow Overtime Claim Application" },
+    },
+    {
+      path: "/admin/kerisi/m/1842",
+      name: "kerisi-portal-financial-statement",
+      component: PortalLegacyPlaceholderView,
+      props: {
+        title: "Statement of Account",
+        breadcrumb: "Portal / Financial Information / Statement of Account",
+        description:
+          "This legacy Portal workflow, application, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/2267",
+        relatedLabel: "Open debtors statement",
+      },
+      meta: { requiresAuth: true, title: "Statement of Account" },
+    },
+    {
+      path: "/admin/kerisi/m/1844",
+      name: "kerisi-portal-financial-outstanding",
+      component: PortalLegacyPlaceholderView,
+      props: {
+        title: "Outstanding Invoice",
+        breadcrumb: "Portal / Financial Information / Outstanding Invoice",
+        description:
+          "This legacy Portal workflow, application, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/2267",
+        relatedLabel: "Open debtors statement",
+      },
+      meta: { requiresAuth: true, title: "Outstanding Invoice" },
+    },
+    {
+      path: "/admin/kerisi/m/1846",
+      name: "kerisi-portal-financial-cart",
+      component: PortalLegacyPlaceholderView,
+      props: {
+        title: "Cart",
+        breadcrumb: "Portal / Financial Information / Cart",
+        description:
+          "This legacy Portal workflow, application, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/2267",
+        relatedLabel: "Open debtors statement",
+      },
+      meta: { requiresAuth: true, title: "Cart" },
+    },
+    {
+      path: "/admin/kerisi/m/1890",
+      name: "kerisi-portal-financial-sponsor-details",
+      component: PortalLegacyPlaceholderView,
+      props: {
+        title: "Sponsor Details",
+        breadcrumb: "Portal / Financial Information / Sponsor Details",
+        description:
+          "This legacy Portal workflow, application, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/2267",
+        relatedLabel: "Open debtors statement",
+      },
+      meta: { requiresAuth: true, title: "Sponsor Details" },
+    },
+    {
+      path: "/admin/kerisi/m/1913",
+      name: "kerisi-portal-work-order-list",
+      component: PortalLegacyPlaceholderView,
+      props: {
+        title: "List of Work Order Staff",
+        breadcrumb: "Portal / Work Order / List of Work Order Staff",
+        description:
+          "This legacy Portal workflow, application, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "List of Work Order Staff" },
+    },
+    {
+      path: "/admin/kerisi/m/2645",
+      name: "kerisi-portal-tp1-workflow",
+      component: PortalLegacyPlaceholderView,
+      props: {
+        title: "Workflow TP1 Application",
+        breadcrumb: "Portal / TP1 / Workflow TP1 Application",
+        description:
+          "This legacy Portal workflow, application, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "Workflow TP1 Application" },
+    },
+    {
+      path: "/admin/kerisi/m/2914",
+      name: "kerisi-portal-stock-new-application-workflow",
+      component: PortalLegacyPlaceholderView,
+      props: {
+        title: "New Application Workflow",
+        breadcrumb: "Portal / Stock Application / New Application Workflow",
+        description:
+          "This legacy Portal workflow, application, or report screen is not reproduced in Kerisi20. Use Kerisi Classic for the full process.",
+        relatedPath: "/admin/kerisi/m/1914",
+        relatedLabel: "Open portal staff profile",
+      },
+      meta: { requiresAuth: true, title: "New Application Workflow" },
+    },

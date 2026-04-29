@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import {
   Ban,
   Download,
@@ -32,6 +33,7 @@ const PAGE_NAME = "Budget Initial V2";
 const PAGE_BREADCRUMB = "Budget / Initial";
 
 const toast = useToast();
+const router = useRouter();
 const rows = ref<BudgetInitialRow[]>([]);
 const page = ref(1);
 const limit = ref(10);
@@ -126,6 +128,11 @@ function notMigrated(kind = "editor"): void {
     "Not migrated yet",
     `The Budget Initial V2 ${kind} is not part of this migration batch.`,
   );
+}
+
+function openNewInitialV2Detail(row: BudgetInitialRow): void {
+  if (row.id == null) return;
+  void router.push({ path: "/admin/kerisi/m/1560", query: { bamId: String(row.id) } });
 }
 
 function openCancelModal(row: BudgetInitialRow): void {
@@ -500,8 +507,8 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / Math.max(1
                         <button
                           type="button"
                           class="rounded p-1 text-slate-500 hover:bg-slate-100"
-                          title="View"
-                          @click="notMigrated('viewer')"
+                          title="View allocation lines (New Initial V2)"
+                          @click="openNewInitialV2Detail(row)"
                         >
                           <Eye class="h-3.5 w-3.5" />
                         </button>

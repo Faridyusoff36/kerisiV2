@@ -18,13 +18,29 @@ import {
   Shield,
 } from "lucide-vue-next";
 
-import { KERISI_MENU_ITEMS } from "@/config/kerisi-menu";
+import {
+  KERISI_DEFAULT_HIDDEN_CHILD_IDS,
+  KERISI_DEFAULT_HIDDEN_GRANDCHILD_IDS,
+  KERISI_DEFAULT_HIDDEN_ITEM_IDS,
+  KERISI_MENU_ITEMS,
+} from "@/config/kerisi-menu";
+
+export {
+  KERISI_DEFAULT_HIDDEN_ITEM_IDS,
+  KERISI_DEFAULT_HIDDEN_CHILD_IDS,
+  KERISI_DEFAULT_HIDDEN_GRANDCHILD_IDS,
+};
 
 export type MenuNode = {
   id: string;
   label: string;
   to: string;
   menuId?: number;
+  /**
+   * When true, the node is hidden in the sidebar by default. The admin can
+   * still opt in via the Menus configuration UI.
+   */
+  hiddenByDefault?: boolean;
   children?: MenuNode[];
 };
 
@@ -47,6 +63,13 @@ export type AdminMenuPrefs = {
   hiddenChildren: string[];
   hiddenGrandchildren: string[];
   hiddenGroups: string[];
+  /**
+   * Explicit opt-ins for `hiddenByDefault` items. A node is shown only when
+   * its id is listed here; otherwise hidden-by-default nodes stay collapsed.
+   */
+  shownItems?: string[];
+  shownChildren?: string[];
+  shownGrandchildren?: string[];
 };
 
 export const DEFAULT_MENU: MenuGroupDef[] = [

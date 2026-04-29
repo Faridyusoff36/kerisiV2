@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiResponse;
+use App\Models\BudgetMovementDetl;
 use App\Models\BudgetMovementMaster;
+use App\Models\StructureBudget;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,13 +19,13 @@ use Illuminate\Http\Request;
  *   docs/migration/fims-budget/PAGE_1274.json  (API_BUDGET_DECREMENT_V2)
  *   docs/migration/fims-budget/PAGE_1275.json  (API_BUDGET_VIREMENT_V2)
  *
- * Intentionally omitted from this initial migration:
- *   - Access control (UNIT_BUDGET / FLC_USER_GROUP_MAPPING / organization_authorization).
- *     All authenticated users currently see all rows. TODO(access-control).
+ * Intentionally omitted from this migration:
+ *   - Access control (UNIT_BUDGET / FLC_USER_GROUP_MAPPING / organization_authorization):
+ *     all authenticated users currently see all rows. TODO(access-control).
  *   - wf_task / wf_application_status workflow joins.
- *   - cancelProcess (the legacy stored proc update_budget). The cancel button is
- *     surfaced in the UI but disabled; the underlying editor pages live at
- *     menuID=1558 / 1559 which are not part of this migration batch.
+ *   - cancel / warrant flows (legacy stored procs and print paths).
+ *
+ * Read-only form (master + detail lines): GET /budget/movements/{type}/{id}/form.
  */
 class BudgetMovementController extends Controller
 {
@@ -144,9 +146,56 @@ class BudgetMovementController extends Controller
             return $this->sendError(404, 'NOT_FOUND', 'Budget movement not found');
         }
 
-        $effectiveDate = $row->updateddate ?? $row->createddate;
+        return $this->sendOk($this->formatMaster($row));
+    }
+
+    /**
+     * Header + detail grid for the legacy “Increment / Decrement / Virement Form”
+     * menus (MENUID 1557 / 1558 / 1559). Read-only.
+     */
+    public function form(string $type, int $id): JsonResponse
+    {
+        $transType = self::TYPE_MAP[strtolower($type)] ?? null;
+        if ($transType === null) {
+            return $this->sendError(400, 'BAD_REQUEST', 'Unknown budget movement type.');
+        }
+
+        $row = BudgetMovementMaster::query()
+            ->where('bmm_budget_movement_id', $id)
+            ->where('bmm_trans_type', $transType)
+            ->with([
+                'details' => fn ($q) => $q->orderBy('bmd_bgt_movement_detl_id'),
+                'details.sourceBudget',
+                'details.destinationBudget',
+            ])
+            ->first();
+
+        if ($row === null) {
+            return $this->sendError(404, 'NOT_FOUND', 'Budget movement not found');
+        }
+
+        $details = $row->details->map(fn (BudgetMovementDetl $d) => [
+            'bmd_bgt_movement_detl_id' => $d->bmd_bgt_movement_detl_id,
+            'bmm_budget_movement_id' => $d->bmm_budget_movement_id,
+            'sbg_budget_id_from' => $d->sbg_budget_id_from,
+            'sbg_budget_id_to' => $d->sbg_budget_id_to,
+            'qbu_quarter_id' => $d->qbu_quarter_id,
+            'bmd_mvt_amt' => $d->bmd_mvt_amt,
+            'source_budget' => $this->formatStructureBudget($d->sourceBudget),
+            'destination_budget' => $this->formatStructureBudget($d->destinationBudget),
+        ]);
 
         return $this->sendOk([
+            'master' => $this->formatMaster($row),
+            'details' => $details,
+        ]);
+    }
+
+    private function formatMaster(BudgetMovementMaster $row): array
+    {
+        $effectiveDate = $row->updateddate ?? $row->createddate;
+
+        return [
             'bmm_budget_movement_id' => $row->bmm_budget_movement_id,
             'bmm_budget_movement_no' => $row->bmm_budget_movement_no,
             'bmm_year' => $row->bmm_year,
@@ -161,7 +210,23 @@ class BudgetMovementController extends Controller
             'createdby' => $row->createdby,
             'updatedby' => $row->updatedby,
             'date' => optional($effectiveDate)->toIso8601String(),
-        ]);
+        ];
+    }
+
+    private function formatStructureBudget(?StructureBudget $budget): ?array
+    {
+        if ($budget === null) {
+            return null;
+        }
+
+        return [
+            'sbg_budget_id' => $budget->sbg_budget_id,
+            'oun_code' => $budget->oun_code,
+            'ccr_costcentre' => $budget->ccr_costcentre,
+            'fty_fund_type' => $budget->fty_fund_type,
+            'at_activity_code' => $budget->at_activity_code,
+            'lbc_budget_code' => $budget->lbc_budget_code,
+        ];
     }
 
     /**

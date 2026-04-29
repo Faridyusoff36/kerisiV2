@@ -37,6 +37,19 @@ import { getStatusPoPrOptions, listStatusPoPr } from "@/api/cms";
 import { useToast } from "@/composables/useToast";
 import type { StatusPoPrOptions, StatusPoPrRow, StatusPoPrSmartFilter } from "@/types";
 
+const props = withDefaults(
+  defineProps<{
+    /** Breadcrumb line (hidden Purchasing menus). */
+    pageHeading?: string;
+    /** Card title under the breadcrumb. */
+    panelTitle?: string;
+  }>(),
+  {
+    pageHeading: "Purchasing / Status PO & PR",
+    panelTitle: "Status PO & PR",
+  },
+);
+
 const toast = useToast();
 const datatableRef = ref<DatatableRefApi | null>(null);
 const rows = ref<StatusPoPrRow[]>([]);
@@ -165,7 +178,7 @@ const exportColumns = [
 
 const { templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } =
   useDatatableFeatures({
-    pageName: "Status PO and PR",
+    pageName: `${props.panelTitle} (PO/PR)`,
     apiDataPath: "/purchasing/status-po-pr",
     defaultExportColumns: exportColumns,
     getFilteredList: () =>
@@ -193,7 +206,7 @@ async function exportExcel() {
     }
     const ExcelJS = await import("exceljs");
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Status PO & PR");
+    const ws = wb.addWorksheet(props.panelTitle.replace(/[\\/*?:[\]]/g, "").slice(0, 31) || "PO_PR");
     ws.addRow(["No", ...exportColumns]);
     rows.value.forEach((r, idx) => {
       ws.addRow([
@@ -255,11 +268,11 @@ onUnmounted(() => {
         class="hidden"
         @change="onTemplateFileChange"
       />
-      <h1 class="page-title">Purchasing / Status PO &amp; PR</h1>
+      <h1 class="page-title">{{ props.pageHeading }}</h1>
 
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <h1 class="text-base font-semibold text-slate-900">Status PO &amp; PR</h1>
+          <h1 class="text-base font-semibold text-slate-900">{{ props.panelTitle }}</h1>
           <button
             type="button"
             class="rounded-lg p-2 text-slate-500 hover:bg-slate-100"

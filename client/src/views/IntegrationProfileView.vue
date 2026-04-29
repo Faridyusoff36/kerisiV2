@@ -15,8 +15,18 @@ import type { IntegrationProfileRow } from "@/types";
 // modal + read-only popup. Lists `int_capital_project` rows that have not been
 // pushed to production yet (`icp_send_date IS NULL`) and whose project status
 // is anything other than OPEN.
-const PAGE_NAME = "Integration - Profile";
-const PAGE_BREADCRUMB = "Setup and Maintenance / Integration / Integration - Profile";
+const props = withDefaults(
+  defineProps<{
+    /** Card title (defaults to Integration - Profile). */
+    pageName?: string;
+    /** Breadcrumb-style line under the main admin shell. */
+    pageBreadcrumb?: string;
+  }>(),
+  {
+    pageName: "Integration - Profile",
+    pageBreadcrumb: "Setup and Maintenance / Integration / Integration - Profile",
+  },
+);
 
 const toast = useToast();
 
@@ -135,7 +145,7 @@ const {
   handleDownloadPDF,
   handleDownloadCSV,
 } = useDatatableFeatures({
-  pageName: PAGE_NAME,
+  pageName: props.pageName,
   apiDataPath: "/integration/profile",
   defaultExportColumns: ["Project No", "Sub-system", "Fund Type", "Activity Code", "Cost Centre", "PTJ Code", "SO Code", "Year", "Period", "Status"],
   getFilteredList: () => (datatableRef.value?.getExportConfig?.()?.data as Record<string, unknown>[]) ?? [],
@@ -156,7 +166,7 @@ async function exportExcel() {
     }
     const ExcelJS = await import("exceljs");
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet(PAGE_NAME);
+    const ws = wb.addWorksheet(props.pageName);
     ws.addRow(["No", ...columnsOut]);
     data.forEach((row, idx) => {
       const values = columnsOut.map((c) => (row[c] ?? "") as string | number);
@@ -167,7 +177,7 @@ async function exportExcel() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${PAGE_NAME.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = `${props.pageName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Excel downloaded");
@@ -207,11 +217,11 @@ onUnmounted(() => {
     <div class="space-y-4">
       <input ref="templateFileInputRef" type="file" accept=".json,application/json" class="hidden" @change="onTemplateFileChange" />
 
-      <h1 class="page-title">{{ PAGE_BREADCRUMB }}</h1>
+      <h1 class="page-title">{{ props.pageBreadcrumb }}</h1>
 
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
-          <h1 class="text-base font-semibold text-slate-900">{{ PAGE_NAME }}</h1>
+          <h1 class="text-base font-semibold text-slate-900">{{ props.pageName }}</h1>
           <div ref="overflowRoot" class="relative">
             <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" @click.stop="overflowOpen = !overflowOpen">
               <MoreVertical class="h-4 w-4" />
