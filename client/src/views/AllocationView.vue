@@ -13,6 +13,16 @@ import type { DatatableRefApi } from "@/composables/useDatatableFeatures";
 import { useToast } from "@/composables/useToast";
 import type { AllocationInput, AllocationOptions, AllocationRow } from "@/types";
 
+const props = withDefaults(
+  defineProps<{
+    /** Breadcrumb path (hidden menu overrides). */
+    pageHeading?: string;
+  }>(),
+  {
+    pageHeading: "Budget / Setup / Allocation",
+  },
+);
+
 const toast = useToast();
 
 const rows = ref<AllocationRow[]>([]);
@@ -187,7 +197,7 @@ onUnmounted(() => {
         class="hidden"
         @change="onTemplateFileChange"
       />
-      <h1 class="page-title">Budget / Setup / Allocation</h1>
+      <h1 class="page-title">{{ props.pageHeading }}</h1>
 
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import {
   Ban,
   Download,
@@ -21,22 +22,42 @@ import type { DatatableRefApi } from "@/composables/useDatatableFeatures";
 import { useToast } from "@/composables/useToast";
 import type { BudgetMovementOption, BudgetMovementRow, BudgetMovementType } from "@/types";
 
-const props = defineProps<{ type: BudgetMovementType }>();
+const props = defineProps<{
+  type: BudgetMovementType;
+  /** Optional overrides for hidden Kerisi menus (e.g. MENUID 1254 New Increment, 1267 New Virement). */
+  overrideBreadcrumb?: string;
+  overrideCardTitle?: string;
+  overrideExportPageName?: string;
+}>();
 
 // Page labels / breadcrumb strings mirror legacy PAGETITLE + PAGEBREADCRUMBS
 // (docs/migration/fims-budget/PAGE_1273.json / PAGE_1274.json / PAGE_1275.json).
 const meta = computed(() => {
-  switch (props.type) {
-    case "increment":
-      return { title: "Increment", breadcrumb: "Budget / Increment", pageName: "Budget Increment" };
-    case "decrement":
-      return { title: "Decrement", breadcrumb: "Budget / Decrement", pageName: "Budget Decrement" };
-    case "virement":
-      return { title: "Virement", breadcrumb: "Budget / Virement", pageName: "Budget Virement" };
-  }
+  const base = (() => {
+    switch (props.type) {
+      case "increment":
+        return { title: "Increment", breadcrumb: "Budget / Increment", pageName: "Budget Increment" };
+      case "decrement":
+        return { title: "Decrement", breadcrumb: "Budget / Decrement", pageName: "Budget Decrement" };
+      case "virement":
+        return { title: "Virement", breadcrumb: "Budget / Virement", pageName: "Budget Virement" };
+    }
+  })();
+  return {
+    title: props.overrideCardTitle ?? base.title,
+    breadcrumb: props.overrideBreadcrumb ?? base.breadcrumb,
+    pageName: props.overrideExportPageName ?? base.pageName,
+  };
 });
 
 const toast = useToast();
+const router = useRouter();
+
+const FORM_MENU_PATH: Record<BudgetMovementType, string> = {
+  increment: "/admin/kerisi/m/1557",
+  decrement: "/admin/kerisi/m/1558",
+  virement: "/admin/kerisi/m/1559",
+};
 const rows = ref<BudgetMovementRow[]>([]);
 const page = ref(1);
 const limit = ref(10);
@@ -97,9 +118,8 @@ function formatDate(v: unknown): string {
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 
-// Legacy dt_js for the Action column disabled certain icons by status. Mirror
-// that here so the page feels familiar even though every action is inert until
-// the editor pages (menuID 1557/1558/1559) are migrated.
+// Legacy dt_js for the Action column disabled certain icons by status. View /
+// Edit open the read-only form (menus 1557–1559). Other actions remain inert until migrated.
 function canEdit(row: BudgetMovementRow): boolean {
   return row.bmmStatus === "DRAFT";
 }
@@ -109,10 +129,19 @@ function canDelete(row: BudgetMovementRow): boolean {
 function canCancel(row: BudgetMovementRow): boolean {
   return row.bmmStatus === "APPROVE" || row.bmmStatus === "APPROVED";
 }
+function openMovementForm(row: BudgetMovementRow, mode: "view" | "edit") {
+  const id = row.bmmBudgetMovementId;
+  if (!id) return;
+  void router.push({
+    path: FORM_MENU_PATH[props.type],
+    query: { id: String(id), ...(mode === "edit" ? { mode: "edit" } : {}) },
+  });
+}
+
 function notMigrated() {
   toast.info(
     "Not migrated yet",
-    "The Budget editor / cancel / warrant flows live on separate legacy pages that are not part of this migration batch.",
+    "Cancel, delete, and warrant flows are not part of this migration batch.",
   );
 }
 
@@ -339,7 +368,7 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / Math.max(1
                           class="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
                           :disabled="!canEdit(row)"
                           title="Edit"
-                          @click="notMigrated"
+                          @click="openMovementForm(row, 'edit')"
                         >
                           <Pencil class="h-3.5 w-3.5" />
                         </button>
@@ -347,7 +376,7 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / Math.max(1
                           type="button"
                           class="rounded p-1 text-slate-500 hover:bg-slate-100"
                           title="View"
-                          @click="notMigrated"
+                          @click="openMovementForm(row, 'view')"
                         >
                           <Eye class="h-3.5 w-3.5" />
                         </button>

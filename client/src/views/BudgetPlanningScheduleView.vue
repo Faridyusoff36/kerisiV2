@@ -20,6 +20,15 @@ import type {
   BudgetPlanningScheduleRow,
 } from "@/types";
 
+const props = withDefaults(
+  defineProps<{
+    pageHeading?: string;
+  }>(),
+  {
+    pageHeading: "Budget / Setup / Budget Planning Schedule",
+  },
+);
+
 const toast = useToast();
 const { confirm } = useConfirmDialog();
 
@@ -214,7 +223,7 @@ onUnmounted(() => {
         class="hidden"
         @change="onTemplateFileChange"
       />
-      <h1 class="page-title">Budget / Setup / Budget Planning Schedule</h1>
+      <h1 class="page-title">{{ props.pageHeading }}</h1>
 
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-100 px-4 py-3">
