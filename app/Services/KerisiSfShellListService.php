@@ -31,9 +31,29 @@ class KerisiSfShellListService
                 1073 => $this->lookupListing('BARRING_TYPE', $page, $limit, $q),
                 1074 => $this->barringPolicyListing($page, $limit, $q),
                 1082, 2093 => $this->feeItemListing($page, $limit, $q),
+                1083 => $this->feeStructureListing($page, $limit, $q),
                 1084, 2750 => $this->academicCalendarListing($page, $limit, $q),
+                1025 => $this->sponsorProfileListing($page, $limit, $q),
+                1029 => $this->outboundDataListing($page, $limit, $q),
+                1030 => $this->receiptBatchListing($page, $limit, $q),
+                1038 => $this->insuranceOfferedStudentListing($page, $limit, $q),
+                1039 => $this->insuranceNewReturningListing($page, $limit, $q),
                 1354 => $this->discountTypeListing($page, $limit, $q),
                 1339 => $this->importDataInsuranceStudentListing($request, $page, $limit, $q),
+                1507 => $this->ptptnStudentListing($page, $limit, $q),
+                1911 => $this->nonFeeStructureListing($page, $limit, $q),
+                2020 => $this->sponsorAdvancePaymentListing($page, $limit, $q),
+                2556 => $this->barringStudentListing($page, $limit, $q),
+                2601 => $this->barringOfferedStudentListing($page, $limit, $q),
+                2797 => $this->insuranceReturningIFASListing($page, $limit, $q),
+                2799 => $this->insuranceDuplicateListing($page, $limit, $q),
+                2802 => $this->bankAccountManualUpdateListing($page, $limit, $q),
+                2834 => $this->cnPolicyByEventListing($page, $limit, $q),
+                2937 => $this->bankAccountOfferStudentListing($page, $limit, $q),
+                // Form-only / detail pages — no list query
+                1069, 1070, 1150, 1192, 1193, 1252, 1253, 1255, 1257,
+                1278, 1279, 1280, 1298, 1311, 1313, 1323, 1326, 1327, 1328,
+                1335, 1491, 1530, 1571, 1576, 1822, 2096, 2390, 2840 => ['rows' => [], 'total' => 0, 'connector' => 'sf_form_only'],
                 default => $this->registryShellDefault($menuId, $request, $page, $limit, $q),
             };
         } catch (\Throwable $e) {
@@ -548,5 +568,482 @@ class KerisiSfShellListService
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 1029 — Bill Presentment > Outbound Data list
+    // ─────────────────────────────────────────────────────────────────────────
+    private function outboundDataListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('outbound_data as od')
+            ->join('bill_presentment_master as bpm', 'bpm.bpm_bill_present_master_id', '=', 'od.bpm_bill_present_master_id');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(od.obd_student_id,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(od.obd_student_name,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderByDesc('od.createddate')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['od.obd_student_id', 'od.obd_student_name', 'od.bpm_bill_present_master_id', 'od.createddate']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_outbound_data'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 1030 — Bill Presentment > Receipt by Batch
+    // ─────────────────────────────────────────────────────────────────────────
+    private function receiptBatchListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('receipt_batch_master');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(rbm_reference_no,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(rbm_file_name,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderByDesc('rbm_receipt_batch_master_id')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['rbm_receipt_batch_master_id', 'rbm_reference_no', 'rbm_bank_date',
+                'rbm_file_name', 'rbm_source_cd', 'rbm_status_cd', 'rbm_total_data', 'rbm_total_amt']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_receipt_batch'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 1025 — Sponsor > Profile
+    // ─────────────────────────────────────────────────────────────────────────
+    private function sponsorProfileListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('sponsor');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(spn_sponsor_name,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(spn_contact_person,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(spn_email,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('spn_sponsor_name')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['spn_sponsor_id', 'spn_sponsor_code', 'spn_sponsor_name',
+                'spn_contact_person', 'spn_email', 'spn_status_cd', 'spn_status_invoice_cd']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_sponsor_profile'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 1038 — Insurance > List of Offered Students
+    // ─────────────────────────────────────────────────────────────────────────
+    private function insuranceOfferedStudentListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('offered_student')
+            ->where('ost_citizenship_status', '1')
+            ->where('ost_mode_study', '1');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(ost_student_id,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(ost_student_name,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(ost_ic_no,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(ost_offered_semester,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('ost_student_id')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['ost_student_id', 'ost_student_name', 'ost_ic_no', 'ost_passport',
+                'ost_program_level', 'ost_offered_semester']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_insurance_offered'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 1039 — Insurance > New/Returning Student
+    // ─────────────────────────────────────────────────────────────────────────
+    private function insuranceNewReturningListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('student as s')
+            ->join('stud_insurance as si', 'si.std_student_id', '=', 's.std_student_id');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(s.std_student_id,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(s.std_student_name,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('s.std_student_id')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['s.std_student_id', 's.std_student_name', 's.std_status',
+                's.std_program_level', 's.std_intake_semester',
+                'si.vcs_vendor_code_insuran', 'si.sin_ins_policy_no']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_insurance_new_returning'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 1083 — Setup > Fee Structure
+    // ─────────────────────────────────────────────────────────────────────────
+    private function feeStructureListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('fee_structure_master');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(fsm_fee_str_code,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(fsm_fee_str_desc,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(fsm_fee_str_code_cloned,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('fsm_fee_str_code')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['fsm_fee_struc_master_id', 'fsm_fee_str_code', 'fsm_fee_str_desc',
+                'fsm_program_level', 'fsm_citizenship_status', 'fsm_fee_str_code_cloned',
+                'fsm_total_amt', 'fsm_status']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_fee_structure'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 1507 — Sponsor > PTPTN (sponsor_type = '05')
+    // ─────────────────────────────────────────────────────────────────────────
+    private function ptptnStudentListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('student as a')
+            ->join('stud_sponsor as b', 'b.std_student_id', '=', 'a.std_student_id')
+            ->join('sponsor as c', 'c.spn_sponsor_code', '=', 'b.spn_sponsor_code')
+            ->where('c.spn_sponsor_type', '05');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(a.std_student_id,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(a.std_student_name,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(a.std_ic_no,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('a.std_student_id')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['a.std_student_id', 'a.std_student_name', 'a.std_ic_no', 'a.std_passport',
+                'a.std_status', 'a.std_program_level',
+                'b.ssp_warrant_no', 'b.ssp_warrant_amt', 'b.ssp_ptptn_deduction_amt', 'b.ssp_ptptn_balance_amt']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_ptptn_students'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 1911 — Setup > Non-Fee Structure
+    // ─────────────────────────────────────────────────────────────────────────
+    private function nonFeeStructureListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('noninv_struct_master as nsm')
+            ->leftJoin('lookup_details as ld', function ($j) {
+                $j->on('ld.lde_value', '=', 'nsm.nsm_program_level')
+                    ->where('ld.lma_code_name', '=', 'PROGRAM_LEVEL');
+            });
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(nsm.nsm_fee_str_code,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(nsm.nsm_fee_str_desc,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('nsm.nsm_fee_str_code')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['nsm.nsm_id', 'nsm.nsm_fee_str_code', 'nsm.nsm_fee_str_desc',
+                'nsm.nsm_program_level', 'ld.lde_description as program_level_desc']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_non_fee_structure'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 2020 — Sponsor > Advance Payment
+    // ─────────────────────────────────────────────────────────────────────────
+    private function sponsorAdvancePaymentListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('deposit_master as dpm')
+            ->where('dpm.dpm_payto_type', 'S');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(dpm.vcs_vendor_code,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(dpm.dpm_vendor_name,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(dpm.dpm_deposit_no,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('dpm.dpm_deposit_no')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['dpm.dpm_deposit_master_id', 'dpm.vcs_vendor_code', 'dpm.dpm_vendor_name',
+                'dpm.dpm_deposit_no', 'dpm.dpm_status']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_sponsor_advance_payment'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 2556 — Barring > List of Students
+    // ─────────────────────────────────────────────────────────────────────────
+    private function barringStudentListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('stud_barring as sb')
+            ->join('student as s', 's.std_student_id', '=', 'sb.std_student_id');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(sb.std_student_id,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(s.std_student_name,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('sb.std_student_id')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['sb.sbr_id', 'sb.std_student_id', 's.std_student_name',
+                's.std_citizenship_status', 's.std_current_sem', 's.std_program_level']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_barring_students'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 2601 — Barring > Release Registration Fee (Offered)
+    // ─────────────────────────────────────────────────────────────────────────
+    private function barringOfferedStudentListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('stud_offered_barring as sob')
+            ->join('offered_student as os', 'os.ost_student_id', '=', 'sob.sob_student_id');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(sob.sob_student_id,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(os.ost_student_name,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('sob.sob_student_id')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['sob.sob_id', 'sob.sob_student_id', 'os.ost_student_name',
+                'os.ost_citizenship_status', 'os.ost_offered_semester', 'os.ost_program_level']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_barring_offered_students'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 2797 — Insurance > Returning Students at iFAS
+    // ─────────────────────────────────────────────────────────────────────────
+    private function insuranceReturningIFASListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('student as a')
+            ->join('stud_insurance as b', 'b.std_student_id', '=', 'a.std_student_id')
+            ->where('a.std_status', '!=', '01');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(a.std_student_id,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(a.std_student_name,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(b.sin_ins_policy_no,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('a.std_student_id')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['a.std_student_id', 'a.std_student_name', 'a.std_status',
+                'a.std_program_level', 'a.std_intake_semester',
+                'b.vcs_vendor_code_insuran', 'b.sin_ins_policy_no']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_insurance_returning_ifas'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 2799 — Insurance > Duplicate/Multiple
+    // ─────────────────────────────────────────────────────────────────────────
+    private function insuranceDuplicateListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('student as a')
+            ->join('stud_insurance as b', 'b.std_student_id', '=', 'a.std_student_id')
+            ->whereIn('a.std_student_id', function ($sub) {
+                $sub->select('std_student_id')
+                    ->from('stud_insurance')
+                    ->groupBy('std_student_id')
+                    ->havingRaw('COUNT(*) > 1');
+            });
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(a.std_student_id,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(a.std_student_name,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('a.std_student_id')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['a.std_student_id', 'a.std_student_name', 'a.std_status',
+                'a.std_program_level', 'a.std_intake_semester',
+                'b.vcs_vendor_code_insuran', 'b.sin_ins_policy_no']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_insurance_duplicate'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 2802 — Bank Account Update > Manual Update
+    // ─────────────────────────────────────────────────────────────────────────
+    private function bankAccountManualUpdateListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('student as std')
+            ->leftJoin('stud_account as sa', 'sa.std_student_id', '=', 'std.std_student_id');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(std.std_student_id,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(std.std_student_name,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(std.std_ic_no,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(sa.sac_bank_acc_no,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('std.std_student_id')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['std.std_student_id', 'std.std_student_name', 'std.std_ic_no', 'std.std_passport',
+                'std.std_status', 'sa.sac_bank_acc_no', 'sa.sac_bank_code', 'sa.sac_status']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_bank_account_manual'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 2834 — Setup > CN Policy by Event
+    // ─────────────────────────────────────────────────────────────────────────
+    private function cnPolicyByEventListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('credit_note_policy as cnp')
+            ->leftJoin('lookup_cn_policy_type as lct', 'lct.lcn_code', '=', 'cnp.cnp_event_code')
+            ->leftJoin('lookup_details as ld', function ($j) {
+                $j->on('ld.lde_value', '=', 'cnp.cnp_fee_involved')
+                    ->where('ld.lma_code_name', '=', 'FCATEGORY');
+            });
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(lct.lcn_description,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(cnp.cnp_fee_item,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(ld.lde_description,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('cnp.cnp_cn_policy_id')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['cnp.cnp_cn_policy_id', 'cnp.cnp_event_code', 'lct.lcn_description as event_name',
+                'cnp.cnp_fee_involved', 'ld.lde_description as fee_category_desc',
+                'cnp.cnp_fee_item', 'cnp.cnp_cn_rate', 'cnp.cnp_within_day', 'cnp.cnp_status']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_cn_policy_by_event'];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // MENUID 2937 — Bank Account Update > Offer Student
+    // ─────────────────────────────────────────────────────────────────────────
+    private function bankAccountOfferStudentListing(int $page, int $limit, string $q): array
+    {
+        $conn = DB::connection('mysql_secondary');
+        $base = $conn->table('offered_student as os')
+            ->join('deposit_master as dm', function ($j) {
+                $j->on('dm.vcs_vendor_code', '=', 'os.ost_student_id')
+                    ->where('dm.dpm_payto_type', '=', 'A')
+                    ->whereNull('dm.ismigration');
+            })
+            ->leftJoin('lookup_details as lde', function ($j) {
+                $j->on('lde.lde_value', '=', 'os.ost_citizenship_status')
+                    ->where('lde.lma_code_name', '=', 'NATIONALITY');
+            })
+            ->leftJoin('lookup_details as lde2', function ($j) {
+                $j->on('lde2.lde_value', '=', 'os.ost_program_level')
+                    ->where('lde2.lma_code_name', '=', 'PROGRAM_LEVEL');
+            });
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->where(function ($w) use ($like) {
+                $w->whereRaw("LOWER(IFNULL(os.ost_student_id,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(os.ost_student_name,'')) LIKE ?", [$like])
+                    ->orWhereRaw("LOWER(IFNULL(os.ost_ic_no,'')) LIKE ?", [$like]);
+            });
+        }
+
+        $total = (clone $base)->count();
+        $rows = (clone $base)
+            ->orderBy('os.ost_student_id')
+            ->skip(($page - 1) * $limit)->take($limit)
+            ->get(['os.ost_student_id', 'os.ost_student_name', 'os.ost_program', 'os.ost_program_level',
+                'os.ost_faculty_code', 'os.ost_method_study', 'os.ost_mode_study',
+                'os.ost_offered_semester', 'os.ost_ic_no', 'os.ost_citizenship_status',
+                'lde.lde_description as citizenship_desc',
+                'dm.dpm_deposit_no', 'dm.dpm_status']);
+
+        return ['rows' => $rows->toArray(), 'total' => $total, 'connector' => 'sf_bank_account_offer_student'];
     }
 }

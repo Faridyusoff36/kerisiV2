@@ -3121,3 +3121,149 @@ export async function listKerisiPayrollData(menuId: number, params = "") {
     `/api/payroll/kerisi/${menuId}${params}`,
   );
 }
+
+export async function listKerisiRemainingData(menuId: number, params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/kerisi/remaining/${menuId}${params}`,
+  );
+}
+
+/** Purchasing / Setup / Item Main (menu 1820) — mysql_secondary cascading lists */
+export type PurchasingItemMainGroupOpt = { value: string; label: string };
+
+export async function purchasingItemMainGroups() {
+  return apiRequest<{ data: PurchasingItemMainGroupOpt[] }>("/api/purchasing/item-main/groups");
+}
+
+export async function purchasingItemMainMainCategories(params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/purchasing/item-main/main-categories${params}`,
+  );
+}
+
+export async function purchasingItemMainSubcategories(params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/purchasing/item-main/subcategories${params}`,
+  );
+}
+
+export async function purchasingItemMainSubsiri(params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/purchasing/item-main/subsiri${params}`,
+  );
+}
+
+export async function purchasingItemMainItemLines(params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(
+    `/api/purchasing/item-main/item-lines${params}`,
+  );
+}
+
+/** Purchasing / Setup / List Of Jobscope (menu 1932). */
+
+export type JobscopeDropdownOpt = { value: string; label: string };
+
+export async function purchasingJobscopeFormOptions() {
+  return apiRequest<{
+    data: {
+      levels: JobscopeDropdownOpt[];
+      categories: JobscopeDropdownOpt[];
+      smartCategories: JobscopeDropdownOpt[];
+      statuses: JobscopeDropdownOpt[];
+    };
+  }>("/api/purchasing/jobscope/form-options");
+}
+
+export async function purchasingJobscopeParentOptions(params = "") {
+  return apiRequest<{ data: JobscopeDropdownOpt[] }>(`/api/purchasing/jobscope/parent-options${params}`);
+}
+
+export async function listPurchasingJobscope(params = "") {
+  return apiRequest<{ data: Record<string, unknown>[]; meta: Record<string, unknown> }>(`/api/purchasing/jobscope${params}`);
+}
+
+export async function getPurchasingJobscope(id: number) {
+  return apiRequest<{ data: Record<string, unknown> }>(`/api/purchasing/jobscope/${id}`);
+}
+
+export async function createPurchasingJobscope(input: {
+  level: string;
+  category: string;
+  parent?: string;
+  code: string;
+  name: string;
+  status: string;
+}) {
+  return apiRequest<{ data: { id: number } }>("/api/purchasing/jobscope", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updatePurchasingJobscope(
+  id: number,
+  input: {
+    level: string;
+    category: string;
+    parent?: string;
+    code: string;
+    name: string;
+    status: string;
+  },
+) {
+  return apiRequest<{ data: Record<string, unknown> }>(`/api/purchasing/jobscope/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+/** Purchasing / New Purchase Requisition (MENUID 1771) — `requisition_master` header + lookups on mysql_secondary. */
+export type PurchasingPrDropdownRow = { value: string; label: string };
+
+export type PurchasingPrOptionsPayload = {
+  requestBy: PurchasingPrDropdownRow[];
+  contactPerson: PurchasingPrDropdownRow[];
+  ptj: PurchasingPrDropdownRow[];
+  costCentres: PurchasingPrDropdownRow[];
+  fund: PurchasingPrDropdownRow[];
+  activity: PurchasingPrDropdownRow[];
+  vendor: PurchasingPrDropdownRow[];
+  agreementYesNo: PurchasingPrDropdownRow[];
+  agreementNo: PurchasingPrDropdownRow[];
+  foreignCurrencyCode: PurchasingPrDropdownRow[];
+  rateType: PurchasingPrDropdownRow[];
+  requisitionType: PurchasingPrDropdownRow[];
+  purchaseMethod: PurchasingPrDropdownRow[];
+};
+
+export async function purchasingPurchaseRequisitionOptions() {
+  return apiRequest<{ data: PurchasingPrOptionsPayload }>("/api/purchasing/purchase-requisition/options");
+}
+
+export async function purchasingPurchaseRequisitionCostCentres(ounCode: string) {
+  const p =
+    typeof ounCode === "string" && ounCode.trim() !== ""
+      ? `?oun_code=${encodeURIComponent(ounCode.trim())}`
+      : "";
+  return apiRequest<{ data: { costCentres: PurchasingPrDropdownRow[] } }>(
+    `/api/purchasing/purchase-requisition/cost-centres${p}`,
+  );
+}
+
+export async function getPurchasingPurchaseRequisition(id: number) {
+  return apiRequest<{ data: Record<string, unknown> }>(`/api/purchasing/purchase-requisition/${id}`);
+}
+
+export async function purchasingPurchaseRequisitionCreate(input: Record<string, unknown>) {
+  return apiRequest<{ data: Record<string, unknown> }>(`/api/purchasing/purchase-requisition`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updatePurchasingPurchaseRequisition(id: number, input: Record<string, unknown>) {
+  return apiRequest<{ data: Record<string, unknown> }>(`/api/purchasing/purchase-requisition/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}

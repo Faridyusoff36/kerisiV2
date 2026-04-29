@@ -4220,6 +4220,8 @@ export type StructureBudgetListRow = {
   sbBudgetCode: string | null;
   sbBudgetCodeDesc: string | null;
   sbStatus: string | null;
+  /** YES / NO — legacy Deficit Budget when balance is negative */
+  sbDeficitBudget: string | null;
   sbInitialAmt: number | null;
   sbTopupAmt: number | null;
   sbVirementAmt: number | null;
@@ -4345,8 +4347,10 @@ export type BudgetPlanningNewCreated = {
 };
 
 // Budget > Reports > Total Allocation Report (PAGEID 1626 / MENUID 1968).
+// Legacy grid: opening / allocated / commit / expenses / total expenses / balance (RM).
 export type TotalAllocationRow = {
   index: number;
+  bdgBudgetId: string;
   rptYear: string | null;
   rptFund: string | null;
   rptFundDesc: string | null;
@@ -4358,18 +4362,21 @@ export type TotalAllocationRow = {
   rptCcrDesc: string | null;
   rptBudgetCode: string | null;
   rptBudgetCodeDesc: string | null;
-  rptInitial: number;
-  rptTopup: number;
-  rptVirement: number;
-  rptTotal: number;
+  rptOpening: number;
+  rptAllocated: number;
+  rptCommit: number;
+  rptExpenses: number;
+  rptTotalExpenses: number;
   rptBalance: number | null;
 };
 
 export type TotalAllocationTotals = {
-  initial: number;
-  topup: number;
-  virement: number;
-  grand: number;
+  opening: number;
+  allocated: number;
+  commit: number;
+  expenses: number;
+  totalExpenses: number;
+  balance: number;
 };
 
 export type TotalAllocationOptions = {

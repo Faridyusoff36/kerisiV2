@@ -436,7 +436,7 @@ const formBeforeDataTable = computed(() => {
 /** Deduplicated list of componentTitle values used to build form-section cards. */
 const formSectionGroups = computed(() => {
   const s = spec.value;
-  if (!s) return [] as { title: string; fields: typeof s.formSections }[];
+  if (!s) return [] as { title: string; fields: KerisiSfLevel3PageSpec["formSections"] }[];
   const seen = new Map<string, typeof s.formSections[number][]>();
   for (const f of s.formSections) {
     const key = f.componentTitle ?? "Details";

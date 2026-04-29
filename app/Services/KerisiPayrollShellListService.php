@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Database\Connection;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -18,107 +20,119 @@ class KerisiPayrollShellListService
     /** @return array{rows: list<array<string,mixed>>, total: int, connector: string} */
     public function fetch(int $menuId, Request $request): array
     {
-        $page  = max(1, (int) $request->input('page', 1));
+        $page = max(1, (int) $request->input('page', 1));
         $limit = max(1, min(200, (int) $request->input('limit', 10)));
-        $q     = trim((string) $request->input('q', ''));
+        $q = trim((string) $request->input('q', ''));
 
-        return match ($menuId) {
-            // ── Lookup ──────────────────────────────────────────────────────
-            3310 => $this->lookupDetails($request, $page, $limit, $q, 'STAFFJOBTYPE'),
-            1462 => $this->lookupDetails($request, $page, $limit, $q, 'STAFFSTATUS'),
-            1463 => $this->lookupDetails($request, $page, $limit, $q, 'STAFFJOBSTATUS'),
-            1464 => $this->lookupDetails($request, $page, $limit, $q, 'TITLE'),
-            1467 => $this->lookupDetails($request, $page, $limit, $q, 'RELIGION'),
-            1468 => $this->lookupDetails($request, $page, $limit, $q, 'RACE'),
-            1469 => $this->lookupDetails($request, $page, $limit, $q, 'STATE'),
-            3339 => $this->lookupDetails($request, $page, $limit, $q, 'BNM_CODE_CIMB'),
-            // ── Lookup — Staff Prefix ────────────────────────────────────────
-            3328 => $this->staffPrefix($request, $page, $limit, $q),
-            // ── Lookup — Service Scheme ──────────────────────────────────────
-            1474 => $this->serviceScheme($request, $page, $limit, $q),
-            // ── Lookup — Salary Grade ────────────────────────────────────────
-            3329 => $this->salaryGrade($request, $page, $limit, $q),
-            // ── Setup ────────────────────────────────────────────────────────
-            1440 => $this->monthlySetupSalary($request, $page, $limit, $q),
-            1441 => $this->employerAccountInfo($request, $page, $limit, $q),
-            1442 => $this->incomeType($request, $page, $limit, $q),
-            1443 => $this->taxChildRelief($request, $page, $limit, $q),
-            1995 => $this->otherDeduction($request, $page, $limit, $q),
-            2674 => $this->taxRateCalculator($request, $page, $limit, $q),
-            2948 => $this->activityMapping($request, $page, $limit, $q),
-            2940 => $this->incomeCodeByInvoiceType($request, $page, $limit, $q),
-            3020 => $this->changeEpfContribution($request, $page, $limit, $q),
-            3222 => $this->deductionCodeByAccountCode($request, $page, $limit, $q),
-            // ── Staff Profile ────────────────────────────────────────────────
-            1325 => $this->listOfStaff($request, $page, $limit, $q),
-            // ── Salary Processing ────────────────────────────────────────────
-            2027 => $this->salaryGenerationVerification($request, $page, $limit, $q),
-            // ── Salary Crediting ─────────────────────────────────────────────
-            1927 => $this->journalList($request, $page, $limit, $q),
-            1425 => $this->voucherList($request, $page, $limit, $q),
-            // ── Allowance & Deduction ────────────────────────────────────────
-            1850 => $this->listAllowanceDeduction($request, $page, $limit, $q),
-            1845 => $this->allowanceDeductionBulks($request, $page, $limit, $q),
-            1891 => $this->individualAllowanceDeduction($request, $page, $limit, $q),
-            3032 => $this->deleteByBulk($request, $page, $limit, $q),
-            // ── Employee Benefit ─────────────────────────────────────────────
-            2102 => $this->gcrListing($request, $page, $limit, $q),
-            // ── Income Tax ───────────────────────────────────────────────────
-            2308 => $this->ecAccountCode($request, $page, $limit, $q),
-            2313 => $this->ecRemunerationStaff($request, $page, $limit, $q),
-            2759 => $this->processByBill($request, $page, $limit, $q),
-            // ── Report ───────────────────────────────────────────────────────
-            1476 => $this->penyataGajiInduk($request, $page, $limit, $q),
-            1480 => $this->penyataSaraanPotongan($request, $page, $limit, $q),
-            1888 => $this->creditingToBank($request, $page, $limit, $q),
-            1893 => $this->incomeAdjustmentReport($request, $page, $limit, $q),
-            1836 => $this->listingOfStaffReport($request, $page, $limit, $q),
-            1889 => $this->varianceAllowanceDeduction($request, $page, $limit, $q),
-            1978 => $this->dataChangeChecklist($request, $page, $limit, $q),
-            1894 => $this->listOfPaymentReceiver($request, $page, $limit, $q),
-            2549 => $this->journalLog($request, $page, $limit, $q),
-            2675 => $this->varianceByIncomeCode($request, $page, $limit, $q),
-            2681 => $this->varianceByType($request, $page, $limit, $q),
-            2698 => $this->allowanceAndDeductionReport($request, $page, $limit, $q),
-            2835 => $this->deductionListPerMonth($request, $page, $limit, $q),
-            2913 => $this->incomeTypeList($request, $page, $limit, $q),
-            3337 => $this->perjawatan($request, $page, $limit, $q),
-            3335 => $this->senaraiElaun($request, $page, $limit, $q),
-            3336 => $this->laporanKodElaun($request, $page, $limit, $q),
-            // ── Integration ──────────────────────────────────────────────────
-            2540 => $this->otherDeductionAdmin($request, $page, $limit, $q),
-            2773 => $this->emergencyFund($request, $page, $limit, $q),
-            3309 => $this->loanDeferredPayment($request, $page, $limit, $q),
-            2749 => $this->monthlyLoan($request, $page, $limit, $q),
-            2962 => $this->monthlyInvoice($request, $page, $limit, $q),
-            3347 => $this->loanStatusComplete($request, $page, $limit, $q),
-            // ── Kew 8 ────────────────────────────────────────────────────────
-            3440 => $this->kew8ListOfStaff($request, $page, $limit, $q),
-            3449 => $this->listOfKew8Forms($request, $page, $limit, $q),
-            default => ['rows' => [], 'total' => 0, 'connector' => 'payroll_shell_preview'],
-        };
+        try {
+            return match ($menuId) {
+                // ── Lookup ──────────────────────────────────────────────────────
+                3310 => $this->lookupDetails($request, $page, $limit, $q, 'STAFFJOBTYPE'),
+                1462 => $this->lookupDetails($request, $page, $limit, $q, 'STAFFSTATUS'),
+                1463 => $this->lookupDetails($request, $page, $limit, $q, 'STAFFJOBSTATUS'),
+                1464 => $this->lookupDetails($request, $page, $limit, $q, 'TITLE'),
+                1467 => $this->lookupDetails($request, $page, $limit, $q, 'RELIGION'),
+                1468 => $this->lookupDetails($request, $page, $limit, $q, 'RACE'),
+                1469 => $this->lookupDetails($request, $page, $limit, $q, 'STATE'),
+                3339 => $this->lookupDetails($request, $page, $limit, $q, 'BNM_CODE_CIMB'),
+                // ── Lookup — Staff Prefix ────────────────────────────────────────
+                3328 => $this->staffPrefix($request, $page, $limit, $q),
+                // ── Lookup — Service Scheme ──────────────────────────────────────
+                1474 => $this->serviceScheme($request, $page, $limit, $q),
+                // ── Lookup — Salary Grade ────────────────────────────────────────
+                3329 => $this->salaryGrade($request, $page, $limit, $q),
+                // ── Setup ────────────────────────────────────────────────────────
+                1440 => $this->monthlySetupSalary($request, $page, $limit, $q),
+                1441 => $this->employerAccountInfo($request, $page, $limit, $q),
+                1442 => $this->incomeType($request, $page, $limit, $q),
+                1443 => $this->taxChildRelief($request, $page, $limit, $q),
+                1995 => $this->otherDeduction($request, $page, $limit, $q),
+                2674 => $this->taxRateCalculator($request, $page, $limit, $q),
+                2948 => $this->activityMapping($request, $page, $limit, $q),
+                2940 => $this->incomeCodeByInvoiceType($request, $page, $limit, $q),
+                3020 => $this->changeEpfContribution($request, $page, $limit, $q),
+                3222 => $this->deductionCodeByAccountCode($request, $page, $limit, $q),
+                // ── Staff Profile ────────────────────────────────────────────────
+                1325 => $this->listOfStaff($request, $page, $limit, $q),
+                // ── Salary Processing ────────────────────────────────────────────
+                2027 => $this->salaryGenerationVerification($request, $page, $limit, $q),
+                // ── Salary Crediting ─────────────────────────────────────────────
+                1927 => $this->journalList($request, $page, $limit, $q),
+                1425 => $this->voucherList($request, $page, $limit, $q),
+                // ── Allowance & Deduction ────────────────────────────────────────
+                1850 => $this->listAllowanceDeduction($request, $page, $limit, $q),
+                1845 => $this->allowanceDeductionBulks($request, $page, $limit, $q),
+                1891 => $this->individualAllowanceDeduction($request, $page, $limit, $q),
+                3032 => $this->deleteByBulk($request, $page, $limit, $q),
+                // ── Employee Benefit ─────────────────────────────────────────────
+                2102 => $this->gcrListing($request, $page, $limit, $q),
+                // ── Income Tax ───────────────────────────────────────────────────
+                2308 => $this->ecAccountCode($request, $page, $limit, $q),
+                2313 => $this->ecRemunerationStaff($request, $page, $limit, $q),
+                2759 => $this->processByBill($request, $page, $limit, $q),
+                // ── Report ───────────────────────────────────────────────────────
+                1476 => $this->penyataGajiInduk($request, $page, $limit, $q),
+                1480 => $this->penyataSaraanPotongan($request, $page, $limit, $q),
+                1888 => $this->creditingToBank($request, $page, $limit, $q),
+                1893 => $this->incomeAdjustmentReport($request, $page, $limit, $q),
+                1836 => $this->listingOfStaffReport($request, $page, $limit, $q),
+                1889 => $this->varianceAllowanceDeduction($request, $page, $limit, $q),
+                1978 => $this->dataChangeChecklist($request, $page, $limit, $q),
+                1894 => $this->listOfPaymentReceiver($request, $page, $limit, $q),
+                2549 => $this->journalLog($request, $page, $limit, $q),
+                2675 => $this->varianceByIncomeCode($request, $page, $limit, $q),
+                2681 => $this->varianceByType($request, $page, $limit, $q),
+                2698 => $this->allowanceAndDeductionReport($request, $page, $limit, $q),
+                2835 => $this->deductionListPerMonth($request, $page, $limit, $q),
+                2913 => $this->incomeTypeList($request, $page, $limit, $q),
+                3337 => $this->perjawatan($request, $page, $limit, $q),
+                3335 => $this->senaraiElaun($request, $page, $limit, $q),
+                3336 => $this->laporanKodElaun($request, $page, $limit, $q),
+                // ── Integration ──────────────────────────────────────────────────
+                2540 => $this->otherDeductionAdmin($request, $page, $limit, $q),
+                2773 => $this->emergencyFund($request, $page, $limit, $q),
+                3309 => $this->loanDeferredPayment($request, $page, $limit, $q),
+                2749 => $this->monthlyLoan($request, $page, $limit, $q),
+                2962 => $this->monthlyInvoice($request, $page, $limit, $q),
+                3347 => $this->loanStatusComplete($request, $page, $limit, $q),
+                // ── Kew 8 ────────────────────────────────────────────────────────
+                3440 => $this->kew8ListOfStaff($request, $page, $limit, $q),
+                3449 => $this->listOfKew8Forms($request, $page, $limit, $q),
+                default => ['rows' => [], 'total' => 0, 'connector' => 'payroll_shell_preview'],
+            };
+        } catch (\Throwable $e) {
+            report($e);
+
+            return [
+                'rows' => [],
+                'total' => 0,
+                'connector' => 'payroll_shell_error',
+                'shellError' => config('app.debug') ? $e->getMessage() : 'secondary_db_query_failed',
+            ];
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
-    private function conn(): \Illuminate\Database\Connection
+    private function conn(): Connection
     {
         return DB::connection('mysql_secondary');
     }
 
     private function likeEscape(string $q): string
     {
-        return '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q) . '%';
+        return '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q).'%';
     }
 
-    private function paginate(\Illuminate\Database\Query\Builder $base, int $page, int $limit): array
+    private function paginate(Builder $base, int $page, int $limit): array
     {
         $total = (clone $base)->count();
-        $rows  = $base->skip(($page - 1) * $limit)->take($limit)->get()->toArray();
+        $rows = $base->skip(($page - 1) * $limit)->take($limit)->get()->toArray();
+
         return [
-            'rows'  => array_map(fn ($r) => (array) $r, $rows),
+            'rows' => array_map(fn ($r) => (array) $r, $rows),
             'total' => $total,
         ];
     }
@@ -287,7 +301,7 @@ class KerisiPayrollShellListService
         // Smart filter
         $sfPayMonth = trim((string) $request->input('ppsPpayMonth', ''));
         if ($sfPayMonth !== '') {
-            $base->where('pps_pay_month', 'like', '%' . $sfPayMonth . '%');
+            $base->where('pps_pay_month', 'like', '%'.$sfPayMonth.'%');
         }
 
         $base->orderByDesc('pps_pay_month');
@@ -366,7 +380,7 @@ class KerisiPayrollShellListService
         // Smart filter
         $sfDesc = trim((string) $request->input('crfChildreliefDesc', ''));
         if ($sfDesc !== '') {
-            $base->where('crf_childrelief_desc', 'like', '%' . $sfDesc . '%');
+            $base->where('crf_childrelief_desc', 'like', '%'.$sfDesc.'%');
         }
         $sfAmt = trim((string) $request->input('crfAmount', ''));
         if ($sfAmt !== '') {
@@ -485,7 +499,7 @@ class KerisiPayrollShellListService
                     ->where('ld.lma_code_name', '=', 'INVOICE_TYPE');
             })
             ->select([
-                'ici.ici_id', 'ici.ici_income_code', 'it.ity_income_desc',
+                'ici.ici_income_code_id', 'ici.ici_income_code', 'it.ity_income_desc',
                 'ld.lde_description as inv_type_desc', 'ici.ici_status',
             ])
             ->selectRaw("IF(ici.ici_status=1,'ACTIVE','INACTIVE') as ici_status_label");
@@ -609,7 +623,7 @@ class KerisiPayrollShellListService
             $val = trim((string) $request->input($param, ''));
             if ($val !== '') {
                 if ($mode === 'like') {
-                    $base->where($col, 'like', '%' . $val . '%');
+                    $base->where($col, 'like', '%'.$val.'%');
                 } else {
                     $base->where($col, $val);
                 }
@@ -675,7 +689,7 @@ class KerisiPayrollShellListService
         // Smart filter
         $sfStatus = trim((string) $request->input('sf_0', ''));
         if ($sfStatus !== '') {
-            $base->where('mjm_status', 'like', '%' . $sfStatus . '%');
+            $base->where('mjm_status', 'like', '%'.$sfStatus.'%');
         }
 
         $base->orderByDesc('mjm_journal_id');
@@ -707,7 +721,7 @@ class KerisiPayrollShellListService
 
         $sfStatus = trim((string) $request->input('sf_0', ''));
         if ($sfStatus !== '') {
-            $base->where('vom_status', 'like', '%' . $sfStatus . '%');
+            $base->where('vom_status', 'like', '%'.$sfStatus.'%');
         }
 
         $base->orderByDesc('vom_voucher_id');
@@ -726,7 +740,7 @@ class KerisiPayrollShellListService
             ->leftJoin('staff as s', 's.stf_staff_id', '=', 'sad.stf_staff_id')
             ->leftJoin('income_type as it', 'it.ity_income_code', '=', 'sad.ity_income_code')
             ->select([
-                'sad.sad_id', 'sad.stf_staff_id', 's.stf_staff_name',
+                'sad.spa_allow_deduct_id', 'sad.stf_staff_id', 's.stf_staff_name',
                 'sad.ity_income_code', 'it.ity_income_desc',
                 'sad.spa_start_date', 'sad.spa_end_date', 'sad.sad_amount',
                 'sad.sad_status',
@@ -750,7 +764,7 @@ class KerisiPayrollShellListService
             $base->where('sad.ity_income_code', $sfIncCode);
         }
 
-        $base->orderByDesc('sad.sad_id');
+        $base->orderByDesc('sad.spa_allow_deduct_id');
         $pack = $this->paginate($base, $page, $limit);
 
         return array_merge($pack, ['connector' => 'list_allowance_deduction']);
@@ -766,7 +780,7 @@ class KerisiPayrollShellListService
             ->leftJoin('staff as s', 's.stf_staff_id', '=', 'sad.stf_staff_id')
             ->leftJoin('income_type as it', 'it.ity_income_code', '=', 'sad.ity_income_code')
             ->select([
-                'sad.sad_id', 'sad.stf_staff_id', 's.stf_staff_name',
+                'sad.spa_allow_deduct_id', 'sad.stf_staff_id', 's.stf_staff_name',
                 'sad.ity_income_code', 'it.ity_income_desc',
                 'sad.spa_start_date', 'sad.spa_end_date', 'sad.sad_amount',
                 'sad.sad_status',
@@ -795,7 +809,7 @@ class KerisiPayrollShellListService
         $base = $this->conn()->table('staff_allowance_deduction as sad')
             ->leftJoin('income_type as it', 'it.ity_income_code', '=', 'sad.ity_income_code')
             ->select([
-                'sad.sad_id', 'sad.stf_staff_id', 'sad.ity_income_code', 'it.ity_income_desc',
+                'sad.spa_allow_deduct_id', 'sad.stf_staff_id', 'sad.ity_income_code', 'it.ity_income_desc',
                 'sad.spa_start_date', 'sad.spa_end_date', 'sad.sad_amount', 'sad.sad_status',
             ]);
 
@@ -813,7 +827,7 @@ class KerisiPayrollShellListService
             $base->where('sad.stf_staff_id', $staffId);
         }
 
-        $base->orderByDesc('sad.sad_id');
+        $base->orderByDesc('sad.spa_allow_deduct_id');
         $pack = $this->paginate($base, $page, $limit);
 
         return array_merge($pack, ['connector' => 'individual_allowance_deduction']);
@@ -829,7 +843,7 @@ class KerisiPayrollShellListService
             ->leftJoin('staff as s', 's.stf_staff_id', '=', 'sad.stf_staff_id')
             ->leftJoin('income_type as it', 'it.ity_income_code', '=', 'sad.ity_income_code')
             ->select([
-                'sad.sad_id', 'sad.stf_staff_id', 's.stf_staff_name',
+                'sad.spa_allow_deduct_id', 'sad.stf_staff_id', 's.stf_staff_name',
                 'sad.ity_income_code', 'it.ity_income_desc', 'sad.spa_start_date', 'sad.spa_end_date', 'sad.sad_amount',
             ]);
 
@@ -853,11 +867,11 @@ class KerisiPayrollShellListService
     // ─────────────────────────────────────────────────────────────────────────
     private function gcrListing(Request $request, int $page, int $limit, string $q): array
     {
-        $base = $this->conn()->table('gcr_master as gm')
+        $base = $this->conn()->table('gcr_income_code_setup as gm')
             ->leftJoin('staff as s', 's.stf_staff_id', '=', 'gm.stf_staff_id')
             ->select([
-                'gm.gcr_id', 'gm.stf_staff_id', 's.stf_staff_name',
-                'gm.gcr_year', 'gm.gcr_amount', 'gm.gcr_status',
+                'gm.gic_id', 'gm.stf_staff_id', 's.stf_staff_name',
+                'gm.gcr_year', 'gm.gcr_amount', 'gm.gic_status',
             ]);
 
         if ($q !== '') {
@@ -868,7 +882,7 @@ class KerisiPayrollShellListService
             );
         }
 
-        $base->orderByDesc('gm.gcr_id');
+        $base->orderByDesc('gm.gic_id');
         $pack = $this->paginate($base, $page, $limit);
 
         return array_merge($pack, ['connector' => 'gcr_listing']);
@@ -880,7 +894,7 @@ class KerisiPayrollShellListService
     // ─────────────────────────────────────────────────────────────────────────
     private function ecAccountCode(Request $request, int $page, int $limit, string $q): array
     {
-        $base = $this->conn()->table('ec_account_code')
+        $base = $this->conn()->table('ecs_acct_code_setup')
             ->select(['eac_id', 'eac_account_code', 'eac_description', 'eac_status'])
             ->selectRaw("IF(eac_status='1','ACTIVE','INACTIVE') as eac_status_label");
 
@@ -1545,16 +1559,16 @@ class KerisiPayrollShellListService
     private function emergencyFund(Request $request, int $page, int $limit, string $q): array
     {
         $base = $this->conn()->table('emergency_fund as emf')
-            ->leftJoin('staff as s', 's.stf_staff_id', '=', 'emf.stf_staff_id')
+
             ->select([
-                'emf.emf_id', 'emf.stf_staff_id', 's.stf_staff_name',
+                'emf.emf_id', 'emf.oun_code', 's.stf_staff_name',
                 'emf.emf_emergency_fund_no', 'emf.emf_amount', 'emf.emf_status',
             ]);
 
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
             $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(emf.stf_staff_id,''), IFNULL(s.stf_staff_name,''), IFNULL(emf.emf_emergency_fund_no,''))) LIKE ?",
+                "LOWER(CONCAT_WS('|', IFNULL(emf.oun_code,''), IFNULL(s.stf_staff_name,''), IFNULL(emf.emf_emergency_fund_no,''))) LIKE ?",
                 [$like]
             );
         }

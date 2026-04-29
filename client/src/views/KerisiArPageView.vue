@@ -60,10 +60,16 @@ function goBack() {
 }
 
 // ── datatable helpers ──────────────────────────────────────────────────────
+function toStr(v: string | Record<string, unknown> | undefined): string {
+  if (v === null || v === undefined) return "";
+  if (typeof v === "string") return v;
+  return "";
+}
+
 function cellKey(dt: KerisiArDatatable, colIdx: number): string {
-  const raw = dt.dtKey[colIdx] ?? "";
+  const raw = toStr(dt.dtKey[colIdx]);
   if (raw.trim()) return raw.trim();
-  const lab = dt.dtBi[colIdx] ?? `col_${colIdx}`;
+  const lab = toStr(dt.dtBi[colIdx]) || `col_${colIdx}`;
   return lab.replace(/\s+/g, "_").toLowerCase();
 }
 
@@ -101,13 +107,13 @@ function displayCell(row: Record<string, unknown>, dt: KerisiArDatatable, colIdx
   return "";
 }
 
-function isActionCol(h: string): boolean {
-  const t = String(h).trim().toLowerCase();
+function isActionCol(h: string | Record<string, unknown>): boolean {
+  const t = toStr(h).trim().toLowerCase();
   return t === "action" || t.startsWith("action") || t.includes("checkbox");
 }
 
-function isNoCol(h: string): boolean {
-  const t = String(h).trim().toLowerCase();
+function isNoCol(h: string | Record<string, unknown>): boolean {
+  const t = toStr(h).trim().toLowerCase();
   return t === "no" || t === "no.";
 }
 
@@ -131,7 +137,7 @@ const formBeforeDataTable = computed(() => {
 /** Deduplicated form section groups keyed by componentTitle. */
 const formSectionGroups = computed(() => {
   const s = spec.value;
-  if (!s) return [] as { title: string; fields: typeof s.formSections }[];
+  if (!s) return [] as { title: string; fields: KerisiArPageSpec["formSections"] }[];
   const seen = new Map<string, typeof s.formSections[number][]>();
   for (const f of s.formSections) {
     const key = f.componentTitle || "Details";

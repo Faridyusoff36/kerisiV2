@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Database\Connection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -18,9 +19,9 @@ class KerisiArShellListService
     /** @return array{rows: list<array<string,mixed>>, total: int, connector: string} */
     public function fetch(int $menuId, Request $request): array
     {
-        $page  = max(1, (int) $request->input('page', 1));
+        $page = max(1, (int) $request->input('page', 1));
         $limit = max(1, min(200, (int) $request->input('limit', 10)));
-        $q     = trim((string) $request->input('q', ''));
+        $q = trim((string) $request->input('q', ''));
 
         return match ($menuId) {
             // Invoice
@@ -57,7 +58,7 @@ class KerisiArShellListService
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
-    private function conn(): \Illuminate\Database\Connection
+    private function conn(): Connection
     {
         return DB::connection('mysql_secondary');
     }
@@ -75,8 +76,8 @@ class KerisiArShellListService
     {
         $sf = [
             'invoiceDate' => trim((string) $request->input('sf_0', '')),
-            'debtorType'  => trim((string) $request->input('sf_1', '')),
-            'status'      => trim((string) $request->input('sf_2', '')),
+            'debtorType' => trim((string) $request->input('sf_1', '')),
+            'status' => trim((string) $request->input('sf_2', '')),
         ];
 
         $base = $this->conn()->table('cust_invoice_master as cim')
@@ -121,16 +122,17 @@ class KerisiArShellListService
 
         $data = $rows->map(function ($r, $i) {
             $ext = is_string($r->cim_extended_field) ? json_decode($r->cim_extended_field, true) : (array) $r->cim_extended_field;
+
             return [
-                'no'          => ($i + 1),
-                'invoiceNo'   => $r->cim_invoice_no,
-                'date'        => $r->cim_invoice_date ? date('d/m/Y', strtotime((string) $r->cim_invoice_date)) : '',
-                'debtorId'    => $r->cim_cust_id,
-                'debtorName'  => $r->cim_cust_name,
-                'debtorType'  => $ext['cim_cust_type_desc'] ?? ($r->cim_cust_type === 'E' ? 'PENAJA' : 'PELAJAR'),
+                'no' => ($i + 1),
+                'invoiceNo' => $r->cim_invoice_no,
+                'date' => $r->cim_invoice_date ? date('d/m/Y', strtotime((string) $r->cim_invoice_date)) : '',
+                'debtorId' => $r->cim_cust_id,
+                'debtorName' => $r->cim_cust_name,
+                'debtorType' => $ext['cim_cust_type_desc'] ?? ($r->cim_cust_type === 'E' ? 'PENAJA' : 'PELAJAR'),
                 'invoiceDate' => $r->cim_invoice_date ? date('d/m/Y', strtotime((string) $r->cim_invoice_date)) : '',
-                'cimStatus'   => $r->cim_status,
-                'amt'         => $r->cim_total_amt,
+                'cimStatus' => $r->cim_status,
+                'amt' => $r->cim_total_amt,
             ];
         })->all();
 
@@ -144,10 +146,10 @@ class KerisiArShellListService
     private function recurringList(Request $request, int $page, int $limit, string $q): array
     {
         $sf = [
-            'debtorType'  => trim((string) $request->input('sf_0', '')),
-            'startDate'   => trim((string) $request->input('sf_1', '')),
-            'endDate'     => trim((string) $request->input('sf_2', '')),
-            'status'      => trim((string) $request->input('sf_3', '')),
+            'debtorType' => trim((string) $request->input('sf_0', '')),
+            'startDate' => trim((string) $request->input('sf_1', '')),
+            'endDate' => trim((string) $request->input('sf_2', '')),
+            'status' => trim((string) $request->input('sf_3', '')),
         ];
 
         $base = $this->conn()->table('cust_recurring_invoice_master');
@@ -173,7 +175,7 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select([
                 'csm_recur_invoice_master_id',
                 'csm_recurring_no',
@@ -191,17 +193,18 @@ class KerisiArShellListService
 
         $data = $rows->map(function ($r, $i) {
             $ext = is_string($r->csm_extended_field) ? json_decode($r->csm_extended_field, true) : (array) $r->csm_extended_field;
+
             return [
-                'no'              => $i + 1,
-                'recurringNo'     => $r->csm_recurring_no,
-                'vendorCode'      => $r->vcs_vendor_code,
-                'debtorType'      => $ext['csm_cust_type_desc'] ?? '',
-                'premiseDesc'     => $ext['pe_id_desc'] ?? '',
-                'startDate'       => $r->csm_start_date ? date('d/m/Y', strtotime((string) $r->csm_start_date)) : '',
-                'endDate'         => $r->csm_end_date ? date('d/m/Y', strtotime((string) $r->csm_end_date)) : '',
-                'generationDate'  => $r->csm_enter_date ? date('d/m/Y', strtotime((string) $r->csm_enter_date)) : '',
-                'status'          => $ext['statusDesc'] ?? '',
-                'amountPerMonth'  => $r->csm_amount_permth,
+                'no' => $i + 1,
+                'recurringNo' => $r->csm_recurring_no,
+                'vendorCode' => $r->vcs_vendor_code,
+                'debtorType' => $ext['csm_cust_type_desc'] ?? '',
+                'premiseDesc' => $ext['pe_id_desc'] ?? '',
+                'startDate' => $r->csm_start_date ? date('d/m/Y', strtotime((string) $r->csm_start_date)) : '',
+                'endDate' => $r->csm_end_date ? date('d/m/Y', strtotime((string) $r->csm_end_date)) : '',
+                'generationDate' => $r->csm_enter_date ? date('d/m/Y', strtotime((string) $r->csm_enter_date)) : '',
+                'status' => $ext['statusDesc'] ?? '',
+                'amountPerMonth' => $r->csm_amount_permth,
             ];
         })->all();
 
@@ -226,7 +229,7 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select([
                 'cdc.cdc_id',
                 'cim.cim_cust_id',
@@ -243,12 +246,12 @@ class KerisiArShellListService
 
         $data = $rows->map(function ($r, $i) {
             return [
-                'no'              => $i + 1,
-                'staffId'         => $r->cim_cust_id.' - '.$r->cim_cust_name,
-                'invoiceNo'       => $r->cim_invoice_no,
-                'totalInvAmt'     => $r->cim_total_amt,
+                'no' => $i + 1,
+                'staffId' => $r->cim_cust_id.' - '.$r->cim_cust_name,
+                'invoiceNo' => $r->cim_invoice_no,
+                'totalInvAmt' => $r->cim_total_amt,
                 'repaymentPeriod' => $r->cdc_repayment_period,
-                'amtPerMonth'     => $r->cdc_amt_per_month,
+                'amtPerMonth' => $r->cdc_amt_per_month,
             ];
         })->all();
 
@@ -262,9 +265,9 @@ class KerisiArShellListService
     private function listOfReceipts(Request $request, int $page, int $limit, string $q): array
     {
         $sf = [
-            'debtorType'   => trim((string) $request->input('sf_0', '')),
-            'ou'           => trim((string) $request->input('sf_1', '')),
-            'status'       => trim((string) $request->input('sf_2', '')),
+            'debtorType' => trim((string) $request->input('sf_0', '')),
+            'ou' => trim((string) $request->input('sf_1', '')),
+            'status' => trim((string) $request->input('sf_2', '')),
         ];
 
         $base = $this->conn()->table('receipt_master as rma');
@@ -284,7 +287,7 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select([
                 'rma.rma_receipt_master_id',
                 'rma.rma_receipt_no',
@@ -305,17 +308,17 @@ class KerisiArShellListService
 
         $data = $rows->map(function ($r, $i) {
             return [
-                'no'           => $i + 1,
-                'receiptDate'  => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
-                'receiptNo'    => $r->rma_receipt_no,
-                'debtorId'     => $r->rma_cust_id,
-                'debtorName'   => $r->rma_cust_name,
-                'description'  => $r->rma_receipt_desc,
-                'debtorType'   => $r->rma_cust_type,
+                'no' => $i + 1,
+                'receiptDate' => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
+                'receiptNo' => $r->rma_receipt_no,
+                'debtorId' => $r->rma_cust_id,
+                'debtorName' => $r->rma_cust_name,
+                'description' => $r->rma_receipt_desc,
+                'debtorType' => $r->rma_cust_type,
                 'approvedDate' => $r->rma_approve_date ? date('d/m/Y', strtotime((string) $r->rma_approve_date)) : '',
-                'rmaStatus'    => $r->rma_status,
-                'rmaTotalAmt'  => $r->rma_total_amt,
-                'rmaReceiptRef'=> $r->rma_receipt_ref,
+                'rmaStatus' => $r->rma_status,
+                'rmaTotalAmt' => $r->rma_total_amt,
+                'rmaReceiptRef' => $r->rma_receipt_ref,
             ];
         })->all();
 
@@ -347,7 +350,7 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select([
                 'rpm.rpm_receipt_paymode_id',
                 'rma.rma_receipt_no',
@@ -368,16 +371,17 @@ class KerisiArShellListService
 
         $data = $rows->map(function ($r, $i) {
             $ext = is_string($r->rpm_extended_field) ? json_decode($r->rpm_extended_field, true) : (array) $r->rpm_extended_field;
+
             return [
-                'no'              => $i + 1,
-                'receiptNo'       => $r->rma_receipt_no,
-                'receiptDate'     => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
-                'debtorId'        => $r->rma_cust_id,
-                'debtorName'      => $r->rma_cust_name,
-                'status'          => $r->rma_status,
-                'totalAmt'        => $r->rma_total_amt,
-                'bankSlip'        => $r->rpm_bank_slip,
-                'paymentMode'     => $ext['rpm_payment_mode_desc'] ?? '',
+                'no' => $i + 1,
+                'receiptNo' => $r->rma_receipt_no,
+                'receiptDate' => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
+                'debtorId' => $r->rma_cust_id,
+                'debtorName' => $r->rma_cust_name,
+                'status' => $r->rma_status,
+                'totalAmt' => $r->rma_total_amt,
+                'bankSlip' => $r->rpm_bank_slip,
+                'paymentMode' => $ext['rpm_payment_mode_desc'] ?? '',
             ];
         })->all();
 
@@ -403,22 +407,22 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select(['rma.rma_receipt_master_id', 'rma.rma_receipt_no', 'rma.rma_cust_id',
-                      'rma.rma_cust_name', 'rma.rma_status', 'rma.rma_total_amt', 'rma.createddate'])
+                'rma.rma_cust_name', 'rma.rma_status', 'rma.rma_total_amt', 'rma.createddate'])
             ->orderByDesc('rma.createddate')
             ->skip(($page - 1) * $limit)
             ->take($limit)
             ->get();
 
         $data = $rows->map(fn ($r, $i) => [
-            'no'         => $i + 1,
-            'receiptNo'  => $r->rma_receipt_no,
-            'debtorId'   => $r->rma_cust_id,
+            'no' => $i + 1,
+            'receiptNo' => $r->rma_receipt_no,
+            'debtorId' => $r->rma_cust_id,
             'debtorName' => $r->rma_cust_name,
-            'status'     => $r->rma_status,
-            'totalAmt'   => $r->rma_total_amt,
-            'date'       => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
+            'status' => $r->rma_status,
+            'totalAmt' => $r->rma_total_amt,
+            'date' => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
         ])->all();
 
         return ['rows' => $data, 'total' => $total, 'connector' => 'ar:receipt_on_behalf'];
@@ -444,7 +448,7 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select([
                 'rpm.rpm_receipt_paymode_id',
                 'rm.rma_receipt_no',
@@ -467,20 +471,21 @@ class KerisiArShellListService
 
         $data = $rows->map(function ($r, $i) {
             $ext = is_string($r->rpm_extended_field) ? json_decode($r->rpm_extended_field, true) : (array) $r->rpm_extended_field;
+
             return [
-                'no'             => $i + 1,
-                'receiptNo'      => $r->rma_receipt_no,
-                'receiptDate'    => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
-                'debtorId'       => $r->rma_cust_id,
-                'debtorName'     => $r->rma_cust_name,
-                'receiptStatus'  => $r->rma_status,
-                'paymentMode'    => $ext['rpm_payment_mode_desc'] ?? '',
-                'referenceNo'    => $r->rpm_reference_no,
-                'currencyCode'   => $r->rma_currency_code,
-                'totalAmtFc'     => $r->rpm_total_amt_fc,
+                'no' => $i + 1,
+                'receiptNo' => $r->rma_receipt_no,
+                'receiptDate' => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
+                'debtorId' => $r->rma_cust_id,
+                'debtorName' => $r->rma_cust_name,
+                'receiptStatus' => $r->rma_status,
+                'paymentMode' => $ext['rpm_payment_mode_desc'] ?? '',
+                'referenceNo' => $r->rpm_reference_no,
+                'currencyCode' => $r->rma_currency_code,
+                'totalAmtFc' => $r->rpm_total_amt_fc,
                 'conversionRate' => $r->rma_conversion_rate,
-                'totalAmt'       => $r->rpm_total_amt,
-                'adjustAmt'      => $r->rpm_adjust_amt,
+                'totalAmt' => $r->rpm_total_amt,
+                'adjustAmt' => $r->rpm_adjust_amt,
             ];
         })->all();
 
@@ -495,8 +500,8 @@ class KerisiArShellListService
     {
         $sf = [
             'debtorType' => trim((string) $request->input('sf_0', '')),
-            'status'     => trim((string) $request->input('sf_1', '')),
-            'payMode'    => trim((string) $request->input('sf_2', '')),
+            'status' => trim((string) $request->input('sf_1', '')),
+            'payMode' => trim((string) $request->input('sf_2', '')),
         ];
 
         $base = $this->conn()->table('receipt_master as rma')
@@ -520,7 +525,7 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select([
                 'rma.rma_receipt_no', 'rma.createddate', 'rma.rma_cust_id',
                 'rma.rma_cust_name', 'rma.rma_status', 'rma.rma_total_amt',
@@ -532,14 +537,14 @@ class KerisiArShellListService
             ->get();
 
         $data = $rows->map(fn ($r, $i) => [
-            'no'           => $i + 1,
-            'receiptNo'    => $r->rma_receipt_no,
-            'date'         => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
-            'debtorId'     => $r->rma_cust_id,
-            'debtorName'   => $r->rma_cust_name,
-            'rmaStatus'    => $r->rma_status,
-            'rmaTotalAmt'  => $r->rma_total_amt,
-            'rpmBankSlip'  => $r->rpm_bank_slip,
+            'no' => $i + 1,
+            'receiptNo' => $r->rma_receipt_no,
+            'date' => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
+            'debtorId' => $r->rma_cust_id,
+            'debtorName' => $r->rma_cust_name,
+            'rmaStatus' => $r->rma_status,
+            'rmaTotalAmt' => $r->rma_total_amt,
+            'rpmBankSlip' => $r->rpm_bank_slip,
             'rpmBankSlipDate' => $r->rpm_bank_slip_date ? date('d/m/Y', strtotime((string) $r->rpm_bank_slip_date)) : '',
         ])->all();
 
@@ -553,10 +558,10 @@ class KerisiArShellListService
     private function chequeRegistry(Request $request, int $page, int $limit, string $q): array
     {
         $sf = [
-            'receiptNo'  => trim((string) $request->input('sf_0', '')),
-            'debtorId'   => trim((string) $request->input('sf_2', '')),
+            'receiptNo' => trim((string) $request->input('sf_0', '')),
+            'debtorId' => trim((string) $request->input('sf_2', '')),
             'debtorName' => trim((string) $request->input('sf_3', '')),
-            'chequeNo'   => trim((string) $request->input('sf_4', '')),
+            'chequeNo' => trim((string) $request->input('sf_4', '')),
         ];
 
         $base = $this->conn()->table('cheque_registry as cr');
@@ -575,25 +580,25 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->orderByDesc('cr.cr_received_date')
             ->skip(($page - 1) * $limit)
             ->take($limit)
             ->get();
 
         $data = collect($rows)->map(fn ($r, $i) => [
-            'no'           => $i + 1,
-            'chequeNo'     => $r->cr_cheque_no ?? '',
-            'debtorId'     => $r->cr_cust_id ?? '',
-            'drawerName'   => $r->cr_drawer_name ?? '',
-            'issuerBank'   => $r->cr_issuer_bank ?? '',
-            'branch'       => $r->cr_branch_name ?? '',
-            'chequeDate'   => isset($r->cr_cheque_date) ? date('d/m/Y', strtotime((string) $r->cr_cheque_date)) : '',
-            'chequeAmt'    => $r->cr_cheque_amt ?? '',
+            'no' => $i + 1,
+            'chequeNo' => $r->cr_cheque_no ?? '',
+            'debtorId' => $r->cr_cust_id ?? '',
+            'drawerName' => $r->cr_drawer_name ?? '',
+            'issuerBank' => $r->cr_issuer_bank ?? '',
+            'branch' => $r->cr_branch_name ?? '',
+            'chequeDate' => isset($r->cr_cheque_date) ? date('d/m/Y', strtotime((string) $r->cr_cheque_date)) : '',
+            'chequeAmt' => $r->cr_cheque_amt ?? '',
             'receivedDate' => isset($r->cr_received_date) ? date('d/m/Y', strtotime((string) $r->cr_received_date)) : '',
-            'invoiceNo'    => $r->cr_invoice_no ?? '',
-            'validity'     => $r->cr_validity ?? '',
-            'remark'       => $r->cr_remark ?? '',
+            'invoiceNo' => $r->cr_invoice_no ?? '',
+            'validity' => $r->cr_validity ?? '',
+            'remark' => $r->cr_remark ?? '',
         ])->all();
 
         return ['rows' => $data, 'total' => $total, 'connector' => 'ar:cheque_registry'];
@@ -618,20 +623,20 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->orderByDesc('cr.cr_received_date')
             ->skip(($page - 1) * $limit)
             ->take($limit)
             ->get();
 
         $data = collect($rows)->map(fn ($r, $i) => [
-            'no'         => $i + 1,
-            'chequeNo'   => $r->cr_cheque_no ?? '',
-            'debtorId'   => $r->cr_cust_id ?? '',
+            'no' => $i + 1,
+            'chequeNo' => $r->cr_cheque_no ?? '',
+            'debtorId' => $r->cr_cust_id ?? '',
             'drawerName' => $r->cr_drawer_name ?? '',
             'issuerBank' => $r->cr_issuer_bank ?? '',
             'chequeDate' => isset($r->cr_cheque_date) ? date('d/m/Y', strtotime((string) $r->cr_cheque_date)) : '',
-            'chequeAmt'  => $r->cr_cheque_amt ?? '',
+            'chequeAmt' => $r->cr_cheque_amt ?? '',
         ])->all();
 
         return ['rows' => $data, 'total' => $total, 'connector' => 'ar:cheque_release'];
@@ -661,7 +666,7 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select([
                 'cr.cr_cust_id', 'cr.cr_drawer_name', 'cr.cr_issuer_bank',
                 'cr.cr_branch_name', 'cr.cr_cheque_no', 'cr.cr_cheque_date',
@@ -675,22 +680,22 @@ class KerisiArShellListService
             ->get();
 
         $data = collect($rows)->map(fn ($r, $i) => [
-            'no'           => $i + 1,
-            'debtorId'     => $r->cr_cust_id ?? '',
-            'drawerName'   => $r->cr_drawer_name ?? '',
-            'issuerBank'   => $r->cr_issuer_bank ?? '',
-            'branch'       => $r->cr_branch_name ?? '',
-            'chequeNo'     => $r->cr_cheque_no ?? '',
-            'chequeDate'   => isset($r->cr_cheque_date) ? date('d/m/Y', strtotime((string) $r->cr_cheque_date)) : '',
-            'chequeAmt'    => $r->cr_cheque_amt ?? '',
+            'no' => $i + 1,
+            'debtorId' => $r->cr_cust_id ?? '',
+            'drawerName' => $r->cr_drawer_name ?? '',
+            'issuerBank' => $r->cr_issuer_bank ?? '',
+            'branch' => $r->cr_branch_name ?? '',
+            'chequeNo' => $r->cr_cheque_no ?? '',
+            'chequeDate' => isset($r->cr_cheque_date) ? date('d/m/Y', strtotime((string) $r->cr_cheque_date)) : '',
+            'chequeAmt' => $r->cr_cheque_amt ?? '',
             'receivedDate' => isset($r->cr_received_date) ? date('d/m/Y', strtotime((string) $r->cr_received_date)) : '',
-            'referenceNo'  => $r->cr_invoice_no ?? '',
-            'validity'     => $r->cr_validity ?? '',
-            'remark'       => $r->cr_remark ?? '',
-            'releaseDate'  => isset($r->cr_release_date) ? date('d/m/Y', strtotime((string) $r->cr_release_date)) : '',
-            'noReceipt'    => $r->rma_receipt_no ?? '',
-            'receiptDate'  => isset($r->receipt_date) ? date('d/m/Y', strtotime((string) $r->receipt_date)) : '',
-            'receiptStatus'=> $r->rma_status ?? '',
+            'referenceNo' => $r->cr_invoice_no ?? '',
+            'validity' => $r->cr_validity ?? '',
+            'remark' => $r->cr_remark ?? '',
+            'releaseDate' => isset($r->cr_release_date) ? date('d/m/Y', strtotime((string) $r->cr_release_date)) : '',
+            'noReceipt' => $r->rma_receipt_no ?? '',
+            'receiptDate' => isset($r->receipt_date) ? date('d/m/Y', strtotime((string) $r->receipt_date)) : '',
+            'receiptStatus' => $r->rma_status ?? '',
         ])->all();
 
         return ['rows' => $data, 'total' => $total, 'connector' => 'ar:cheque_release_view'];
@@ -702,11 +707,11 @@ class KerisiArShellListService
     private function chequeList(Request $request, int $page, int $limit, string $q): array
     {
         $sf = [
-            'chequeNo'   => trim((string) $request->input('sf_0', '')),
-            'debtorId'   => trim((string) $request->input('sf_1', '')),
+            'chequeNo' => trim((string) $request->input('sf_0', '')),
+            'debtorId' => trim((string) $request->input('sf_1', '')),
             'debtorName' => trim((string) $request->input('sf_2', '')),
             'issuerBank' => trim((string) $request->input('sf_3', '')),
-            'amount'     => trim((string) $request->input('sf_4', '')),
+            'amount' => trim((string) $request->input('sf_4', '')),
         ];
 
         $base = $this->conn()->table('cheque_registry as cr');
@@ -725,24 +730,24 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->orderByDesc('cr.cr_received_date')
             ->skip(($page - 1) * $limit)
             ->take($limit)
             ->get();
 
         $data = collect($rows)->map(fn ($r, $i) => [
-            'no'           => $i + 1,
-            'chequeNo'     => $r->cr_cheque_no ?? '',
-            'debtorId'     => $r->cr_cust_id ?? '',
-            'drawerName'   => $r->cr_drawer_name ?? '',
-            'issuerBank'   => $r->cr_issuer_bank ?? '',
-            'branch'       => $r->cr_branch_name ?? '',
-            'chequeDate'   => isset($r->cr_cheque_date) ? date('d/m/Y', strtotime((string) $r->cr_cheque_date)) : '',
-            'chequeAmt'    => $r->cr_cheque_amt ?? '',
+            'no' => $i + 1,
+            'chequeNo' => $r->cr_cheque_no ?? '',
+            'debtorId' => $r->cr_cust_id ?? '',
+            'drawerName' => $r->cr_drawer_name ?? '',
+            'issuerBank' => $r->cr_issuer_bank ?? '',
+            'branch' => $r->cr_branch_name ?? '',
+            'chequeDate' => isset($r->cr_cheque_date) ? date('d/m/Y', strtotime((string) $r->cr_cheque_date)) : '',
+            'chequeAmt' => $r->cr_cheque_amt ?? '',
             'receivedDate' => isset($r->cr_received_date) ? date('d/m/Y', strtotime((string) $r->cr_received_date)) : '',
-            'invoiceNo'    => $r->cr_invoice_no ?? '',
-            'status'       => $r->cr_flag === 'Y' ? 'Released' : 'Pending',
+            'invoiceNo' => $r->cr_invoice_no ?? '',
+            'status' => $r->cr_flag === 'Y' ? 'Released' : 'Pending',
         ])->all();
 
         return ['rows' => $data, 'total' => $total, 'connector' => 'ar:cheque_list'];
@@ -755,17 +760,17 @@ class KerisiArShellListService
     private function returnChequeList(Request $request, int $page, int $limit, string $q): array
     {
         $sf = [
-            'receiptNo'  => trim((string) $request->input('sf_0', '')),
-            'debtorId'   => trim((string) $request->input('sf_2', '')),
+            'receiptNo' => trim((string) $request->input('sf_0', '')),
+            'debtorId' => trim((string) $request->input('sf_2', '')),
             'debtorName' => trim((string) $request->input('sf_3', '')),
-            'chequeNo'   => trim((string) $request->input('sf_4', '')),
+            'chequeNo' => trim((string) $request->input('sf_4', '')),
         ];
 
         // Legacy BL uses cheque_registry + receipt_master + receipt_pay_mode
         $base = $this->conn()->table('cheque_registry as rck')
             ->leftJoin('receipt_pay_mode as rpm', 'rpm.rpm_cheque_no', '=', 'rck.cr_cheque_no')
             ->leftJoin('receipt_master as rma', 'rma.rma_receipt_master_id', '=', 'rpm.rma_receipt_master_id')
-            ->whereNotNull('rck.cr_return_date');  // returned cheques only
+            ->whereNotNull('rck.createddate');  // returned cheques only
 
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
@@ -775,40 +780,39 @@ class KerisiArShellListService
             );
         }
         if ($sf['receiptNo'] !== '') {
-            $base->whereRaw("LOWER(rma.rma_receipt_no) LIKE ?", [$this->likeEscape(mb_strtolower($sf['receiptNo'], 'UTF-8'))]);
+            $base->whereRaw('LOWER(rma.rma_receipt_no) LIKE ?', [$this->likeEscape(mb_strtolower($sf['receiptNo'], 'UTF-8'))]);
         }
         if ($sf['debtorId'] !== '') {
-            $base->whereRaw("LOWER(rma.rma_cust_id) LIKE ?", [$this->likeEscape(mb_strtolower($sf['debtorId'], 'UTF-8'))]);
+            $base->whereRaw('LOWER(rma.rma_cust_id) LIKE ?', [$this->likeEscape(mb_strtolower($sf['debtorId'], 'UTF-8'))]);
         }
         if ($sf['chequeNo'] !== '') {
-            $base->whereRaw("LOWER(rck.cr_cheque_no) LIKE ?", [$this->likeEscape(mb_strtolower($sf['chequeNo'], 'UTF-8'))]);
+            $base->whereRaw('LOWER(rck.cr_cheque_no) LIKE ?', [$this->likeEscape(mb_strtolower($sf['chequeNo'], 'UTF-8'))]);
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select([
                 'rma.rma_receipt_no', 'rma.createddate as receipt_date',
                 'rma.rma_cust_id', 'rma.rma_cust_name',
                 'rck.cr_cheque_no', 'rck.cr_issuer_bank', 'rpm.rpm_total_amt',
-                'rck.cr_remark', 'rck.cr_return_date', 'rma.rma_status',
-                'rck.cr_return_reason',
+                'rck.cr_remark', 'rck.createddate', 'rma.rma_status',
             ])
-            ->orderByDesc('rck.cr_return_date')
+            ->orderByDesc('rck.createddate')
             ->skip(($page - 1) * $limit)
             ->take($limit)
             ->get();
 
         $data = collect($rows)->map(fn ($r, $i) => [
-            'no'          => $i + 1,
-            'receiptNo'   => $r->rma_receipt_no ?? '',
+            'no' => $i + 1,
+            'receiptNo' => $r->rma_receipt_no ?? '',
             'receiptDate' => isset($r->receipt_date) ? date('d/m/Y', strtotime((string) $r->receipt_date)) : '',
-            'debtorId'    => $r->rma_cust_id ?? '',
-            'debtorName'  => $r->rma_cust_name ?? '',
-            'chequeNo'    => $r->cr_cheque_no ?? '',
-            'slipBank'    => $r->cr_issuer_bank ?? '',
-            'amount'      => $r->rpm_total_amt ?? '',
-            'statusDesc'  => $r->rma_status ?? '',
-            'rcqReason'   => $r->cr_return_reason ?? $r->cr_remark ?? '',
+            'debtorId' => $r->rma_cust_id ?? '',
+            'debtorName' => $r->rma_cust_name ?? '',
+            'chequeNo' => $r->cr_cheque_no ?? '',
+            'slipBank' => $r->cr_issuer_bank ?? '',
+            'amount' => $r->rpm_total_amt ?? '',
+            'statusDesc' => $r->rma_status ?? '',
+            'rcqReason' => $r->cr_return_reason ?? $r->cr_remark ?? '',
             'approveDate' => isset($r->cr_return_date) ? date('d/m/Y', strtotime((string) $r->cr_return_date)) : '',
         ])->all();
 
@@ -823,7 +827,7 @@ class KerisiArShellListService
     {
         $sf = [
             'status' => trim((string) $request->input('sf_2', '')),
-            'ptj'    => trim((string) $request->input('sf_1', '')),
+            'ptj' => trim((string) $request->input('sf_1', '')),
         ];
 
         $base = $this->conn()->table('offline_receipt_authorize as ora')
@@ -844,7 +848,7 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select([
                 'ora.ore_offline_receipt_id', 'ora.ore_counter_no', 'ora.oun_code_ptj',
                 'ora.ore_purposed_code', 'ora.ore_status', 'ora.ore_application_type',
@@ -856,13 +860,13 @@ class KerisiArShellListService
             ->get();
 
         $data = collect($rows)->map(fn ($r, $i) => [
-            'no'         => $i + 1,
-            'counterNo'  => $r->ore_counter_no ?? '',
-            'ptj'        => $r->oun_code_ptj ?? '',
-            'purpose'    => $r->ore_purposed_code ?? '',
-            'status'     => $r->ore_status ?? '',
-            'type'       => $r->ore_application_type ?? '',
-            'date'       => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
+            'no' => $i + 1,
+            'counterNo' => $r->ore_counter_no ?? '',
+            'ptj' => $r->oun_code_ptj ?? '',
+            'purpose' => $r->ore_purposed_code ?? '',
+            'status' => $r->ore_status ?? '',
+            'type' => $r->ore_application_type ?? '',
+            'date' => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
         ])->all();
 
         return ['rows' => $data, 'total' => $total, 'connector' => 'ar:offline_receipt_application'];
@@ -880,30 +884,30 @@ class KerisiArShellListService
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
             $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(orm.orm_counter_no,''), IFNULL(orm.orm_batch_no,''), IFNULL(orm.orm_status,''))) LIKE ?",
+                "LOWER(CONCAT_WS('|', IFNULL(orm.orm_counter_no,''), IFNULL(orm.orm_approve_batch,''), IFNULL(orm.orm_status,''))) LIKE ?",
                 [$like]
             );
         }
 
         $total = (clone $base)->distinct()->count('orm.orm_receipt_master_id');
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select([
-                'orm.orm_receipt_master_id', 'orm.orm_counter_no', 'orm.orm_batch_no',
+                'orm.orm_receipt_master_id', 'orm.orm_counter_no', 'orm.orm_approve_batch',
                 'orm.orm_status', 'orm.orm_total_amt', 'orm.createddate',
             ])
-            ->groupBy('orm.orm_receipt_master_id', 'orm.orm_counter_no', 'orm.orm_batch_no', 'orm.orm_status', 'orm.orm_total_amt', 'orm.createddate')
+            ->groupBy('orm.orm_receipt_master_id', 'orm.orm_counter_no', 'orm.orm_approve_batch', 'orm.orm_status', 'orm.orm_total_amt', 'orm.createddate')
             ->orderByDesc('orm.createddate')
             ->skip(($page - 1) * $limit)
             ->take($limit)
             ->get();
 
         $data = collect($rows)->map(fn ($r, $i) => [
-            'no'        => $i + 1,
+            'no' => $i + 1,
             'counterNo' => $r->orm_counter_no ?? '',
-            'batchNo'   => $r->orm_batch_no ?? '',
-            'status'    => $r->orm_status ?? '',
-            'totalAmt'  => $r->orm_total_amt ?? '',
-            'date'      => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
+            'batchNo' => $r->orm_batch_no ?? '',
+            'status' => $r->orm_status ?? '',
+            'totalAmt' => $r->orm_total_amt ?? '',
+            'date' => $r->createddate ? date('d/m/Y', strtotime((string) $r->createddate)) : '',
         ])->all();
 
         return ['rows' => $data, 'total' => $total, 'connector' => 'ar:offline_receipt_collection'];
@@ -926,7 +930,7 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select(['ora.ore_offline_receipt_id', 'ora.ore_counter_no', 'ora.oun_code_ptj', 'ora.ore_purposed_code', 'ora.ore_status'])
             ->orderBy('ora.ore_counter_no')
             ->skip(($page - 1) * $limit)
@@ -934,11 +938,11 @@ class KerisiArShellListService
             ->get();
 
         $data = collect($rows)->map(fn ($r, $i) => [
-            'no'        => $i + 1,
+            'no' => $i + 1,
             'counterNo' => $r->ore_counter_no ?? '',
-            'ptj'       => $r->oun_code_ptj ?? '',
-            'purpose'   => $r->ore_purposed_code ?? '',
-            'status'    => $r->ore_status ?? '',
+            'ptj' => $r->oun_code_ptj ?? '',
+            'purpose' => $r->ore_purposed_code ?? '',
+            'status' => $r->ore_status ?? '',
         ])->all();
 
         return ['rows' => $data, 'total' => $total, 'connector' => 'ar:offline_receipt_counter'];
@@ -961,7 +965,7 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select([
                 'lks_id', 'lks_staff_id', 'lks_staff_name', 'lks_staff_position',
                 'lks_staff_jobcode', 'lks_signature', 'lks_status', 'lks_extended_field',
@@ -973,15 +977,16 @@ class KerisiArShellListService
 
         $data = collect($rows)->map(function ($r, $i) {
             $ext = is_string($r->lks_extended_field) ? json_decode($r->lks_extended_field, true) : (array) ($r->lks_extended_field ?? []);
+
             return [
-                'no'           => $i + 1,
-                'lksId'        => $r->lks_id,
-                'lksStaffId'   => $r->lks_staff_id,
+                'no' => $i + 1,
+                'lksId' => $r->lks_id,
+                'lksStaffId' => $r->lks_staff_id,
                 'lksStaffName' => $r->lks_staff_name,
                 'lksStaffPosition' => trim($r->lks_staff_position.' - '.($ext['lks_staff_position_desc'] ?? ''), ' - '),
-                'lksStaffJobcode'  => trim($r->lks_staff_jobcode.' - '.($ext['lks_staff_jobcode_desc'] ?? ''), ' - '),
+                'lksStaffJobcode' => trim($r->lks_staff_jobcode.' - '.($ext['lks_staff_jobcode_desc'] ?? ''), ' - '),
                 'lksSignature' => $r->lks_signature,
-                'lksStatus'    => $r->lks_status === 'Y' ? 'YES' : 'NO',
+                'lksStatus' => $r->lks_status === 'Y' ? 'YES' : 'NO',
             ];
         })->all();
 
@@ -1005,7 +1010,7 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->count();
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select([
                 'pe_id', 'pe_premise_code', 'pe_premise_desc', 'pe_address1',
                 'pe_address2', 'pe_city', 'pe_postcode', 'pe_state',
@@ -1017,18 +1022,18 @@ class KerisiArShellListService
             ->get();
 
         $data = collect($rows)->map(fn ($r, $i) => [
-            'peId'          => $r->pe_id,
-            'no'            => $i + 1,
-            'premiseCode'   => $r->pe_premise_code,
-            'premiseDesc'   => $r->pe_premise_desc,
-            'address1'      => $r->pe_address1,
-            'address2'      => $r->pe_address2,
-            'city'          => $r->pe_city,
-            'postcode'      => $r->pe_postcode,
-            'state'         => $r->pe_state,
-            'category'      => $r->pe_category,
-            'ftyFundType'   => $r->fty_fund_type,
-            'aimAssetCode'  => $r->aim_asset_code,
+            'peId' => $r->pe_id,
+            'no' => $i + 1,
+            'premiseCode' => $r->pe_premise_code,
+            'premiseDesc' => $r->pe_premise_desc,
+            'address1' => $r->pe_address1,
+            'address2' => $r->pe_address2,
+            'city' => $r->pe_city,
+            'postcode' => $r->pe_postcode,
+            'state' => $r->pe_state,
+            'category' => $r->pe_category,
+            'ftyFundType' => $r->fty_fund_type,
+            'aimAssetCode' => $r->aim_asset_code,
             'ldeStatusDesc' => $r->pe_status == '1' ? 'ACTIVE' : 'INACTIVE',
         ])->all();
 
@@ -1056,8 +1061,8 @@ class KerisiArShellListService
             ->join('noninv_struct_details as nsd', 'nsd.nsm_id', '=', 'nsm.nsm_id')
             ->join('cust_invoice_item as cii', function ($join) {
                 $join->on('nsd.cii_item_code', '=', 'cii.cii_item_code')
-                     ->where('cii.cii_module_id', 'AR')
-                     ->where('cii.cii_isopenpayment', 'N');
+                    ->where('cii.cii_module_id', 'AR')
+                    ->where('cii.cii_isopenpayment', 'N');
             })
             ->where('nsd.nsd_trans_type', $type === 'inv' ? 'DT' : 'CT');
 
@@ -1070,7 +1075,7 @@ class KerisiArShellListService
         }
 
         $total = (clone $base)->distinct()->count('nsm.nsm_id');
-        $rows  = (clone $base)
+        $rows = (clone $base)
             ->select([
                 'nsm.nsm_id', 'nsm.nsm_fee_str_code', 'nsm.nsm_fee_str_desc',
                 'nsm.nsm_program_level', 'nsd.nsd_tot_amt', 'nsd.cii_item_code',
@@ -1082,13 +1087,13 @@ class KerisiArShellListService
             ->get();
 
         $data = collect($rows)->map(fn ($r, $i) => [
-            'no'            => $i + 1,
-            'nsmId'         => $r->nsm_id,
+            'no' => $i + 1,
+            'nsmId' => $r->nsm_id,
             'nsmFeeStrCode' => $r->nsm_fee_str_code,
             'nsmFeeStrDesc' => $r->nsm_fee_str_desc,
             'nsmProgramLevel' => $r->nsm_program_level,
-            'ciiItemCode'   => $r->cii_item_code,
-            'nsdTotAmt'     => $r->nsd_tot_amt,
+            'ciiItemCode' => $r->cii_item_code,
+            'nsdTotAmt' => $r->nsd_tot_amt,
         ])->all();
 
         return ['rows' => $data, 'total' => $total, 'connector' => $connector];

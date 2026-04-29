@@ -11,8 +11,8 @@ export type KerisiArFormField = {
 export type KerisiArDatatable = {
   componentId: number;
   componentTitle: string;
-  dtBi: string[];
-  dtKey: string[];
+  dtBi: (string | Record<string, unknown>)[];
+  dtKey: (string | Record<string, unknown>)[];
   dtAjax: string | null;
   dtFilter: string | null;
   dtPageLength: string | null;

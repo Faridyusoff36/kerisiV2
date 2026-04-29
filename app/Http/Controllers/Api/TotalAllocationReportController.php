@@ -13,14 +13,9 @@ use Illuminate\Support\Facades\DB;
 /**
  * Budget > Reports > Total Allocation Report (PAGEID 1626 / MENUID 1968).
  *
- * Source BL: SWS_DT_REPORT_TOTAL_ALLOCATION. The legacy report aggregates
- * `budget` ledger rows (bdg_initial_amt + bdg_topup_amt + bdg_virement_amt
- * = total allocation) joined with `structure_budget` for the fund /
- * activity / cost-centre / budget-code dimensions, and rolls up by year +
- * fund + PTJ. It is read-only.
- *
- * Top filter: Year (required to render the report).
- * Smart filter: Fund Type / Activity / OUN / CCR / Budget Code.
+ * Source BL: SWS_DT_REPORT_TOTAL_ALLOCATION. Joins `budget` × `structure_budget`
+ * for dimensions; amount columns match legacy grid: opening (carry-forward),
+ * allocated, commit, expenses, total expenses (commit + expenses), balance.
  */
 class TotalAllocationReportController extends Controller
 {
@@ -28,24 +23,25 @@ class TotalAllocationReportController extends Controller
 
     private const SORTABLE = [
         'rptYear' => 'B.bdg_year',
+        'rptBudgetCode' => 'SB.lbc_budget_code',
         'rptFund' => 'SB.fty_fund_type',
         'rptActivity' => 'SB.at_activity_code',
         'rptOun' => 'SB.oun_code',
         'rptCcr' => 'SB.ccr_costcentre',
-        'rptBudgetCode' => 'SB.lbc_budget_code',
-        'rptInitial' => 'B.bdg_initial_amt',
-        'rptTopup' => 'B.bdg_topup_amt',
-        'rptVirement' => 'B.bdg_virement_amt',
-        'rptTotal' => 'B.bdg_initial_amt',
+        'rptOpening' => 'B.bdg_bal_carryforward',
+        'rptAllocated' => 'B.bdg_allocated_amt',
+        'rptCommit' => 'B.bdg_commit_amt',
+        'rptExpenses' => 'B.bdg_expenses_amt',
+        'rptBalance' => 'B.bdg_balance_amt',
     ];
 
     public function index(Request $request): JsonResponse
     {
         $page = max(1, (int) $request->input('page', 1));
         $limit = max(1, min(500, (int) $request->input('limit', 10)));
-        $sortKey = (string) $request->input('sort_by', 'rptYear');
-        $sortDir = strtolower((string) $request->input('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
-        $sortCol = self::SORTABLE[$sortKey] ?? self::SORTABLE['rptYear'];
+        $sortKey = (string) $request->input('sort_by', 'rptBudgetCode');
+        $sortDir = strtolower((string) $request->input('sort_dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+        $sortCol = self::SORTABLE[$sortKey] ?? self::SORTABLE['rptBudgetCode'];
 
         $query = $this->baseQuery($request);
 
@@ -55,9 +51,10 @@ class TotalAllocationReportController extends Controller
             ->select([
                 'B.bdg_budget_id',
                 'B.bdg_year',
-                'B.bdg_initial_amt',
-                'B.bdg_topup_amt',
-                'B.bdg_virement_amt',
+                'B.bdg_bal_carryforward',
+                'B.bdg_allocated_amt',
+                'B.bdg_commit_amt',
+                'B.bdg_expenses_amt',
                 'B.bdg_balance_amt',
                 'SB.fty_fund_type',
                 'SB.at_activity_code',
@@ -77,12 +74,14 @@ class TotalAllocationReportController extends Controller
 
         $baseIndex = ($page - 1) * $limit;
         $data = $rows->values()->map(function ($row, $idx) use ($baseIndex) {
-            $initial = (float) ($row->bdg_initial_amt ?? 0);
-            $topup = (float) ($row->bdg_topup_amt ?? 0);
-            $virement = (float) ($row->bdg_virement_amt ?? 0);
+            $opening = (float) ($row->bdg_bal_carryforward ?? 0);
+            $allocated = (float) ($row->bdg_allocated_amt ?? 0);
+            $commit = (float) ($row->bdg_commit_amt ?? 0);
+            $expenses = (float) ($row->bdg_expenses_amt ?? 0);
 
             return [
                 'index' => $baseIndex + $idx + 1,
+                'bdgBudgetId' => (string) $row->bdg_budget_id,
                 'rptYear' => $row->bdg_year,
                 'rptFund' => $row->fty_fund_type,
                 'rptFundDesc' => $row->fty_fund_desc,
@@ -94,18 +93,28 @@ class TotalAllocationReportController extends Controller
                 'rptCcrDesc' => $row->ccr_costcentre_desc,
                 'rptBudgetCode' => $row->lbc_budget_code,
                 'rptBudgetCodeDesc' => $row->lbc_description,
-                'rptInitial' => $initial,
-                'rptTopup' => $topup,
-                'rptVirement' => $virement,
-                'rptTotal' => $initial + $topup + $virement,
+                'rptOpening' => $opening,
+                'rptAllocated' => $allocated,
+                'rptCommit' => $commit,
+                'rptExpenses' => $expenses,
+                'rptTotalExpenses' => $commit + $expenses,
                 'rptBalance' => $row->bdg_balance_amt !== null ? (float) $row->bdg_balance_amt : null,
             ];
         });
 
         // Footer totals across the filtered (not paginated) set.
         $totals = (clone $query)
-            ->selectRaw('SUM(B.bdg_initial_amt) as initial_total, SUM(B.bdg_topup_amt) as topup_total, SUM(B.bdg_virement_amt) as virement_total')
+            ->selectRaw(
+                'SUM(COALESCE(B.bdg_bal_carryforward, 0)) as opening_total, '.
+                'SUM(COALESCE(B.bdg_allocated_amt, 0)) as allocated_total, '.
+                'SUM(COALESCE(B.bdg_commit_amt, 0)) as commit_total, '.
+                'SUM(COALESCE(B.bdg_expenses_amt, 0)) as expenses_total, '.
+                'SUM(COALESCE(B.bdg_balance_amt, 0)) as balance_total'
+            )
             ->first();
+
+        $commitSum = (float) ($totals?->commit_total ?? 0);
+        $expensesSum = (float) ($totals?->expenses_total ?? 0);
 
         return $this->sendOk($data, [
             'page' => $page,
@@ -113,12 +122,12 @@ class TotalAllocationReportController extends Controller
             'total' => $total,
             'totalPages' => (int) ceil(max(1, $total) / $limit),
             'totals' => [
-                'initial' => $totals?->initial_total !== null ? (float) $totals->initial_total : 0.0,
-                'topup' => $totals?->topup_total !== null ? (float) $totals->topup_total : 0.0,
-                'virement' => $totals?->virement_total !== null ? (float) $totals->virement_total : 0.0,
-                'grand' => (float) ($totals?->initial_total ?? 0)
-                    + (float) ($totals?->topup_total ?? 0)
-                    + (float) ($totals?->virement_total ?? 0),
+                'opening' => (float) ($totals?->opening_total ?? 0),
+                'allocated' => (float) ($totals?->allocated_total ?? 0),
+                'commit' => $commitSum,
+                'expenses' => $expensesSum,
+                'totalExpenses' => $commitSum + $expensesSum,
+                'balance' => (float) ($totals?->balance_total ?? 0),
             ],
         ]);
     }

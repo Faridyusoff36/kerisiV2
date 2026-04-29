@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { Download, FileDown, FileSpreadsheet, MoreVertical, Search, X } from "lucide-vue-next";
+import { Download, FileDown, FileSpreadsheet, MoreVertical, Pencil, Search, Trash2, X } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import { getStructureBudgetListOptions, listStructureBudgetList } from "@/api/cms";
 import { useDatatableFeatures } from "@/composables/useDatatableFeatures";
@@ -91,32 +91,35 @@ function resetSmartFilter() {
   smartFilter.value = { year: "", fund: "", activity: "", oun: "", ccr: "", budgetCode: "", status: "", deficit: "" };
 }
 
-const exportColumns = ["Year", "Fund", "Activity", "OUN", "Cost Centre", "Budget Code", "Initial", "Top Up", "Virement", "Balance", "Status"];
-
-function fmtMoney(v: number | null | undefined): string {
-  if (v === null || v === undefined) return "";
-  return Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+const exportColumns = [
+  "Fund",
+  "PTJ",
+  "Cost Centre",
+  "Activity",
+  "Activity Description",
+  "Budget Code",
+  "Budget Code Description",
+  "Deficit Budget",
+  "Status",
+];
 
 function toExportRow(r: StructureBudgetListRow): Record<string, string | number> {
   return {
-    Year: r.sbYear ?? "",
     Fund: r.sbFund ?? "",
-    Activity: r.sbActivity ?? "",
-    OUN: r.sbOun ?? "",
+    PTJ: r.sbOun ?? "",
     "Cost Centre": r.sbCcr ?? "",
+    Activity: r.sbActivity ?? "",
+    "Activity Description": r.sbActivityDesc ?? "",
     "Budget Code": r.sbBudgetCode ?? "",
-    Initial: fmtMoney(r.sbInitialAmt),
-    "Top Up": fmtMoney(r.sbTopupAmt),
-    Virement: fmtMoney(r.sbVirementAmt),
-    Balance: fmtMoney(r.sbBalanceAmt),
+    "Budget Code Description": r.sbBudgetCodeDesc ?? "",
+    "Deficit Budget": r.sbDeficitBudget ?? "",
     Status: r.sbStatus ?? "",
   };
 }
 
 const datatableRef = ref<DatatableRefApi | null>(null);
 const { templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } = useDatatableFeatures({
-  pageName: "Structure Budget List",
+  pageName: "Budget Structure List",
   apiDataPath: "/budget/structure-list",
   defaultExportColumns: exportColumns,
   getFilteredList: () => rows.value.map(toExportRow),
@@ -133,7 +136,7 @@ async function exportExcel() {
     }
     const ExcelJS = await import("exceljs");
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Structure Budget List");
+    const ws = wb.addWorksheet("Budget Structure List");
     ws.addRow(["No", ...exportColumns]);
     rows.value.forEach((r, idx) => {
       const row = toExportRow(r);
@@ -144,7 +147,7 @@ async function exportExcel() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `Structure_Budget_List_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = `Budget_Structure_List_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Excel downloaded");
@@ -184,13 +187,13 @@ onUnmounted(() => {
         class="hidden"
         @change="onTemplateFileChange"
       />
-      <h1 class="page-title">Budget / Structure Budget List</h1>
+      <h1 class="page-title">Budget / Setup / Budget Structure List</h1>
 
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-100 px-4 py-3">
-          <h1 class="text-base font-semibold text-slate-900">Top Filter</h1>
+          <h2 class="text-base font-semibold text-slate-900">Top Filter</h2>
         </div>
-        <div class="grid gap-3 p-4 md:grid-cols-3">
+        <div class="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label class="mb-1 block text-xs font-medium text-slate-600">Year</label>
             <select v-model="topFilter.year" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -198,22 +201,24 @@ onUnmounted(() => {
               <option v-for="opt in options.topFilter.year" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
             </select>
           </div>
-          <div>
+          <div class="relative">
             <label class="mb-1 block text-xs font-medium text-slate-600">Fund</label>
-            <select v-model="topFilter.fund" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <select v-model="topFilter.fund" class="w-full rounded-lg border border-slate-300 px-3 py-2 pr-9 text-sm">
               <option value="">Any</option>
               <option v-for="opt in options.topFilter.fund" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
             </select>
+            <button
+              v-if="topFilter.fund"
+              type="button"
+              class="absolute right-2 top-[1.85rem] rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              aria-label="Clear fund"
+              @click="topFilter.fund = ''"
+            >
+              <X class="h-3.5 w-3.5" />
+            </button>
           </div>
           <div>
-            <label class="mb-1 block text-xs font-medium text-slate-600">Activity</label>
-            <select v-model="topFilter.activity" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-              <option value="">Any</option>
-              <option v-for="opt in options.topFilter.activity" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="mb-1 block text-xs font-medium text-slate-600">OUN</label>
+            <label class="mb-1 block text-xs font-medium text-slate-600">PTJ</label>
             <select v-model="topFilter.oun" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
               <option value="">Any</option>
               <option v-for="opt in options.topFilter.oun" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
@@ -226,16 +231,32 @@ onUnmounted(() => {
               <option v-for="opt in options.topFilter.ccr" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
             </select>
           </div>
-          <div class="flex items-end justify-end gap-2">
-            <button type="button" class="rounded-lg border border-slate-300 px-4 py-2 text-sm" @click="resetTopFilter">Reset</button>
-            <button type="button" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white" @click="applyTopFilter">Apply</button>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-slate-600">Activity</label>
+            <select v-model="topFilter.activity" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+              <option value="">Any</option>
+              <option v-for="opt in options.topFilter.activity" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
+            </select>
           </div>
+          <div class="flex items-end justify-end gap-2 lg:col-span-1">
+            <button
+              type="button"
+              class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 sm:w-auto"
+              @click="applyTopFilter"
+            >
+              <Search class="h-4 w-4 shrink-0" />
+              Search
+            </button>
+          </div>
+        </div>
+        <div class="border-t border-slate-100 px-4 pb-3">
+          <button type="button" class="text-xs font-medium text-slate-500 hover:text-slate-800" @click="resetTopFilter">Clear all filters</button>
         </div>
       </article>
 
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <h1 class="text-base font-semibold text-slate-900">List</h1>
+          <h2 class="text-base font-semibold text-slate-900">Budget Structure List</h2>
           <button class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="More">
             <MoreVertical class="h-4 w-4" />
           </button>
@@ -272,40 +293,59 @@ onUnmounted(() => {
           </div>
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[1200px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
-                  <tr class="border-b border-slate-200 text-left">
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">Year</th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">Fund</th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">Activity</th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">OUN</th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">Cost Centre</th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">Budget Code</th>
-                    <th class="px-3 py-2 text-right text-xs font-semibold uppercase">Initial</th>
-                    <th class="px-3 py-2 text-right text-xs font-semibold uppercase">Top Up</th>
-                    <th class="px-3 py-2 text-right text-xs font-semibold uppercase">Virement</th>
-                    <th class="px-3 py-2 text-right text-xs font-semibold uppercase">Balance</th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase">Status</th>
+              <table class="w-full min-w-[1100px] text-sm">
+                <thead class="sticky top-0 z-[1] bg-violet-600 text-white">
+                  <tr class="border-b border-violet-500 text-left">
+                    <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">No</th>
+                    <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">Fund</th>
+                    <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">PTJ</th>
+                    <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">Cost Centre</th>
+                    <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">Activity</th>
+                    <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">Activity Description</th>
+                    <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">Budget Code</th>
+                    <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">Budget Code Description</th>
+                    <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">Deficit Budget</th>
+                    <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">Status</th>
+                    <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="row in rows" :key="row.sbBudgetId" class="border-b border-slate-100 hover:bg-slate-50">
                     <td class="px-3 py-2">{{ row.index }}</td>
-                    <td class="px-3 py-2">{{ row.sbYear ?? "—" }}</td>
                     <td class="px-3 py-2">{{ row.sbFund ?? "—" }}</td>
-                    <td class="px-3 py-2">{{ row.sbActivity ?? "—" }}</td>
                     <td class="px-3 py-2">{{ row.sbOun ?? "—" }}</td>
                     <td class="px-3 py-2">{{ row.sbCcr ?? "—" }}</td>
+                    <td class="px-3 py-2">{{ row.sbActivity ?? "—" }}</td>
+                    <td class="max-w-[14rem] whitespace-normal break-words px-3 py-2">{{ row.sbActivityDesc ?? "—" }}</td>
                     <td class="px-3 py-2">{{ row.sbBudgetCode ?? "—" }}</td>
-                    <td class="px-3 py-2 text-right">{{ fmtMoney(row.sbInitialAmt) }}</td>
-                    <td class="px-3 py-2 text-right">{{ fmtMoney(row.sbTopupAmt) }}</td>
-                    <td class="px-3 py-2 text-right">{{ fmtMoney(row.sbVirementAmt) }}</td>
-                    <td class="px-3 py-2 text-right">{{ fmtMoney(row.sbBalanceAmt) }}</td>
+                    <td class="max-w-[16rem] whitespace-normal break-words px-3 py-2">{{ row.sbBudgetCodeDesc ?? "—" }}</td>
+                    <td class="px-3 py-2">{{ row.sbDeficitBudget ?? "—" }}</td>
                     <td class="px-3 py-2">{{ row.sbStatus ?? "—" }}</td>
+                    <td class="px-3 py-2">
+                      <div class="flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled
+                          class="cursor-not-allowed rounded p-1 text-slate-300"
+                          title="Edit is not available in this migration (read-only list)"
+                          aria-label="Edit (unavailable)"
+                        >
+                          <Pencil class="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled
+                          class="cursor-not-allowed rounded p-1 text-slate-300"
+                          title="Delete is not available in this migration (read-only list)"
+                          aria-label="Delete (unavailable)"
+                        >
+                          <Trash2 class="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                   <tr v-if="rows.length === 0">
-                    <td colspan="12" class="px-3 py-6 text-center text-xs text-slate-500">No data</td>
+                    <td colspan="11" class="px-3 py-6 text-center text-xs text-slate-500">No data</td>
                   </tr>
                 </tbody>
               </table>
@@ -371,14 +411,7 @@ onUnmounted(() => {
               </select>
             </div>
             <div>
-              <label class="mb-1 block text-xs font-medium text-slate-600">Activity</label>
-              <select v-model="smartFilter.activity" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                <option value="">Any</option>
-                <option v-for="opt in options.smartFilter.activity" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="mb-1 block text-xs font-medium text-slate-600">OUN</label>
+              <label class="mb-1 block text-xs font-medium text-slate-600">PTJ</label>
               <select v-model="smartFilter.oun" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <option value="">Any</option>
                 <option v-for="opt in options.smartFilter.oun" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
@@ -389,6 +422,13 @@ onUnmounted(() => {
               <select v-model="smartFilter.ccr" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <option value="">Any</option>
                 <option v-for="opt in options.smartFilter.ccr" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Activity</label>
+              <select v-model="smartFilter.activity" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="">Any</option>
+                <option v-for="opt in options.smartFilter.activity" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
               </select>
             </div>
             <div>
@@ -406,7 +446,7 @@ onUnmounted(() => {
               </select>
             </div>
             <div>
-              <label class="mb-1 block text-xs font-medium text-slate-600">Deficit</label>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Deficit Budget</label>
               <select v-model="smartFilter.deficit" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 <option value="">Any</option>
                 <option v-for="opt in options.smartFilter.deficit" :key="opt.id" :value="opt.id">{{ opt.label }}</option>

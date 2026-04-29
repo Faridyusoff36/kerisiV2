@@ -63,6 +63,7 @@ use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\JournalListingController;
 use App\Http\Controllers\Api\KerisiArController;
 use App\Http\Controllers\Api\KerisiPayrollController;
+use App\Http\Controllers\Api\KerisiRemainingController;
 use App\Http\Controllers\Api\KerisiSfLevel3Controller;
 use App\Http\Controllers\Api\LaporanBelanjawanController;
 use App\Http\Controllers\Api\LedgerController;
@@ -93,6 +94,9 @@ use App\Http\Controllers\Api\ProjectMonitoringController;
 use App\Http\Controllers\Api\PtjCodeController;
 use App\Http\Controllers\Api\PtptnDataController;
 use App\Http\Controllers\Api\PublicController;
+use App\Http\Controllers\Api\PurchasingItemMainController;
+use App\Http\Controllers\Api\PurchasingJobscopeController;
+use App\Http\Controllers\Api\PurchasingPurchaseRequisitionController;
 use App\Http\Controllers\Api\QuarterBudgetController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SettingController;
@@ -269,8 +273,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/budget/planning-new', [BudgetPlanningNewController::class, 'store']);
 
     // FIMS Budget > Reports > Total Allocation Report (PAGEID 1626 / MENUID 1968).
-    // Legacy BL: SWS_DT_REPORT_TOTAL_ALLOCATION — read-only report joining
-    // budget × structure_budget aggregated for initial + topup + virement.
+    // Legacy BL: SWS_DT_REPORT_TOTAL_ALLOCATION — budget × structure_budget with
+    // opening (carry-forward), allocated, commit, expenses, balance (RM columns).
     Route::get('/budget/report/total-allocation/options', [TotalAllocationReportController::class, 'options']);
     Route::get('/budget/report/total-allocation', [TotalAllocationReportController::class, 'index']);
 
@@ -518,6 +522,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // PAGE_MENUID1024_LEVEL3 Account Receivable shell — ORM queries in KerisiArShellListService.
     Route::get('/payroll/kerisi/{menuId}', [KerisiPayrollController::class, 'index'])
         ->whereNumber('menuId');
+    Route::get('/kerisi/remaining/{menuId}', [KerisiRemainingController::class, 'index'])
+        ->whereNumber('menuId');
     Route::get('/account-receivable/kerisi-ar/{menuId}', [KerisiArController::class, 'index'])
         ->whereNumber('menuId');
 
@@ -618,6 +624,28 @@ Route::middleware('auth:sanctum')->group(function () {
     // group 22/271 / PTJ 'S10400' bursar rules (see controller docblock).
     Route::get('/purchasing/status-po-pr/options', [StatusPoPrController::class, 'options']);
     Route::get('/purchasing/status-po-pr', [StatusPoPrController::class, 'index']);
+
+    // Purchasing / Setup / Item Main (menu 1820) — cascading grids + search group (mysql_secondary).
+    Route::get('/purchasing/item-main/groups', [PurchasingItemMainController::class, 'groups']);
+    Route::get('/purchasing/item-main/main-categories', [PurchasingItemMainController::class, 'mainCategories']);
+    Route::get('/purchasing/item-main/subcategories', [PurchasingItemMainController::class, 'subcategories']);
+    Route::get('/purchasing/item-main/subsiri', [PurchasingItemMainController::class, 'subsiri']);
+    Route::get('/purchasing/item-main/item-lines', [PurchasingItemMainController::class, 'itemLines']);
+
+    // Purchasing / Setup / List Of Jobscope (menu 1932) — `jobscope` read/write on mysql_secondary.
+    Route::get('/purchasing/jobscope/form-options', [PurchasingJobscopeController::class, 'formOptions']);
+    Route::get('/purchasing/jobscope/parent-options', [PurchasingJobscopeController::class, 'parentOptions']);
+    Route::post('/purchasing/jobscope', [PurchasingJobscopeController::class, 'store']);
+    Route::put('/purchasing/jobscope/{id}', [PurchasingJobscopeController::class, 'update'])->whereNumber('id');
+    Route::get('/purchasing/jobscope/{id}', [PurchasingJobscopeController::class, 'show'])->whereNumber('id');
+    Route::get('/purchasing/jobscope', [PurchasingJobscopeController::class, 'index']);
+
+    // Purchasing / Purchase Requisition / New Purchase Requisition (MENUID 1771).
+    Route::get('/purchasing/purchase-requisition/options', [PurchasingPurchaseRequisitionController::class, 'options']);
+    Route::get('/purchasing/purchase-requisition/cost-centres', [PurchasingPurchaseRequisitionController::class, 'costCentres']);
+    Route::post('/purchasing/purchase-requisition', [PurchasingPurchaseRequisitionController::class, 'store']);
+    Route::get('/purchasing/purchase-requisition/{id}', [PurchasingPurchaseRequisitionController::class, 'show'])->whereNumber('id');
+    Route::put('/purchasing/purchase-requisition/{id}', [PurchasingPurchaseRequisitionController::class, 'update'])->whereNumber('id');
 
     // General Ledger > Journal Listing (PAGEID 1700 / MENUID 2056). Legacy
     // BL SNA_API_GLREPORT_JOURNAL_LISTING — list + DR/CR details via

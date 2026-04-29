@@ -44,16 +44,20 @@ class BudgetPlanningScheduleController extends Controller
 
         if ($q !== '') {
             $needle = mb_strtolower($q, 'UTF-8');
-            $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $needle) . '%';
+            $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $needle).'%';
             $query->where(function ($builder) use ($like) {
                 $builder->whereRaw('LOWER(IFNULL(bps_year_budget, "")) LIKE ?', [$like])
                     ->orWhereRaw('LOWER(IF(bps_status = 1, "ACTIVE", "INACTIVE")) LIKE ?', [$like]);
             });
         }
 
-        // Top filter: legacy "Year" text input. We accept it as `year_filter`.
-        if ($request->filled('year_filter')) {
-            $query->where('bps_year_budget', (int) $request->input('year_filter'));
+        // Top filter: legacy "Year" free-text input (`year_filter` after middleware).
+        $yearRaw = trim((string) $request->input('year_filter', ''));
+        if ($yearRaw !== '') {
+            $year = filter_var($yearRaw, FILTER_VALIDATE_INT);
+            if ($year !== false && $year > 0) {
+                $query->where('bps_year_budget', $year);
+            }
         }
 
         $total = (clone $query)->count();
@@ -72,7 +76,7 @@ class BudgetPlanningScheduleController extends Controller
                     'bps_year_budget' => (int) $row->bps_year_budget,
                     'bps_plan_start_date' => $row->bps_plan_startDate?->format('Y-m-d'),
                     'bps_plan_end_date' => $row->bps_plan_endDate?->format('Y-m-d'),
-                    'planning_date' => $startDate && $endDate ? $startDate . ' - ' . $endDate : null,
+                    'planning_date' => $startDate && $endDate ? $startDate.' - '.$endDate : null,
                     'bps_status' => (string) $row->bps_status === '1' ? 'ACTIVE' : 'INACTIVE',
                     'bps_status_value' => (string) $row->bps_status === '1' ? 1 : 0,
                     'is_current_year' => (int) $row->bps_year_budget === (int) date('Y'),
