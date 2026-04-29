@@ -46,6 +46,9 @@ const router = useRouter();
 
 const menuId = computed(() => parseKerisiNumericMenuIdFromPath(route.path));
 
+/** Menu 2085 GRN Cancel — checkbox value (stub). Declared early for handlers below. */
+const grn2085SelectedCbox = ref<string>("");
+
 const spec = computed<KerisiRemainingPageSpec | null>(() => {
   const id = menuId.value;
   if (id === null) return null;
@@ -95,7 +98,7 @@ function formatPurchasingPoAmountCell(mid: number | null, dt: KerisiRemainingDat
 
 /** Work Progress Note grids — Tax/Amount/Unit Price columns use legacy grouping. */
 function formatKerisiWpnMoney(mid: number | null, dt: KerisiRemainingDatatable, colIdx: number, raw: string): string {
-  if (mid !== 1840 && mid !== 2082 && mid !== 1838) return raw;
+  if (mid !== 1840 && mid !== 2082 && mid !== 1838 && mid !== 1839 && mid !== 2085 && mid !== 2624 && mid !== 2626) return raw;
   const dk = String(dt.dtKey[colIdx] ?? "").toLowerCase();
   const lab = String(dt.dtBi[colIdx] ?? "")
     .toLowerCase()
@@ -115,9 +118,17 @@ function formatKerisiWpnMoney(mid: number | null, dt: KerisiRemainingDatatable, 
 }
 
 function formatKerisiWpnDateIfNeeded(mid: number | null, dt: KerisiRemainingDatatable, colIdx: number, raw: string): string {
-  if (mid !== 2082) return raw;
+  if (mid !== 2082 && mid !== 1839 && mid !== 2085) return raw;
   const dk = String(dt.dtKey[colIdx] ?? "").toLowerCase();
-  if (!dk.includes("wpm_receive") && !dk.includes("date")) return raw;
+  if (
+    mid === 2082 &&
+    !dk.includes("wpm_receive") &&
+    !dk.includes("date")
+  ) {
+    return raw;
+  }
+  if (mid === 1839 && !dk.includes("created") && !dk.includes("date")) return raw;
+  if (mid === 2085 && !dk.includes("tarikh") && !dk.includes("date")) return raw;
   const t = raw.trim();
   if (!t) return "";
   // SQL date-only strings → DD/MM/YYYY without timezone shift
@@ -235,7 +246,7 @@ function poNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
 /** WPN list / cancel / detail grids — right-align amount & tax columns (registry headers may use &lt;br&gt;). */
 function wpnNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
   const mid = menuId.value;
-  if (mid !== 1840 && mid !== 2082 && mid !== 1838) return "";
+  if (mid !== 1840 && mid !== 2082 && mid !== 1838 && mid !== 2626) return "";
   const dk = String(dt.dtKey[hi] ?? "").toLowerCase();
   const lab = String(dt.dtBi[hi] ?? "")
     .toLowerCase()
@@ -246,9 +257,29 @@ function wpnNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
   return "";
 }
 
-function tableNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
-  return poNumericColClass(dt, hi) || wpnNumericColClass(dt, hi);
+/** Purchasing GRN / GRN Cancel / Vendor Assessment GRN+WPN — amount columns. */
+function purchasingGrnNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
+  const mid = menuId.value;
+  if (mid !== 1839 && mid !== 2085 && mid !== 2624) return "";
+  const dk = String(dt.dtKey[hi] ?? "").toLowerCase();
+  const lab = String(dt.dtBi[hi] ?? "")
+    .toLowerCase()
+    .replace(/<br\s*\/?>/gi, " ");
+  if (dk.includes("amt") || dk.includes("tax") || dk.includes("amaun") || lab.includes("(rm)") || lab === "amount") {
+    return "text-right tabular-nums";
+  }
+  return "";
 }
+
+function tableNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
+  return poNumericColClass(dt, hi) || wpnNumericColClass(dt, hi) || purchasingGrnNumericColClass(dt, hi);
+}
+
+/** Purchasing shell pages that use legacy purple thead (match screenshots). */
+const kerisiPurchasingPurpleShell = computed(() => {
+  const m = menuId.value;
+  return m === 1839 || m === 2085 || m === 2624 || m === 2626;
+});
 
 function hasFreezeLeft(dt: KerisiRemainingDatatable): boolean {
   return (dt.dtFreezeLeft ?? 0) > 0;
@@ -308,6 +339,8 @@ const topFilterOptions  = ref<Record<string, { value: string; label: string }[]>
 const smartFilterOptionLists = ref<Record<string, { value: string; label: string }[]>>({});
 /** Menu 1838 — second grid rows (WPN Detail). */
 const extraDatatableRowsStore = ref<Record<string, unknown>[][]>([]);
+/** Rows count for Vendor Assessment secondary grid (menu 2624 / 2626). */
+const secondaryGridTotal = ref(0);
 const kerisiFormOptions = ref<Record<string, unknown>>({});
 const kerisiFormValues = ref<Record<string, string>>({});
 
@@ -335,11 +368,13 @@ function initFilters() {
   topFilterOptions.value = {};
   smartFilterOptionLists.value = {};
   extraDatatableRowsStore.value = [];
+  secondaryGridTotal.value = 0;
   kerisiFormOptions.value = {};
   kerisiFormValues.value = {};
 
   q.value = "";
   page.value = 1;
+  grn2085SelectedCbox.value = "";
 }
 
 function resetSmartFilter() {
@@ -439,6 +474,48 @@ function openWpnDetail2082(row: Record<string, unknown>) {
   void router.push({ path: "/admin/kerisi/m/1838", query: { wpm_progress_id: String(id) } });
 }
 
+/** Purchasing / GRN Vendor Assessment grids — navigate to GRN screen. */
+function openKerisiGrn1858(row: Record<string, unknown>): void {
+  const raw = row.grm_receive_id ?? row.grmReceiveId;
+  const id =
+    typeof raw === "number" ? raw : typeof raw === "string" ? parseInt(raw, 10) : NaN;
+  if (!Number.isFinite(id) || id < 1) {
+    toast.error("Good Receive Note", "Missing receive id.");
+    return;
+  }
+  void router.push({ path: "/admin/kerisi/m/1858", query: { grm_receive_id: String(id) } });
+}
+
+/** Purchasing / Vendor Assessment WPN grids — navigate to WPN Detail. */
+function openKerisiWpn1838(row: Record<string, unknown>): void {
+  openWpnDetail2082(row);
+}
+
+function openGrnCancel2085Eye(row: Record<string, unknown>): void {
+  const u = row.url_view ?? row.urlView;
+  if (typeof u === "string" && u.startsWith("/")) {
+    void router.push(u);
+
+    return;
+  }
+  openKerisiGrn1858(row);
+}
+
+function onGrn2085CheckboxChange(row: Record<string, unknown>, checked: boolean): void {
+  const cbox = String(row.cbox ?? "");
+  if (!cbox) return;
+  if (checked) {
+    grn2085SelectedCbox.value = cbox;
+  } else if (grn2085SelectedCbox.value === cbox) {
+    grn2085SelectedCbox.value = "";
+  }
+}
+
+function submitGrnCancel2085Placeholder(): void {
+  toast.info("Good Receive Note Cancel", "Cancellation submit API is not connected yet.");
+  grn2085SelectedCbox.value = "";
+}
+
 function onWpn2082CheckboxChange(row: Record<string, unknown>, checked: boolean): void {
   const cbox = String(row.cbox ?? "");
   if (!cbox) return;
@@ -499,6 +576,9 @@ function shellRows(di: number): Record<string, unknown>[] {
   if (menuId.value === 3041 && di > 0) return [];
   if (menuId.value === 3038 && di > 0) return detailRows.value;
   if (menuId.value === 1838 && di === 1) return extraDatatableRowsStore.value[0] ?? [];
+  if ((menuId.value === 2624 || menuId.value === 2626) && di === 1) {
+    return extraDatatableRowsStore.value[0] ?? [];
+  }
   return rows.value;
 }
 
@@ -571,6 +651,15 @@ async function loadRows() {
     }
     const edt = m?.extraDatatableRows ?? m?.extra_datatable_rows;
     extraDatatableRowsStore.value = Array.isArray(edt) ? (edt as Record<string, unknown>[][]) : [];
+    const secTot = m?.secondary_total ?? m?.secondaryTotal;
+    let nSec =
+      typeof secTot === "number" && Number.isFinite(secTot)
+        ? secTot
+        : typeof secTot === "string" && secTot.trim() !== ""
+          ? Number(secTot)
+          : 0;
+    if (!Number.isFinite(nSec)) nSec = 0;
+    secondaryGridTotal.value = nSec;
     const fo = m?.formOptions ?? m?.form_options;
     kerisiFormOptions.value = fo && typeof fo === "object" ? (fo as Record<string, unknown>) : {};
     const fv = m?.formValues ?? m?.form_values;
@@ -599,6 +688,7 @@ async function loadRows() {
     topFilterOptions.value = {};
     smartFilterOptionLists.value = {};
     extraDatatableRowsStore.value = [];
+    secondaryGridTotal.value = 0;
     kerisiFormOptions.value = {};
     kerisiFormValues.value = {};
   } finally {
@@ -985,7 +1075,7 @@ onUnmounted(() => {
 
           <div class="space-y-3 p-4">
             <!-- Search + smart-filter bar (primary datatable only) -->
-            <template v-if="di === 0">
+          <template v-if="di === 0 || menuId === 2624 || menuId === 2626">
               <div class="flex items-center gap-2">
                 <div class="relative flex-1">
                   <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -1007,7 +1097,7 @@ onUnmounted(() => {
                   </button>
                 </div>
                 <button
-                  v-if="showSmartFilterUi"
+                  v-if="showSmartFilterUi && di === 0"
                   type="button"
                   class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 px-3 text-sm text-slate-600 hover:bg-slate-50"
                   @click="showSmartFilter = true"
@@ -1024,14 +1114,24 @@ onUnmounted(() => {
                 <thead>
                   <tr
                     class="border-b border-slate-200"
-                    :class="menuId === 2082 ? 'bg-violet-100' : 'bg-slate-50'"
+                    :class="
+                      kerisiPurchasingPurpleShell
+                        ? 'border-violet-700 bg-violet-600'
+                        : menuId === 2082
+                          ? 'bg-violet-100'
+                          : 'bg-slate-50'
+                    "
                   >
                     <th
                       v-for="hi in visibleColIndices(dt)"
                       :key="'h-' + dt.componentId + '-' + hi"
                       :class="[
                         'px-3 py-2 text-left text-xs font-semibold tracking-wide',
-                        menuId === 2082 ? 'text-violet-900 normal-case' : 'uppercase text-slate-500',
+                        kerisiPurchasingPurpleShell
+                          ? 'normal-case text-white'
+                          : menuId === 2082
+                            ? 'normal-case text-violet-900'
+                            : 'uppercase text-slate-500',
                       ]"
                     >
                       {{ isNoCol(dt.dtBi[hi] ?? "") ? "No" : stripHtmlBrLabel(dt.dtBi[hi]) }}
@@ -1046,7 +1146,7 @@ onUnmounted(() => {
                   </tr>
                   <tr v-else-if="!shellTableLoading(di) && shellRows(di).length === 0">
                     <td :colspan="tableColspan(dt)" class="px-3 py-6 text-center text-sm text-slate-400">
-                      No records found.
+                      No records.
                     </td>
                   </tr>
                   <tr
@@ -1054,7 +1154,10 @@ onUnmounted(() => {
                     v-for="(row, ri) in shellRows(di)"
                     :key="ri"
                     class="border-b border-slate-100 hover:bg-slate-50"
-                    :class="menuId === 3038 && di === 0 ? 'cursor-pointer' : ''"
+                    :class="[
+                      menuId === 3038 && di === 0 ? 'cursor-pointer' : '',
+                      kerisiPurchasingPurpleShell && ri % 2 === 1 ? 'bg-slate-50/90' : '',
+                    ]"
                     @click="onShellMasterRowClick(di, row)"
                   >
                     <td
@@ -1064,7 +1167,13 @@ onUnmounted(() => {
                       :class="tableNumericColClass(dt, hi)"
                     >
                       <template v-if="isNoCol(dt.dtBi[hi] ?? '')">
-                        {{ (menuId === 3038 && di > 0) || (menuId === 1838 && di > 0) ? ri + 1 : (page - 1) * limit + ri + 1 }}
+                        {{
+                          (menuId === 3038 && di > 0) ||
+                          (menuId === 1838 && di > 0) ||
+                          ((menuId === 2624 || menuId === 2626) && di > 0)
+                            ? ri + 1
+                            : (page - 1) * limit + ri + 1
+                        }}
                       </template>
                       <template v-else-if="isActionCol(dt.dtBi[hi] ?? '')">
                         <!-- Row click navigates to 3039; stop bubble so Details only loads the lower grid -->
@@ -1099,6 +1208,90 @@ onUnmounted(() => {
                             @change="onWpn2082CheckboxChange(row, ($event.target as HTMLInputElement).checked)"
                             @click.stop
                           />
+                        </div>
+                        <div
+                          v-else-if="menuId === 2085 && di === 0"
+                          class="flex items-center gap-2"
+                          @click.stop
+                        >
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="View"
+                            @click="openGrnCancel2085Eye(row)"
+                          >
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
+                          <input
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                            aria-label="Select for GRN Cancel"
+                            :checked="grn2085SelectedCbox === String(row.cbox ?? '')"
+                            @change="onGrn2085CheckboxChange(row, ($event.target as HTMLInputElement).checked)"
+                            @click.stop
+                          />
+                        </div>
+                        <div v-else-if="menuId === 1839 && di === 0" class="flex items-center gap-0.5" @click.stop>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-400"
+                            disabled
+                            title="Print (not wired)"
+                          >
+                            <FileDown class="h-3.5 w-3.5 opacity-50" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40"
+                            title="Edit"
+                            :disabled="String(row.grm_status ?? row.grmStatus ?? '').toUpperCase() !== 'DRAFT'"
+                            @click="openKerisiGrn1858(row)"
+                          >
+                            <Pencil class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="View"
+                            @click="openKerisiGrn1858(row)"
+                          >
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                            title="Delete"
+                            disabled
+                          >
+                            <Trash2 class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div
+                          v-else-if="(menuId === 2624 || menuId === 2626) && di >= 0"
+                          class="flex items-center gap-1"
+                          @click.stop
+                        >
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-600 hover:bg-slate-100"
+                            title="View"
+                            @click="menuId === 2624 ? openKerisiGrn1858(row) : openKerisiWpn1838(row)"
+                          >
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-600 hover:bg-slate-100"
+                            title="New vendor assessment"
+                            @click="
+                              toast.info(
+                                'Vendor Assessment',
+                                'Assessment workflow is opened from legacy after GRN/WPN linking.',
+                              )
+                            "
+                          >
+                            <Plus class="h-3.5 w-3.5" />
+                          </button>
                         </div>
                         <div v-else class="flex items-center gap-1" @click.stop>
                           <button
@@ -1139,11 +1332,18 @@ onUnmounted(() => {
               </table>
             </div>
 
+            <div
+              v-if="di === 1 && (menuId === 2624 || menuId === 2626)"
+              class="flex justify-between border-t border-slate-100 pt-3 text-xs text-slate-500"
+            >
+              <span>{{ secondaryGridTotal === 0 ? "No records" : `${secondaryGridTotal} records` }}</span>
+            </div>
+
             <!-- Pagination (primary datatable only) -->
             <template v-if="di === 0">
               <div class="flex items-center justify-between pt-1">
                 <div class="flex items-center gap-2 text-xs text-slate-500">
-                  <span>{{ menuId === 2082 ? "Display" : "Show" }}</span>
+                  <span>{{ menuId === 2082 || menuId === 2085 ? "Display" : "Show" }}</span>
                   <select
                     v-model="limit"
                     class="rounded border border-slate-300 px-2 py-1 text-xs"
@@ -1151,8 +1351,8 @@ onUnmounted(() => {
                   >
                     <option v-for="n in [5, 10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
                   </select>
-                  <span>{{ menuId === 2082 ? "records" : "entries" }}</span>
-                  <span v-if="menuId === 2082" class="ml-4">
+                  <span>{{ menuId === 2082 || menuId === 2085 ? "records" : "entries" }}</span>
+                  <span v-if="menuId === 2082 || menuId === 2085" class="ml-4">
                     {{ total === 0 ? "No records" : `${total} record${total === 1 ? "" : "s"}` }}
                   </span>
                   <span v-else class="ml-4">
@@ -1189,6 +1389,17 @@ onUnmounted(() => {
                   @click="submitWpnCancel2082"
                 >
                   WPN Cancel
+                </button>
+              </div>
+              <div v-if="menuId === 2085" class="flex justify-end pt-3">
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-violet-700 disabled:opacity-50"
+                  :disabled="!grn2085SelectedCbox"
+                  @click="submitGrnCancel2085Placeholder"
+                >
+                  <X class="h-4 w-4" />
+                  GRN Cancel
                 </button>
               </div>
             </template>

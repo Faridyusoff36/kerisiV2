@@ -153,8 +153,10 @@ class KerisiRemainingShellListService
             2543 => $this->assetTransferList($request, $page, $limit, $q),
             2544 => $this->assetTransferApplication($request, $page, $limit, $q),
             2618 => $this->assetVerification($request, $page, $limit, $q),
-            2624 => $this->assetList($request, $page, $limit, $q),
-            2626 => $this->assetLostListing($request, $page, $limit, $q),
+            /** Purchasing / Vendor Assessment / Good Receive Note — `goods_receive_master` + `vendor_assessment_master` (PAGE 2170 / menu 2624). */
+            2624 => $this->purchasingGrnVendorAssessment2624($request, $page, $limit, $q),
+            /** Purchasing / Vendor Assessment / Work Progress Note — `work_progress_master` (PAGE 2172 / menu 2626). */
+            2626 => $this->purchasingWpnVendorAssessment2626($request, $page, $limit, $q),
             2663 => $this->assetMaintenanceList($request, $page, $limit, $q),
             2664 => $this->assetMaintenanceMasterList($request, $page, $limit, $q),
             2665 => $this->assetDamageList($request, $page, $limit, $q),
@@ -199,7 +201,8 @@ class KerisiRemainingShellListService
             1833 => $this->purchasingPurchaseOrderMenu1833($request, $page, $limit, $q),
             /** Purchasing / Work Progress Note Detail — `work_progress_master` + grids (PAGE 1517 / menu 1838). */
             1838 => $this->purchasingWorkProgressNoteDetail1838($request, $page, $limit, $q),
-            1839 => $this->purchasingCommitteeSetup($request, $page, $limit, $q),
+            /** Purchasing / Good Receive Note / Good Receive Note List — `goods_receive_master` (PAGE 1518 / menu 1839). */
+            1839 => $this->purchasingGoodReceiveNoteList1839($request, $page, $limit, $q),
             /** Purchasing / Work Progress Note List — `work_progress_master` (PAGE 1519 / menu 1840). */
             1840 => $this->purchasingWorkProgressNoteList1840($request, $page, $limit, $q),
             1856 => $this->purchasingPrForm($request, $page, $limit, $q),
@@ -210,7 +213,8 @@ class KerisiRemainingShellListService
             2042 => $this->purchasingPoUpdate($request, $page, $limit, $q),
             /** Purchasing / Work Progress Note Cancel List (PAGE 1723 / menu 2082). */
             2082 => $this->purchasingWorkProgressNoteCancel2082($request, $page, $limit, $q),
-            2085 => $this->purchasingVendorAssessment($request, $page, $limit, $q),
+            /** Purchasing / Good Receive Note / Good Receive Note Cancel — `goods_receive_master` (PAGE 1726 / menu 2085). */
+            2085 => $this->purchasingGrnCancel2085($request, $page, $limit, $q),
             2320 => $this->purchasingPurchaseRequisitionCancellationList($request, $page, $limit, $q),
             2333 => $this->purchasingTenderEvaluation($request, $page, $limit, $q),
             2361 => $this->purchasingVendorListByItem($request, $page, $limit, $q),
@@ -2086,6 +2090,250 @@ class KerisiRemainingShellListService
         return array_merge($this->paginate($base, $page, $limit), [
             'connector' => 'purchasing_work_progress_note_list_1840',
             'smart_filter_options' => ['sf_0' => $statusOpts],
+        ]);
+    }
+
+    /**
+     * Purchasing / Good Receive Note List (menu 1839) — registry MM_API_PURCHASING_GOODRECEIVENOTELIST GRN columns.
+     */
+    private function purchasingGoodReceiveNoteList1839(Request $r, int $page, int $limit, string $q): array
+    {
+        $taxSum = $this->conn()->table('goods_receive_details')
+            ->select([
+                'grm_receive_id',
+                DB::raw('COALESCE(SUM(IFNULL(grd_taxamt, 0)), 0) AS sum_grd_taxamt'),
+            ])
+            ->groupBy('grm_receive_id');
+
+        /** PTJ / OU from PO lines — same derivation as {@see purchaseOrderKerisiBase} (`pom_master` has no `oun_code`). */
+        $subOu = $this->conn()->table('purchase_order_details')
+            ->select([
+                'pom_order_id',
+                DB::raw('MIN(IFNULL(TRIM(`oun_code`), \'\')) AS oun_from_pod'),
+            ])
+            ->groupBy('pom_order_id');
+
+        $billSql = '(SELECT b2.bim_bills_no FROM bills_master AS b2 WHERE b2.grm_receive_no = grm.grm_receive_no ORDER BY b2.bim_bills_id ASC LIMIT 1)';
+        $vamSql = '(SELECT v2.vam_status FROM vendor_assessment_master AS v2 WHERE v2.vcs_vendor_code = grm.vcs_vendor_code ORDER BY v2.vam_assessment_id DESC LIMIT 1)';
+
+        $base = $this->conn()->table('goods_receive_master AS grm')
+            ->leftJoin('purchase_order_master AS pom', 'pom.pom_order_no', '=', 'grm.pom_order_no')
+            ->leftJoinSub($subOu, 'pou', function (JoinClause $join) {
+                $join->on('pou.pom_order_id', '=', 'pom.pom_order_id');
+            })
+            ->leftJoin('vend_customer_supplier AS vc', 'vc.vcs_vendor_code', '=', 'grm.vcs_vendor_code')
+            ->leftJoinSub($taxSum, 'tx', 'tx.grm_receive_id', '=', 'grm.grm_receive_id')
+            ->select([
+                'grm.grm_receive_id',
+                'grm.grm_receive_no',
+                'grm.pom_order_no',
+                'grm.vcs_vendor_code',
+                'vc.vcs_vendor_name',
+                DB::raw("IFNULL(NULLIF(TRIM(pom.pom_description), ''), '') AS pom_description"),
+                DB::raw('IFNULL(tx.sum_grd_taxamt, 0) AS sum_grd_taxamt'),
+                DB::raw('CAST(IFNULL(grm.grm_total_amt, 0) AS DECIMAL(15, 2)) AS grm_total_amt'),
+                'grm.grm_status',
+                DB::raw($billSql.' AS bim_bills_no'),
+                DB::raw($vamSql.' AS vam_status'),
+                DB::raw('grm.grm_receive_date AS createddate'),
+            ])
+            ->orderByDesc('grm.grm_receive_id');
+
+        $sfPtj = trim((string) $r->input('sf_0', ''));
+        if ($sfPtj !== '') {
+            $base->whereRaw('IFNULL(TRIM(`pou`.`oun_from_pod`), \'\') = ?', [$sfPtj]);
+        }
+
+        $qTrim = trim($q);
+        if ($qTrim !== '') {
+            $like = $this->likeEscape(mb_strtolower($qTrim, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(grm.grm_receive_no,''), IFNULL(grm.pom_order_no,''), IFNULL(grm.vcs_vendor_code,''), IFNULL(vc.vcs_vendor_name,''), IFNULL(pom.pom_description,''), IFNULL(grm.grm_status,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        $ptjOpts = $this->conn()->table('purchase_order_details')
+            ->selectRaw('DISTINCT TRIM(IFNULL(oun_code, \'\')) AS ou')
+            ->whereRaw("TRIM(IFNULL(oun_code,'')) <> ''")
+            ->orderBy('ou')
+            ->pluck('ou')
+            ->map(fn ($s) => ['value' => (string) $s, 'label' => (string) $s])
+            ->values()
+            ->all();
+
+        return array_merge($this->paginate($base, $page, $limit), [
+            'connector' => 'purchasing_good_receive_note_list_1839',
+            'smart_filter_options' => ['sf_0' => $ptjOpts],
+        ]);
+    }
+
+    /**
+     * Purchasing / Good Receive Note Cancel (menu 2085) — legacy SNA_API_PURCHASING_GRN_CANCEL list keys (NOGRN → no_grn, etc.).
+     */
+    private function purchasingGrnCancel2085(Request $r, int $page, int $limit, string $q): array
+    {
+        $base = $this->conn()->table('goods_receive_master AS grm')
+            ->leftJoin('purchase_order_master AS pom', 'pom.pom_order_no', '=', 'grm.pom_order_no')
+            ->leftJoin('vend_customer_supplier AS vc', 'vc.vcs_vendor_code', '=', 'grm.vcs_vendor_code')
+            ->whereIn('grm.grm_status', ['ENDORSE', 'APPROVE'])
+            ->whereRaw(
+                'grm.grm_receive_no NOT IN (SELECT IFNULL(grm_receive_no, ?) FROM bills_master WHERE bim_status = ?)',
+                ['', 'APPROVE']
+            )
+            ->select([
+                'grm.grm_receive_id',
+                DB::raw('grm.grm_receive_no AS no_grn'),
+                DB::raw('grm.pom_order_no AS purchase_no'),
+                DB::raw('grm.vcs_vendor_code AS kod_vendor'),
+                DB::raw("IFNULL(vc.vcs_vendor_name, '') AS nama_vendor"),
+                DB::raw("IFNULL(NULLIF(TRIM(pom.pom_description), ''), '') AS keterangan_po"),
+                DB::raw('DATE(grm.grm_receive_date) AS tarikh_grn'),
+                DB::raw('CAST(IFNULL(grm.grm_total_amt, 0) AS DECIMAL(15, 2)) AS amaun'),
+                DB::raw("CONCAT(grm.grm_receive_id, '_', grm.grm_receive_no) AS cbox"),
+                DB::raw("CONCAT('/admin/kerisi/m/1858?grm_receive_id=', grm.grm_receive_id) AS url_view"),
+            ])
+            ->orderByDesc('grm.grm_receive_id');
+
+        $qTrim = trim($q);
+        if ($qTrim !== '') {
+            $like = $this->likeEscape(mb_strtolower($qTrim, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(grm.grm_receive_no,''), IFNULL(grm.pom_order_no,''), IFNULL(grm.vcs_vendor_code,''), IFNULL(vc.vcs_vendor_name,''), IFNULL(pom.pom_description,''), IFNULL(grm.grm_receive_date,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_grn_cancel_2085']);
+    }
+
+    /**
+     * Base query: GRNs split by whether `vendor_assessment_master` has a row for the vendor (registry dt_without/dt_with).
+     */
+    private function grnVendorAssessmentQuery(Request $r, bool $withAssessment, string $q): Builder
+    {
+        unset($r);
+        $billSql = '(SELECT b2.bim_bills_no FROM bills_master AS b2 WHERE b2.grm_receive_no = grm.grm_receive_no ORDER BY b2.bim_bills_id ASC LIMIT 1)';
+        $vamSql = '(SELECT v2.vam_status FROM vendor_assessment_master AS v2 WHERE v2.vcs_vendor_code = grm.vcs_vendor_code ORDER BY v2.vam_assessment_id DESC LIMIT 1)';
+
+        $base = $this->conn()->table('goods_receive_master AS grm')
+            ->leftJoin('purchase_order_master AS pom', 'pom.pom_order_no', '=', 'grm.pom_order_no')
+            ->leftJoin('vend_customer_supplier AS vc', 'vc.vcs_vendor_code', '=', 'grm.vcs_vendor_code')
+            ->select([
+                'grm.grm_receive_id',
+                'grm.grm_receive_no',
+                'grm.pom_order_no',
+                'grm.vcs_vendor_code',
+                'vc.vcs_vendor_name',
+                DB::raw("IFNULL(NULLIF(TRIM(pom.pom_description), ''), '') AS pom_description"),
+                DB::raw('CAST(IFNULL(grm.grm_total_amt, 0) AS DECIMAL(15, 2)) AS grm_total_amt'),
+                'grm.grm_status',
+                DB::raw($billSql.' AS bim_bills_no'),
+                DB::raw($vamSql.' AS vam_status'),
+            ]);
+
+        if ($withAssessment) {
+            $base->whereExists(function ($sub) {
+                $sub->selectRaw('1')
+                    ->from('vendor_assessment_master AS vam')
+                    ->whereColumn('vam.vcs_vendor_code', 'grm.vcs_vendor_code');
+            });
+        } else {
+            $base->whereNotExists(function ($sub) {
+                $sub->selectRaw('1')
+                    ->from('vendor_assessment_master AS vam')
+                    ->whereColumn('vam.vcs_vendor_code', 'grm.vcs_vendor_code');
+            });
+        }
+
+        $qTrim = trim($q);
+        if ($qTrim !== '') {
+            $like = $this->likeEscape(mb_strtolower($qTrim, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(grm.grm_receive_no,''), IFNULL(grm.pom_order_no,''), IFNULL(grm.vcs_vendor_code,''), IFNULL(vc.vcs_vendor_name,''), IFNULL(pom.pom_description,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        return $base->orderByDesc('grm.grm_receive_id');
+    }
+
+    /**
+     * Purchasing / Vendor Assessment / Good Receive Note (menu 2624) — two grids: without / with vendor assessment.
+     */
+    private function purchasingGrnVendorAssessment2624(Request $r, int $page, int $limit, string $q): array
+    {
+        $without = $this->paginate($this->grnVendorAssessmentQuery($r, false, $q), $page, $limit);
+        $with = $this->paginate($this->grnVendorAssessmentQuery($r, true, $q), $page, $limit);
+
+        return array_merge($without, [
+            'extra_datatable_rows' => [$with['rows']],
+            'secondary_total' => $with['total'],
+            'connector' => 'purchasing_grn_vendor_assessment_2624',
+        ]);
+    }
+
+    /**
+     * Base query: WPNs split by vendor assessment presence (registry 2626).
+     */
+    private function wpnVendorAssessmentQuery(Request $r, bool $withAssessment, string $q): Builder
+    {
+        unset($r);
+        $vamSql = '(SELECT v2.vam_status FROM vendor_assessment_master AS v2 WHERE v2.vcs_vendor_code = wpm.vcs_vendor_code ORDER BY v2.vam_assessment_id DESC LIMIT 1)';
+
+        $base = $this->conn()->table('work_progress_master AS wpm')
+            ->leftJoin('purchase_order_master AS pom', 'pom.pom_order_no', '=', 'wpm.pom_order_no')
+            ->leftJoin('vend_customer_supplier AS vc', 'vc.vcs_vendor_code', '=', 'wpm.vcs_vendor_code')
+            ->select([
+                'wpm.wpm_progress_id',
+                'wpm.wpm_progress_no',
+                'wpm.pom_order_no',
+                'wpm.vcs_vendor_code',
+                'vc.vcs_vendor_name',
+                DB::raw("IFNULL(NULLIF(TRIM(pom.pom_description), ''), '') AS pom_description"),
+                DB::raw('CAST(IFNULL(wpm.wpm_total_amt, IFNULL(wpm.wpm_total_amt_rm, 0)) AS DECIMAL(15, 2)) AS wpm_total_amt'),
+                'wpm.wpm_status',
+                DB::raw($vamSql.' AS vam_status'),
+            ]);
+
+        if ($withAssessment) {
+            $base->whereExists(function ($sub) {
+                $sub->selectRaw('1')
+                    ->from('vendor_assessment_master AS vam')
+                    ->whereColumn('vam.vcs_vendor_code', 'wpm.vcs_vendor_code');
+            });
+        } else {
+            $base->whereNotExists(function ($sub) {
+                $sub->selectRaw('1')
+                    ->from('vendor_assessment_master AS vam')
+                    ->whereColumn('vam.vcs_vendor_code', 'wpm.vcs_vendor_code');
+            });
+        }
+
+        $qTrim = trim($q);
+        if ($qTrim !== '') {
+            $like = $this->likeEscape(mb_strtolower($qTrim, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(wpm.wpm_progress_no,''), IFNULL(wpm.pom_order_no,''), IFNULL(wpm.vcs_vendor_code,''), IFNULL(vc.vcs_vendor_name,''), IFNULL(pom.pom_description,''), IFNULL(wpm.wpm_status,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        return $base->orderByDesc('wpm.wpm_progress_id');
+    }
+
+    /**
+     * Purchasing / Vendor Assessment / Work Progress Note (menu 2626) — two grids.
+     */
+    private function purchasingWpnVendorAssessment2626(Request $r, int $page, int $limit, string $q): array
+    {
+        $without = $this->paginate($this->wpnVendorAssessmentQuery($r, false, $q), $page, $limit);
+        $with = $this->paginate($this->wpnVendorAssessmentQuery($r, true, $q), $page, $limit);
+
+        return array_merge($without, [
+            'extra_datatable_rows' => [$with['rows']],
+            'secondary_total' => $with['total'],
+            'connector' => 'purchasing_wpn_vendor_assessment_2626',
         ]);
     }
 

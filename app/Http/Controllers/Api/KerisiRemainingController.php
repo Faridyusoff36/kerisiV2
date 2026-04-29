@@ -62,6 +62,10 @@ class KerisiRemainingController extends Controller
             $meta['extra_datatable_rows'] = $pack['extra_datatable_rows'];
         }
 
+        if (array_key_exists('secondary_total', $pack)) {
+            $meta['secondary_total'] = $pack['secondary_total'];
+        }
+
         if (array_key_exists('grand_total_pom_order_amt_rm', $pack)) {
             $meta['grand_total_pom_order_amt_rm'] = $pack['grand_total_pom_order_amt_rm'];
         }
