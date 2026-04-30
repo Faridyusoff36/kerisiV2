@@ -444,14 +444,6 @@ onUnmounted(() => {
               >
                 <option v-for="n in [5, 10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
               </select>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium"
-                @click="showSmartFilter = true"
-              >
-                <Filter class="h-3.5 w-3.5" />
-                Smart Filter
-              </button>
             </div>
             <div class="flex items-center gap-2">
               <label class="text-xs font-medium text-slate-600">Search</label>
@@ -474,13 +466,21 @@ onUnmounted(() => {
                   <X class="h-3.5 w-3.5" />
                 </button>
               </div>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium"
+                @click="showSmartFilter = true"
+              >
+                <Filter class="h-3.5 w-3.5" />
+                Filter
+              </button>
             </div>
           </div>
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[1400px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
+              <table class="admin-table-kitchen w-full min-w-[1400px] text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="px-3 py-2 text-xs font-semibold uppercase">Trans Date</th>

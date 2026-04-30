@@ -45,6 +45,14 @@ import type {
   DebitNoteRow,
   InvoiceLinesResponse,
   LookupOption,
+  ApCnFormBillDetails,
+  ApCnFormBillResult,
+  ApCnFormData,
+  ApCnSaveResponse,
+  ApDnFormBillDetails,
+  ApDnFormBillResult,
+  ApDnFormData,
+  ApDnSaveResponse,
   DebtorSearchOption,
   InvoiceSearchOption,
   SaveCreditNoteResponse,
@@ -3309,11 +3317,36 @@ export async function listKerisiRemainingData(menuId: number, params = "") {
   );
 }
 
+/** AP / List of Money Transfer (MENUID 3270) — virement numbers for “New (From Virement)”. */
+export async function listKerisiMoneyTransferVirementNumbers(params = "") {
+  return apiRequest<{
+    data: { bmmBudgetMovementId: number; bmmBudgetMovementNo: string }[];
+  }>(`/api/kerisi/remaining/ap/money-transfer/virement-numbers${params}`);
+}
+
 /** Purchasing / Work Progress Note Cancel (2082) — legacy processcancelwpn_entry */
 export async function kerisiWpnCancel(payload: { selectedId: string }) {
   return apiRequest<{
     data: { status: string; successMessage?: string; wpnNo?: string };
   }>("/api/kerisi/remaining/wpn-cancel", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function kerisiPaymentRejectBatchPaymentCancel(payload: { selectedIds: number[] }) {
+  return apiRequest<{
+    data: { status: string; processed: number; itemRefs?: string[]; selectedIds?: number[] };
+  }>("/api/kerisi/remaining/ap/payment-reject-batch/payment-cancel", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function kerisiPaymentRejectBatchVoucherCancel(payload: { selectedIds: number[] }) {
+  return apiRequest<{
+    data: { status: string; processed: number; itemRefs?: string[]; selectedIds?: number[] };
+  }>("/api/kerisi/remaining/ap/payment-reject-batch/voucher-cancel", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 /** Purchasing / List of PR To Be Cancel (3038) — Details PR grid linked to PR no / id */
@@ -3483,4 +3516,105 @@ export async function updatePurchasingPrCancel(id: number, input: Record<string,
     method: "PUT",
     body: JSON.stringify(input),
   });
+}
+
+// ─── AP Credit Note Form — MENUID 3242 ──────────────────────────────────────
+
+export async function searchApCreditNoteFormBills(q = "", limit = 20) {
+  const params = new URLSearchParams({ q, limit: String(limit) });
+  return apiRequest<{ data: ApCnFormBillResult[] }>(
+    `/api/kerisi/ap/credit-note-form/bill-search?${params}`,
+  );
+}
+
+export async function getApCreditNoteFormBillDetails(billNo: string) {
+  return apiRequest<{ data: ApCnFormBillDetails }>(
+    `/api/kerisi/ap/credit-note-form/bill-details?bill_no=${encodeURIComponent(billNo)}`,
+  );
+}
+
+export async function listApCreditNoteFormCurrencies() {
+  return apiRequest<{ data: LookupOption[] }>(
+    `/api/kerisi/ap/credit-note-form/currencies`,
+  );
+}
+
+export async function listApCreditNoteFormCustomerTypes() {
+  return apiRequest<{ data: LookupOption[] }>(
+    `/api/account-receivable/lookup/customer-type`,
+  );
+}
+
+export async function getApCreditNoteForm(id: string | number) {
+  return apiRequest<{ data: ApCnFormData }>(
+    `/api/kerisi/ap/credit-note-form/${id}`,
+  );
+}
+
+export async function saveApCreditNoteForm(input: unknown) {
+  return apiRequest<{ data: ApCnSaveResponse }>(
+    `/api/kerisi/ap/credit-note-form`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+export async function submitApCreditNoteForm(id: string | number) {
+  return apiRequest<{ data: Record<string, unknown> }>(
+    `/api/kerisi/ap/credit-note-form/${id}/submit`,
+    { method: "POST", body: JSON.stringify({}) },
+  );
+}
+
+// ─── AP Debit Note Form — MENUID 3548 / 3550 ───────────────────────────────
+
+export async function searchApDebitNoteFormBills(q = "", limit = 20) {
+  const params = new URLSearchParams({ q, limit: String(limit) });
+  return apiRequest<{ data: ApDnFormBillResult[] }>(
+    `/api/kerisi/ap/debit-note-form/bill-search?${params}`,
+  );
+}
+
+export async function getApDebitNoteFormBillDetails(billNo: string) {
+  return apiRequest<{ data: ApDnFormBillDetails }>(
+    `/api/kerisi/ap/debit-note-form/bill-details?bill_no=${encodeURIComponent(billNo)}`,
+  );
+}
+
+export async function listApDebitNoteFormCurrencies() {
+  return apiRequest<{ data: LookupOption[] }>(
+    `/api/kerisi/ap/debit-note-form/currencies`,
+  );
+}
+
+export async function listApDebitNoteFormCustomerTypes() {
+  return apiRequest<{ data: LookupOption[] }>(
+    `/api/account-receivable/lookup/customer-type`,
+  );
+}
+
+export async function getApDebitNoteForm(id: string | number) {
+  return apiRequest<{ data: ApDnFormData }>(
+    `/api/kerisi/ap/debit-note-form/${id}`,
+  );
+}
+
+export async function saveApDebitNoteForm(input: unknown) {
+  return apiRequest<{ data: ApDnSaveResponse }>(
+    `/api/kerisi/ap/debit-note-form`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
+export async function submitApDebitNoteForm(id: string | number) {
+  return apiRequest<{ data: Record<string, unknown> }>(
+    `/api/kerisi/ap/debit-note-form/${id}/submit`,
+    { method: "POST", body: JSON.stringify({}) },
+  );
+}
+
+export async function cancelApDebitNoteForm(id: string | number, reason: string) {
+  return apiRequest<{ data: Record<string, unknown> }>(
+    `/api/kerisi/ap/debit-note-form/${id}/cancel`,
+    { method: "POST", body: JSON.stringify({ cancelReason: reason }) },
+  );
 }

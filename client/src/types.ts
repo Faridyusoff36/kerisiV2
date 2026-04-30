@@ -4983,3 +4983,172 @@ export type StudentJournalApprovalFooter = {
   mjdTransAmt: number;
   mjmTotalAmt: number;
 };
+
+// ─── AP Credit Note Form (MENUID 3242) ──────────────────────────────────────
+
+export type ApCnFormHead = {
+  cna_id: string | null;
+  cna_crnote_no: string | null;
+  cna_approve_date: string | null;
+  bim_bills_id: string | null;
+  bim_bills_no: string | null;
+  bim_payto_id: string | null;
+  bim_payto_name: string | null;
+  bim_payto_type: string | null;
+  bim_factoring_code: string | null;
+  bim_factoring_type: string | null;
+  bim_rate_type: string | null;
+  bim_currency_unit: string | null;
+  bim_currency_code: string | null;
+  bim_currency_rate: string | null;
+  bim_ent_amt: number | null;
+  bim_bill_amt: number | null;
+  bim_current_rate: string | null;
+  cna_description: string | null;
+  cna_status_cd: string;
+};
+
+export type ApCnFormLine = {
+  crdId: string | null;
+  bidBillsDetailsId: string | null;
+  crdLineNo: number | null;
+  ftyFundType: string | null;
+  atActivityCode: string | null;
+  ounCode: string | null;
+  ccrCostcentre: string | null;
+  soCode: string | null;
+  itItemCode: string | null;
+  acmAcctCode: string | null;
+  bdgBudgetCode: string | null;
+  bidEntAmt: number | null;
+  bidAmt: number | null;
+  crdCnEntAmt: number | null;
+  crdCnAmt: number | null;
+  crdBalEntAmt: number | null;
+  crdBalAmt: number | null;
+};
+
+export type ApCnFormBillResult = {
+  id: string;
+  billNo: string;
+  paytoName: string;
+  status: string;
+};
+
+export type ApCnFormBillDetails = {
+  bimBillsId: string | null;
+  bimBillsNo: string | null;
+  bimPaytoId: string | null;
+  bimPaytoName: string | null;
+  bimPaytoType: string | null;
+  bimFactoringCode: string | null;
+  bimFactoringType: string | null;
+  bimRateType: string | null;
+  bimCurrencyUnit: string | null;
+  bimCurrencyCode: string | null;
+  bimCurrencyRate: string | null;
+  bimEntAmt: number | null;
+  bimBillAmt: number | null;
+  bimCurrentRate: string | null;
+  debitLines: ApCnFormLine[];
+  creditLines: ApCnFormLine[];
+};
+
+export type ApCnFormData = ApCnFormBillDetails & {
+  cnaId: string | null;
+  cnaCrnoteNo: string | null;
+  cnaApproveDate: string | null;
+  cnaDescription: string | null;
+  cnaStatusCd: string;
+};
+
+export type ApCnSaveResponse = {
+  cnaId: string | null;
+  cnaCrnoteNo: string | null;
+  cnaStatusCd: string;
+};
+
+// ─── AP Debit Note Form (MENUID 3548 / 3550) ───────────────────────────────
+
+export type ApDnFormHead = {
+  dna_id: string | null;
+  dna_dnnote_no: string | null;
+  dna_approve_date: string | null;
+  bim_bills_id: string | null;
+  bim_bills_no: string | null;
+  bim_payto_id: string | null;
+  bim_payto_name: string | null;
+  bim_payto_type: string | null;
+  bim_factoring_code: string | null;
+  bim_factoring_type: string | null;
+  bim_rate_type: string | null;
+  bim_currency_unit: string | null;
+  bim_currency_code: string | null;
+  bim_currency_rate: string | null;
+  bim_ent_amt: number | null;
+  bim_bill_amt: number | null;
+  bim_current_rate: string | null;
+  dna_description: string | null;
+  dna_status_dn: string;
+  dna_cancel_by: string | null;
+  dna_cancel_date: string | null;
+  dna_cancel_reason: string | null;
+};
+
+export type ApDnFormLine = {
+  dedId: string | null;
+  bidBillsDetailsId: string | null;
+  dedLineNo: number | null;
+  ftyFundType: string | null;
+  atActivityCode: string | null;
+  ounCode: string | null;
+  ccrCostcentre: string | null;
+  soCode: string | null;
+  itItemCode: string | null;
+  acmAcctCode: string | null;
+  bdgBudgetCode: string | null;
+  bidEntAmt: number | null;
+  bidAmt: number | null;
+  dedDnEntAmt: number | null;
+  dedDnAmt: number | null;
+  dedBalEntAmt: number | null;
+  dedBalAmt: number | null;
+};
+
+export type ApDnFormBillResult = ApCnFormBillResult;
+
+export type ApDnFormBillDetails = {
+  bimBillsId: string | null;
+  bimBillsNo: string | null;
+  bimPaytoId: string | null;
+  bimPaytoName: string | null;
+  bimPaytoType: string | null;
+  bimFactoringCode: string | null;
+  bimFactoringType: string | null;
+  bimRateType: string | null;
+  bimCurrencyUnit: string | null;
+  bimCurrencyCode: string | null;
+  bimCurrencyRate: string | null;
+  bimEntAmt: number | null;
+  bimBillAmt: number | null;
+  bimCurrentRate: string | null;
+  debitLines: ApDnFormLine[];
+  creditLines: ApDnFormLine[];
+};
+
+export type ApDnFormData = ApDnFormBillDetails & {
+  dnaId: string | null;
+  dnaDnnoteNo: string | null;
+  dnaApproveDate: string | null;
+  dnaDescription: string | null;
+  dnaStatusDn: string;
+  dnaCancelBy: string | null;
+  dnaCancelDate: string | null;
+  dnaCancelReason: string | null;
+};
+
+export type ApDnSaveResponse = {
+  dnaId: string | null;
+  dnaDnnoteNo: string | null;
+  dnaStatusDn: string;
+};

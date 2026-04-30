@@ -245,7 +245,7 @@ onUnmounted(() => {
               </button>
               <button type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50" @click="exportExcel">
                 <FileSpreadsheet class="h-3.5 w-3.5" />
-                Excell
+                Excel
               </button>
             </div>
           </div>

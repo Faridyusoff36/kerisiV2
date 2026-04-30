@@ -534,9 +534,9 @@ function labelClass(): string {
           </div>
           <div v-if="itemsOpen" class="overflow-x-auto p-4">
             <p v-if="linesLoading" class="text-sm text-slate-500">Loading items…</p>
-            <table v-else class="min-w-[72rem] w-full text-xs">
-              <thead>
-                <tr class="border-b border-slate-200 bg-slate-50">
+            <table v-else class="admin-table-kitchen min-w-[72rem] w-full text-xs">
+              <thead class="admin-table-thead-sticky">
+                <tr>
                   <th class="px-2 py-2 text-left font-semibold text-slate-600">No</th>
                   <th class="px-2 py-2 text-left font-semibold text-slate-600">Item Code</th>
                   <th class="px-2 py-2 text-left font-semibold text-slate-600">Description</th>

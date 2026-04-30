@@ -510,8 +510,8 @@ onMounted(loadOptions);
           </div>
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="lines.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[900px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
+              <table class="admin-table-kitchen w-full min-w-[900px] text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="px-3 py-2 text-xs font-semibold uppercase">Account Code</th>
@@ -550,7 +550,7 @@ onMounted(loadOptions);
                       />
                     </td>
                     <td class="px-3 py-2">
-                      <button
+                      <button type="button"
                         class="rounded p-1 text-rose-500 hover:bg-rose-50"
                         title="Remove line"
                         @click="removeLine(idx)"
@@ -597,7 +597,7 @@ onMounted(loadOptions);
         <div class="w-full max-w-lg rounded-lg bg-white shadow-xl">
           <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <h3 class="text-base font-semibold text-slate-900">Upload CSV Template</h3>
-            <button class="rounded p-1 text-slate-500 hover:bg-slate-100" @click="showCsvUpload = false">
+            <button type="button" class="rounded p-1 text-slate-500 hover:bg-slate-100" @click="showCsvUpload = false">
               <X class="h-4 w-4" />
             </button>
           </div>
@@ -616,7 +616,7 @@ onMounted(loadOptions);
             <p v-if="csvFileName" class="text-xs text-slate-500">Last upload: {{ csvFileName }}</p>
           </div>
           <div class="flex items-center justify-end gap-2 border-t border-slate-100 px-4 py-3">
-            <button
+            <button type="button"
               class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
               @click="showCsvUpload = false"
             >
@@ -637,7 +637,7 @@ onMounted(loadOptions);
         <div class="w-full max-w-lg rounded-lg bg-white shadow-xl">
           <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <h3 class="text-base font-semibold text-slate-900">Leave some remark</h3>
-            <button class="rounded p-1 text-slate-500 hover:bg-slate-100" @click="showRemarkModal = false">
+            <button type="button" class="rounded p-1 text-slate-500 hover:bg-slate-100" @click="showRemarkModal = false">
               <X class="h-4 w-4" />
             </button>
           </div>

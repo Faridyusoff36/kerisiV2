@@ -378,54 +378,55 @@ onUnmounted(() => {
           <div class="space-y-3 p-4">
             <!-- Search + smart-filter bar (primary datatable only) -->
             <template v-if="di === 0">
-              <div class="flex items-center gap-2">
-                <div class="relative flex-1">
-                  <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                  <input
-                    v-model="q"
-                    type="search"
-                    placeholder="Filter rows…"
-                    class="h-8 w-full rounded-lg border border-slate-300 pl-8 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-                    @input="onSearch"
-                    @keydown.enter.prevent="onSearch"
-                  />
-                  <button
-                    v-if="q"
-                    type="button"
-                    class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
-                    @click="clearSearch"
+              <div class="flex flex-wrap items-end justify-between gap-4">
+                <div class="flex items-center gap-2">
+                  <span class="text-xs font-medium text-slate-600">Display</span>
+                  <select
+                    v-model="limit"
+                    class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+                    @change="onLimitChange"
                   >
-                    <X class="h-3.5 w-3.5" />
+                    <option v-for="n in [10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
+                  </select>
+                </div>
+                <div class="flex items-center gap-2">
+                  <label class="text-xs font-medium text-slate-600">Search</label>
+                  <div class="relative">
+                    <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                    <input
+                      v-model="q"
+                      type="search"
+                      placeholder="Filter rows..."
+                      class="w-56 rounded-lg border border-slate-300 py-1.5 pl-8 pr-8 text-sm"
+                      @input="onSearch"
+                      @keydown.enter.prevent="onSearch"
+                    />
+                    <button
+                      v-if="q"
+                      type="button"
+                      class="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:bg-slate-100"
+                      @click="clearSearch"
+                    >
+                      <X class="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <button
+                    v-if="showSmartFilterUi"
+                    type="button"
+                    class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                    @click="showSmartFilter = true"
+                  >
+                    <Filter class="h-4 w-4" />
+                    Filter
                   </button>
                 </div>
-                <button
-                  v-if="showSmartFilterUi"
-                  type="button"
-                  class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 px-3 text-sm text-slate-600 hover:bg-slate-50"
-                  @click="showSmartFilter = true"
-                >
-                  <Filter class="h-3.5 w-3.5" />
-                  Filter
-                </button>
-              </div>
-
-              <!-- Display & limit row -->
-              <div class="flex items-center gap-2 text-sm text-slate-500">
-                <span>Display</span>
-                <select
-                  v-model="limit"
-                  class="rounded border border-slate-300 px-2 py-0.5 text-sm"
-                  @change="onLimitChange"
-                >
-                  <option v-for="n in [10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
-                </select>
               </div>
             </template>
 
             <!-- Table -->
             <div class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead class="bg-slate-50">
+              <table class="admin-table-kitchen w-full text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th
                       v-for="(h, hi) in dt.dtBi"
@@ -438,12 +439,12 @@ onUnmounted(() => {
                 </thead>
                 <tbody>
                   <tr v-if="loading && di === 0">
-                    <td :colspan="tableColspan(dt)" class="px-3 py-8 text-center text-sm text-slate-500">
+                    <td :colspan="tableColspan(dt)" class="admin-table-kitchen-caption">
                       Loading…
                     </td>
                   </tr>
                   <tr v-else-if="(di === 0 ? rows : []).length === 0 && !loading">
-                    <td :colspan="tableColspan(dt)" class="px-3 py-8 text-center text-sm text-slate-500">
+                    <td :colspan="tableColspan(dt)" class="admin-table-kitchen-caption">
                       No records found.
                     </td>
                   </tr>

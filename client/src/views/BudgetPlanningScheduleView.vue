@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { Download, FileDown, FileSpreadsheet, MoreVertical, Plus, Search, Trash2, X } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import {
@@ -37,6 +37,9 @@ const page = ref(1);
 const limit = ref(10);
 const q = ref("");
 const total = ref(0);
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / Math.max(1, limit.value))));
+const startIdx = computed(() => (total.value === 0 ? 0 : (page.value - 1) * limit.value + 1));
+const endIdx = computed(() => Math.min(page.value * limit.value, total.value));
 const yearFilter = ref<string>("");
 const showModal = ref(false);
 const editId = ref<number | null>(null);
@@ -311,8 +314,8 @@ onUnmounted(() => {
           </div>
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[800px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
+              <table class="admin-table-kitchen w-full min-w-[800px] text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="px-3 py-2 text-xs font-semibold uppercase">Budget Year</th>
@@ -333,7 +336,7 @@ onUnmounted(() => {
                     <td class="px-3 py-2">{{ row.bpsStatus }}</td>
                     <td class="px-3 py-2">
                       <div class="flex items-center gap-1">
-                        <button
+                        <button type="button"
                           class="rounded p-1 text-slate-500 hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-transparent"
                           :disabled="row.isCurrentYear"
                           title="Edit"
@@ -341,7 +344,7 @@ onUnmounted(() => {
                         >
                           ✎
                         </button>
-                        <button
+                        <button type="button"
                           class="rounded p-1 text-rose-500 hover:bg-rose-50 disabled:opacity-40 disabled:hover:bg-transparent"
                           :disabled="row.isCurrentYear"
                           title="Delete"
@@ -357,6 +360,14 @@ onUnmounted(() => {
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+          <div class="flex items-center justify-between text-sm text-slate-500">
+            <span>Showing {{ startIdx }}-{{ endIdx }} of {{ total }}</span>
+            <div class="flex items-center gap-2">
+              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50" :disabled="page <= 1 || total === 0" @click="page--; void loadRows()">Previous</button>
+              <span class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">{{ page }} / {{ totalPages }}</span>
+              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50" :disabled="page >= totalPages || total === 0" @click="page++; void loadRows()">Next</button>
             </div>
           </div>
           <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">

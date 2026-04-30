@@ -28,13 +28,13 @@ const { isOpen, options, cancel, accept } = useConfirmDialog();
       </div>
 
       <div class="mt-4 flex justify-end gap-2">
-        <button
+        <button type="button"
           class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-slate-50"
           @click="cancel()"
         >
           {{ options.cancelText }}
         </button>
-        <button
+        <button type="button"
           class="rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors"
           :class="options.destructive ? 'bg-rose-600 hover:bg-rose-700' : 'bg-slate-900 hover:bg-slate-800'"
           @click="accept()"

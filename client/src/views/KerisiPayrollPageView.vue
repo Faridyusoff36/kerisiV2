@@ -517,14 +517,10 @@ onUnmounted(() => {
 
             <!-- Table -->
             <div :class="hasFreezeLeft(dt) ? 'overflow-x-auto' : ''">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="border-b border-slate-200 bg-slate-50">
-                    <th
-                      v-for="(h, hi) in dt.dtBi"
-                      :key="hi"
-                      class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-                    >
+              <table class="admin-table-kitchen">
+                <thead class="admin-table-thead-sticky">
+                  <tr>
+                    <th v-for="(h, hi) in dt.dtBi" :key="hi">
                       {{ isNoCol(h) ? "No" : h }}
                     </th>
                   </tr>
@@ -536,21 +532,10 @@ onUnmounted(() => {
                     </td>
                   </tr>
                   <tr v-else-if="rows.length === 0 && di === 0">
-                    <td :colspan="tableColspan(dt)" class="px-3 py-6 text-center text-sm text-slate-400">
-                      No records found.
-                    </td>
+                    <td :colspan="tableColspan(dt)" class="admin-table-kitchen-caption">No records found.</td>
                   </tr>
-                  <tr
-                    v-else
-                    v-for="(row, ri) in rows"
-                    :key="ri"
-                    class="border-b border-slate-100 hover:bg-slate-50"
-                  >
-                    <td
-                      v-for="(h, hi) in dt.dtBi"
-                      :key="hi"
-                      class="px-3 py-2 text-slate-700"
-                    >
+                  <tr v-else v-for="(row, ri) in rows" :key="ri">
+                    <td v-for="(h, hi) in dt.dtBi" :key="hi">
                       <template v-if="isNoCol(h)">{{ (page - 1) * limit + ri + 1 }}</template>
                       <template v-else-if="isActionCol(h)">
                         <div class="flex items-center gap-1">
@@ -582,7 +567,7 @@ onUnmounted(() => {
             <template v-if="di === 0">
               <div class="flex items-center justify-between pt-1">
                 <div class="flex items-center gap-2 text-xs text-slate-500">
-                  <span>Show</span>
+                  <span>Display</span>
                   <select
                     v-model="limit"
                     class="rounded border border-slate-300 px-2 py-1 text-xs"
@@ -592,7 +577,7 @@ onUnmounted(() => {
                   </select>
                   <span>entries</span>
                   <span class="ml-4">
-                    {{ total === 0 ? "No records" : `${(page - 1) * limit + 1}–${Math.min(page * limit, total)} of ${total}` }}
+                    {{ total === 0 ? "No records" : `Showing ${(page - 1) * limit + 1}-${Math.min(page * limit, total)} of ${total}` }}
                   </span>
                 </div>
                 <div class="flex items-center gap-1">

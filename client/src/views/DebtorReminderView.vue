@@ -202,8 +202,8 @@ onUnmounted(() => { if (searchDebounce) clearTimeout(searchDebounce); });
           </div>
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
-            <table class="w-full min-w-[900px] text-sm">
-              <thead class="bg-slate-50">
+            <table class="admin-table-kitchen w-full min-w-[900px] text-sm">
+              <thead class="admin-table-thead-sticky">
                 <tr class="border-b border-slate-200 text-left">
                   <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                   <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('crm_invoice_no')">Invoice No</th>

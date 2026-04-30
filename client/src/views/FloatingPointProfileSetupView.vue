@@ -326,8 +326,8 @@ onUnmounted(() => {
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div ref="datatableRef" :class="rows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[1100px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
+              <table class="admin-table-kitchen w-full min-w-[1100px] text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th
                       class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"
@@ -430,36 +430,8 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div
-            class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-3 text-xs text-slate-600"
-          >
-            <div class="flex flex-wrap gap-3">
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 hover:bg-slate-50"
-                @click="handleDownloadPDF()"
-              >
-                <FileDown class="h-3.5 w-3.5" />
-                PDF
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 hover:bg-slate-50"
-                @click="handleDownloadCSV()"
-              >
-                <Download class="h-3.5 w-3.5" />
-                CSV
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 hover:bg-slate-50"
-                @click="exportExcel"
-              >
-                <FileSpreadsheet class="h-3.5 w-3.5" />
-                Excel
-              </button>
-            </div>
-            <div>{{ startIdx }}–{{ endIdx }} of {{ total }}</div>
+          <div class="flex items-center justify-between text-sm text-slate-500">
+            <div>Showing {{ startIdx }}-{{ endIdx }} of {{ total }}</div>
             <div class="flex items-center gap-2">
               <button
                 type="button"
@@ -482,6 +454,32 @@ onUnmounted(() => {
                 Next
               </button>
             </div>
+          </div>
+          <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs hover:bg-slate-50"
+              @click="handleDownloadPDF()"
+            >
+              <FileDown class="h-3.5 w-3.5" />
+              PDF
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs hover:bg-slate-50"
+              @click="handleDownloadCSV()"
+            >
+              <Download class="h-3.5 w-3.5" />
+              CSV
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs hover:bg-slate-50"
+              @click="exportExcel"
+            >
+              <FileSpreadsheet class="h-3.5 w-3.5" />
+              Excel
+            </button>
           </div>
         </div>
       </article>

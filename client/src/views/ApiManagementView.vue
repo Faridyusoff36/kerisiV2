@@ -213,7 +213,7 @@ async function copyCurl(endpoint: Endpoint) {
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
-            <button
+            <button type="button"
               v-for="tab in tabs"
               :key="tab"
               class="inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors"
@@ -279,7 +279,7 @@ async function copyCurl(endpoint: Endpoint) {
                   <p><span class="font-semibold text-slate-800">Request:</span> <code>{{ endpoint.method }} {{ toExamplePath(endpoint.path) }}</code></p>
                   <p v-if="endpoint.contentType"><span class="font-semibold text-slate-800">Content-Type:</span> {{ endpoint.contentType }}</p>
                   <div class="flex items-center gap-2 pt-1">
-                    <button
+                    <button type="button"
                       class="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100"
                       @click="copyCurl(endpoint)"
                     >

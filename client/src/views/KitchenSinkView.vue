@@ -830,17 +830,17 @@ function handleTableAdd() {
               <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Preview</p>
               <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50/50 p-5">
                 <div class="inline-flex rounded-lg bg-slate-200/60 p-1 text-sm">
-                  <button
+                  <button type="button"
                     :class="activeTab === 'content' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
                     class="rounded-md px-4 py-1.5 font-medium transition-all"
                     @click="activeTab = 'content'"
                   >Content</button>
-                  <button
+                  <button type="button"
                     :class="activeTab === 'seo' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
                     class="rounded-md px-4 py-1.5 font-medium transition-all"
                     @click="activeTab = 'seo'"
                   >SEO</button>
-                  <button
+                  <button type="button"
                     :class="activeTab === 'publish' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
                     class="rounded-md px-4 py-1.5 font-medium transition-all"
                     @click="activeTab = 'publish'"
@@ -890,9 +890,9 @@ function handleTableAdd() {
             <div>
               <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Preview</p>
               <div class="flex flex-wrap gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/50 p-5">
-                <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700" @click="demoToast('success')">Success Toast</button>
-                <button class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700" @click="demoToast('info')">Info Toast</button>
-                <button class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-rose-700" @click="demoToast('error')">Error Toast</button>
+                <button type="button" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700" @click="demoToast('success')">Success Toast</button>
+                <button type="button" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700" @click="demoToast('info')">Info Toast</button>
+                <button type="button" class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-rose-700" @click="demoToast('error')">Error Toast</button>
               </div>
             </div>
             <div>
@@ -914,7 +914,7 @@ function handleTableAdd() {
             <div>
               <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Preview</p>
               <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50/50 p-5">
-                <button class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-slate-50" @click="dialogOpen = true">Open confirmation dialog</button>
+                <button type="button" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-slate-50" @click="dialogOpen = true">Open confirmation dialog</button>
               </div>
             </div>
             <div>
@@ -955,7 +955,7 @@ function handleTableAdd() {
               <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Preview</p>
               <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50/50 p-5">
                 <div class="relative inline-block">
-                  <button class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-slate-50" @click="dropdownOpen = !dropdownOpen">
+                  <button type="button" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-slate-50" @click="dropdownOpen = !dropdownOpen">
                     Open menu
                     <ChevronDown class="h-4 w-4 text-slate-400" />
                   </button>
@@ -1144,8 +1144,8 @@ function handleTableAdd() {
                   </div>
                 </div>
                 <div class="overflow-x-auto p-5">
-                  <table class="w-full min-w-175 text-sm">
-                    <thead>
+                  <table class="admin-table-kitchen w-full min-w-175 text-sm">
+                    <thead class="admin-table-thead-sticky">
                       <tr class="border-b border-slate-200">
                         <th
                           v-for="col in tableVisibleColumns"
@@ -1201,7 +1201,7 @@ function handleTableAdd() {
                     </thead>
                     <tbody>
                       <tr v-if="pagedTableRows.length === 0">
-                        <td :colspan="Math.max(tableVisibleColumns.length, 1)" class="py-8 text-center text-sm text-slate-500">
+                        <td :colspan="Math.max(tableVisibleColumns.length, 1)" class="admin-table-kitchen-caption">
                           No rows match your search.
                         </td>
                       </tr>
@@ -1294,7 +1294,7 @@ function handleTableAdd() {
                       @click="handleTableDownloadExcel"
                     >
                       <FileSpreadsheet class="h-3.5 w-3.5" />
-                      Excell
+                      Excel
                     </button>
                     <button
                       type="button"
@@ -1496,7 +1496,7 @@ function handleTableAdd() {
                 <div class="flex items-center justify-between text-sm">
                   <span class="text-slate-500">Showing {{ (page - 1) * itemsPerPage + 1 }}-{{ Math.min(page * itemsPerPage, totalItems) }} of {{ totalItems }}</span>
                   <div class="flex items-center gap-2">
-                    <button
+                    <button type="button"
                       class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                       :disabled="page <= 1"
                       @click="nextPage(-1)"
@@ -1563,8 +1563,8 @@ function handleTableAdd() {
               <h4 class="text-lg font-semibold text-slate-900">Publish this article?</h4>
               <p class="mt-2 text-sm text-slate-500">This action will make the article visible to all visitors.</p>
               <div class="mt-5 flex justify-end gap-2">
-                <button class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-slate-50" @click="dialogOpen = false">Cancel</button>
-                <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800" @click="dialogOpen = false">Publish</button>
+                <button type="button" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-slate-50" @click="dialogOpen = false">Cancel</button>
+                <button type="button" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800" @click="dialogOpen = false">Publish</button>
               </div>
             </div>
           </Transition>

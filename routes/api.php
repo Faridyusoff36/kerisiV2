@@ -559,6 +559,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/kerisi/remaining/pr-to-cancel/details', [KerisiRemainingController::class, 'prToCancelDetails']);
     // Purchasing / WPN Cancel (menu 2082) — legacy processcancelwpn_entry
     Route::post('/kerisi/remaining/wpn-cancel', [KerisiRemainingController::class, 'wpnCancel']);
+    Route::get('/kerisi/remaining/ap/money-transfer/virement-numbers', [KerisiRemainingController::class, 'moneyTransferVirementNumbers']);
+    Route::post('/kerisi/remaining/ap/payment-reject-batch/payment-cancel', [KerisiRemainingController::class, 'paymentRejectBatchPaymentCancel']);
+    Route::post('/kerisi/remaining/ap/payment-reject-batch/voucher-cancel', [KerisiRemainingController::class, 'paymentRejectBatchVoucherCancel']);
+    // AP Credit Note Form (MENUID 3242)
+    Route::get('/kerisi/ap/credit-note-form/bill-search', [KerisiRemainingController::class, 'apCreditNoteFormBillSearch']);
+    Route::get('/kerisi/ap/credit-note-form/bill-details', [KerisiRemainingController::class, 'apCreditNoteFormBillDetails']);
+    Route::get('/kerisi/ap/credit-note-form/currencies', [KerisiRemainingController::class, 'apCreditNoteFormCurrencies']);
+    Route::get('/kerisi/ap/credit-note-form/{id}', [KerisiRemainingController::class, 'apCreditNoteFormGet']);
+    Route::post('/kerisi/ap/credit-note-form', [KerisiRemainingController::class, 'apCreditNoteFormSave']);
+    Route::post('/kerisi/ap/credit-note-form/{id}/submit', [KerisiRemainingController::class, 'apCreditNoteFormSubmit']);
+    // AP Debit Note Form (MENUID 3548 / 3550)
+    Route::get('/kerisi/ap/debit-note-form/bill-search', [KerisiRemainingController::class, 'apDebitNoteFormBillSearch']);
+    Route::get('/kerisi/ap/debit-note-form/bill-details', [KerisiRemainingController::class, 'apDebitNoteFormBillDetails']);
+    Route::get('/kerisi/ap/debit-note-form/currencies', [KerisiRemainingController::class, 'apCreditNoteFormCurrencies']);
+    Route::get('/kerisi/ap/debit-note-form/{id}', [KerisiRemainingController::class, 'apDebitNoteFormGet']);
+    Route::post('/kerisi/ap/debit-note-form', [KerisiRemainingController::class, 'apDebitNoteFormSave']);
+    Route::post('/kerisi/ap/debit-note-form/{id}/submit', [KerisiRemainingController::class, 'apDebitNoteFormSubmit']);
+    Route::post('/kerisi/ap/debit-note-form/{id}/cancel', [KerisiRemainingController::class, 'apDebitNoteFormCancel']);
     Route::get('/kerisi/remaining/{menuId}', [KerisiRemainingController::class, 'index'])
         ->whereNumber('menuId');
     Route::get('/account-receivable/kerisi-ar/{menuId}', [KerisiArController::class, 'index'])

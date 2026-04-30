@@ -126,7 +126,7 @@ onMounted(load);
       <!-- ───── Hero Header ───── -->
       <div class="flex items-center justify-between">
         <h1 class="page-title">Roles & Permissions</h1>
-        <button
+        <button type="button"
           class="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
           @click="startNew"
         >
@@ -160,7 +160,7 @@ onMounted(load);
               <div v-for="(perms, group) in groupedPermissions" :key="group" class="px-4 py-3">
                 <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ group }}</p>
                 <div class="flex flex-wrap gap-2">
-                  <button
+                  <button type="button"
                     v-for="perm in perms"
                     :key="perm"
                     class="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
@@ -175,7 +175,7 @@ onMounted(load);
           </div>
 
           <div class="flex items-center gap-3 border-t border-slate-100 pt-3">
-            <button
+            <button type="button"
               class="flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-50"
               :disabled="saving || !form.name"
               @click="save"
@@ -183,7 +183,7 @@ onMounted(load);
               <Save class="h-4 w-4" />
               {{ editingId ? 'Update' : 'Create' }}
             </button>
-            <button class="flex items-center gap-2 rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50" @click="cancelForm">
+            <button type="button" class="flex items-center gap-2 rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50" @click="cancelForm">
               <X class="h-4 w-4" />
               Cancel
             </button>
@@ -214,10 +214,10 @@ onMounted(load);
               </div>
             </div>
             <div class="flex shrink-0 items-center gap-1.5 ml-4">
-              <button class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" title="Edit" @click="startEdit(role)">
+              <button type="button" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" title="Edit" @click="startEdit(role)">
                 <Pencil class="h-3.5 w-3.5" />
               </button>
-              <button class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600" title="Delete" @click="remove(role.id)">
+              <button type="button" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600" title="Delete" @click="remove(role.id)">
                 <Trash2 class="h-3.5 w-3.5" />
               </button>
             </div>

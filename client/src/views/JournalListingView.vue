@@ -387,8 +387,8 @@ onUnmounted(() => {
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[1400px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
+              <table class="admin-table-kitchen w-full min-w-[1400px] text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th
@@ -737,8 +737,8 @@ onUnmounted(() => {
                   <div
                     :class="detailsDebit.length > 10 ? 'max-h-[260px] overflow-y-auto' : ''"
                   >
-                    <table class="w-full min-w-[1100px] text-xs">
-                      <thead class="sticky top-0 bg-slate-50">
+                    <table class="admin-table-kitchen w-full min-w-[1100px] text-xs">
+                      <thead class="admin-table-thead-sticky">
                         <tr class="border-b border-slate-200 text-left">
                           <th class="px-3 py-2 font-semibold uppercase">PTJ</th>
                           <th class="px-3 py-2 font-semibold uppercase">Fund</th>
@@ -797,8 +797,8 @@ onUnmounted(() => {
                   <div
                     :class="detailsCredit.length > 10 ? 'max-h-[260px] overflow-y-auto' : ''"
                   >
-                    <table class="w-full min-w-[1100px] text-xs">
-                      <thead class="sticky top-0 bg-slate-50">
+                    <table class="admin-table-kitchen w-full min-w-[1100px] text-xs">
+                      <thead class="admin-table-thead-sticky">
                         <tr class="border-b border-slate-200 text-left">
                           <th class="px-3 py-2 font-semibold uppercase">PTJ</th>
                           <th class="px-3 py-2 font-semibold uppercase">Fund</th>
