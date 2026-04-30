@@ -278,13 +278,12 @@ function cellValue(row: SmartFilterRow, key: string): string {
     </div>
 
     <div class="overflow-x-auto rounded-lg border border-slate-200">
-      <table class="w-full min-w-[520px] border-collapse text-sm">
-        <thead>
-          <tr class="border-b border-slate-200 bg-slate-50">
+      <table class="admin-table-kitchen min-w-[520px]">
+        <thead class="admin-table-thead-sticky">
+          <tr>
             <th
               v-for="key in visibleColumns"
               :key="key"
-              class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
               :class="{ 'bg-slate-100': dragOverColumnKey === key && draggingColumnKey !== key }"
               @dragover="onColumnDragOver(key, $event)"
               @drop="onColumnDrop(key, $event)"
@@ -309,14 +308,14 @@ function cellValue(row: SmartFilterRow, key: string): string {
                 <button
                   v-if="key !== 'no'"
                   type="button"
-                  class="inline-flex items-center gap-1 hover:text-slate-900"
+                  class="inline-flex items-center gap-1 uppercase tracking-wider text-slate-400 hover:text-slate-900"
                   @click="toggleSort(key)"
                   @contextmenu.prevent="hideColumn(key)"
                 >
                   {{ headerLabel(key) }}
-                  <span v-if="sortColumn === key" class="text-slate-900">{{ sortDirection === "asc" ? "↑" : "↓" }}</span>
+                  <span v-if="sortColumn === key" class="font-semibold text-slate-900">{{ sortDirection === "asc" ? "↑" : "↓" }}</span>
                 </button>
-                <span v-else>{{ headerLabel(key) }}</span>
+                <span v-else class="uppercase tracking-wider text-slate-400">{{ headerLabel(key) }}</span>
               </div>
             </th>
           </tr>
@@ -328,8 +327,8 @@ function cellValue(row: SmartFilterRow, key: string): string {
                 Level {{ row.Level }}
               </td>
             </tr>
-            <tr class="border-b border-slate-100 transition-colors hover:bg-slate-50/80">
-              <td v-for="col in visibleColumns" :key="col" class="px-3 py-2 text-slate-800">
+            <tr>
+              <td v-for="col in visibleColumns" :key="col" class="text-slate-800">
                 <template v-if="col === 'Status'">
                   <span
                     :class="
@@ -350,7 +349,7 @@ function cellValue(row: SmartFilterRow, key: string): string {
             </tr>
           </template>
           <tr v-if="pagedRows.length === 0">
-            <td :colspan="Math.max(visibleColumns.length, 1)" class="px-3 py-8 text-center text-sm text-slate-500">
+            <td :colspan="Math.max(visibleColumns.length, 1)" class="admin-table-kitchen-caption">
               No records match the current filters.
             </td>
           </tr>

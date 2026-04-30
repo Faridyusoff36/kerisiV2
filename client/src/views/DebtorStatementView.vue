@@ -224,8 +224,8 @@ onUnmounted(() => { if (searchDebounce) clearTimeout(searchDebounce); });
           </div>
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
-            <table class="w-full min-w-[1400px] text-sm">
-              <thead class="bg-slate-50">
+            <table class="admin-table-kitchen w-full min-w-[1400px] text-sm">
+              <thead class="admin-table-thead-sticky">
                 <tr class="border-b border-slate-200 text-left">
                   <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                   <th class="px-3 py-2 text-xs font-semibold uppercase">Date</th>

@@ -418,8 +418,8 @@ defineExpose({
 
       <div class="rounded-lg border border-slate-200">
         <div :class="hasScrollableBody ? 'max-h-[420px] overflow-auto' : 'overflow-x-auto'">
-          <table class="w-full text-sm">
-            <thead class="sticky top-0 bg-slate-50">
+          <table class="admin-table-kitchen w-full text-sm">
+            <thead class="admin-table-thead-sticky">
               <tr class="border-b border-slate-200 text-left">
                 <th
                   v-for="col in visibleColumns"
@@ -465,7 +465,7 @@ defineExpose({
                 <td :colspan="Math.max(visibleColumns.length, 1)" class="px-3 py-6 text-center text-sm text-slate-500">Loading…</td>
               </tr>
               <tr v-else-if="rows.length === 0">
-                <td :colspan="Math.max(visibleColumns.length, 1)" class="px-3 py-8 text-center text-sm text-slate-500">No records found.</td>
+                <td :colspan="Math.max(visibleColumns.length, 1)" class="admin-table-kitchen-caption">No records found.</td>
               </tr>
               <tr
                 v-for="(row, idx) in rows"
@@ -546,7 +546,7 @@ defineExpose({
               @click="exportExcel"
             >
               <FileSpreadsheet class="h-3.5 w-3.5" />
-              Excell
+              Excel
             </button>
           </div>
         </div>

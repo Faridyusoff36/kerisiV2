@@ -162,8 +162,8 @@ onUnmounted(() => { if (t) clearTimeout(t); });
           </div>
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[1800px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
+              <table class="admin-table-kitchen w-full min-w-[1800px] text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b text-left text-xs font-semibold uppercase">
                     <th class="px-2 py-2">No</th>
                     <th class="cursor-pointer px-2 py-2" @click="toggleSort('aim_asset_code')">Code</th>
@@ -235,9 +235,9 @@ onUnmounted(() => { if (t) clearTimeout(t); });
               <span class="text-slate-600">Page {{ page }} / {{ totalPages }}</span>
               <button type="button" class="rounded border bg-white px-2 py-1" :disabled="page >= totalPages" @click="nextPage">Next</button>
               <div class="mx-2 h-4 w-px bg-slate-200" />
-              <button class="inline-flex items-center gap-1 rounded border bg-white px-2 py-1" @click="exportRows('pdf')"><Download class="h-3.5 w-3.5" />PDF</button>
-              <button class="inline-flex items-center gap-1 rounded border bg-white px-2 py-1" @click="exportRows('csv')"><FileDown class="h-3.5 w-3.5" />CSV</button>
-              <button class="inline-flex items-center gap-1 rounded border bg-white px-2 py-1" @click="exportRows('excel')"><FileSpreadsheet class="h-3.5 w-3.5" />Excel</button>
+              <button type="button" class="inline-flex items-center gap-1 rounded border bg-white px-2 py-1" @click="exportRows('pdf')"><Download class="h-3.5 w-3.5" />PDF</button>
+              <button type="button" class="inline-flex items-center gap-1 rounded border bg-white px-2 py-1" @click="exportRows('csv')"><FileDown class="h-3.5 w-3.5" />CSV</button>
+              <button type="button" class="inline-flex items-center gap-1 rounded border bg-white px-2 py-1" @click="exportRows('excel')"><FileSpreadsheet class="h-3.5 w-3.5" />Excel</button>
             </div>
           </div>
         </div>
@@ -247,7 +247,7 @@ onUnmounted(() => { if (t) clearTimeout(t); });
           <div class="max-h-[80vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-2xl">
             <div class="flex items-center justify-between border-b px-4 py-3">
               <h2 class="text-base font-semibold">Filter</h2>
-              <button class="p-1 text-slate-500" @click="showSmartFilter = false"><X class="h-4 w-4" /></button>
+              <button type="button" class="p-1 text-slate-500" @click="showSmartFilter = false"><X class="h-4 w-4" /></button>
             </div>
             <div class="grid gap-2 px-4 py-3 sm:grid-cols-2 md:grid-cols-3">
               <div><label class="text-sm">Asset code</label><input v-model="smartFilter.assetCode" class="mt-1 w-full rounded border border-slate-300 px-2 py-1.5 text-sm" /></div>

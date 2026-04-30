@@ -335,8 +335,8 @@ defineExpose({ getTemplateState, applyTemplateState, getExportConfig });
 
     <div class="overflow-x-auto rounded-lg border border-slate-200">
       <div :class="hasScrollableBody ? 'max-h-[420px] overflow-y-auto' : ''">
-        <table class="w-full min-w-[1020px] text-sm">
-          <thead class="sticky top-0 bg-slate-50">
+        <table class="admin-table-kitchen w-full min-w-[1020px] text-sm">
+          <thead class="admin-table-thead-sticky">
             <tr class="border-b border-slate-200 text-left">
               <th
                 v-for="col in visibleColumns"
@@ -419,7 +419,7 @@ defineExpose({ getTemplateState, applyTemplateState, getExportConfig });
             </template>
 
             <tr v-if="displayedRows.length === 0">
-              <td :colspan="Math.max(visibleColumns.length, 1)" class="px-3 py-8 text-center text-sm text-slate-500">No records found.</td>
+              <td :colspan="Math.max(visibleColumns.length, 1)" class="admin-table-kitchen-caption">No records found.</td>
             </tr>
           </tbody>
         </table>

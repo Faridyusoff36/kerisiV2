@@ -546,9 +546,9 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b border-slate-200 bg-slate-50">
+            <table class="admin-table-kitchen w-full text-sm">
+              <thead class="admin-table-thead-sticky">
+                <tr>
                   <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">No</th>
                   <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Code</th>
                   <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Description</th>
@@ -670,9 +670,9 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b border-slate-200 bg-slate-50">
+            <table class="admin-table-kitchen w-full text-sm">
+              <thead class="admin-table-thead-sticky">
+                <tr>
                   <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">No</th>
                   <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Code</th>
                   <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Description</th>
@@ -793,9 +793,9 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b border-slate-200 bg-slate-50">
+            <table class="admin-table-kitchen w-full text-sm">
+              <thead class="admin-table-thead-sticky">
+                <tr>
                   <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">No</th>
                   <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Code</th>
                   <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Description</th>
@@ -916,9 +916,9 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-b border-slate-200 bg-slate-50">
+            <table class="admin-table-kitchen w-full text-sm">
+              <thead class="admin-table-thead-sticky">
+                <tr>
                   <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">No</th>
                   <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Code</th>
                   <th class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">Description</th>

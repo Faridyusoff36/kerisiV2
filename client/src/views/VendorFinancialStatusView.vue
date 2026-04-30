@@ -268,8 +268,8 @@ onUnmounted(() => {
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="billingsRows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="w-full text-sm">
-                <thead class="sticky top-0 bg-slate-50">
+              <table class="admin-table-kitchen w-full text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSortBillings('bill_ref_no')">Reference No.</th>
@@ -333,8 +333,8 @@ onUnmounted(() => {
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="vouchersRows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="w-full text-sm">
-                <thead class="sticky top-0 bg-slate-50">
+              <table class="admin-table-kitchen w-full text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSortVouchers('vou_voucher_no')">Voucher No.</th>
@@ -400,8 +400,8 @@ onUnmounted(() => {
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="paymentsRows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[1200px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
+              <table class="admin-table-kitchen w-full min-w-[1200px] text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSortPayments('pay_voucher_no')">Voucher No.</th>

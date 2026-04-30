@@ -952,8 +952,8 @@ onMounted(async () => {
           </div>
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
-            <table class="w-full min-w-[1100px] text-xs">
-              <thead class="bg-indigo-100 text-slate-800">
+            <table class="admin-table-kitchen w-full min-w-[1100px] text-xs">
+              <thead class="admin-table-thead-sticky">
                 <tr class="border-b border-indigo-200 text-left">
                   <th class="px-2 py-2 font-semibold">No</th>
                   <th class="px-2 py-2 font-semibold">Staff Name</th>
@@ -1037,8 +1037,8 @@ onMounted(async () => {
           <h2 class="mb-3 text-sm font-semibold text-slate-800">Process Flow</h2>
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
-            <table class="w-full min-w-[1100px] text-xs">
-              <thead class="bg-indigo-100 text-slate-800">
+            <table class="admin-table-kitchen w-full min-w-[1100px] text-xs">
+              <thead class="admin-table-thead-sticky">
                 <tr class="border-b border-indigo-200 text-left">
                   <th class="px-2 py-2 font-semibold">No</th>
                   <th class="px-2 py-2 font-semibold">Process</th>

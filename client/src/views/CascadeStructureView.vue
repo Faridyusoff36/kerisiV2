@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { Download, FileDown, FileSpreadsheet, Filter, Plus, Search, X } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import { createCascadeStructure, getCascadeStructure, getCascadeStructureOptions, listCascadeStructures, updateCascadeStructure } from "@/api/cms";
@@ -14,6 +14,10 @@ const rows = ref<CascadeStructureRow[]>([]);
 const page = ref(1);
 const limit = ref(10);
 const q = ref("");
+const total = ref(0);
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / limit.value)));
+const startIdx = computed(() => (total.value === 0 ? 0 : (page.value - 1) * limit.value + 1));
+const endIdx = computed(() => Math.min(page.value * limit.value, total.value));
 const showSmartFilter = ref(false);
 const showModal = ref(false);
 const editId = ref<number | null>(null);
@@ -29,6 +33,7 @@ async function loadRows() {
   const params = new URLSearchParams({ page: String(page.value), limit: String(limit.value), ...(q.value ? { q: q.value } : {}), ...(smartFilter.value.ftyFundTypeSm ? { ftyFundTypeSm: smartFilter.value.ftyFundTypeSm } : {}), ...(smartFilter.value.activitySm ? { activitySm: smartFilter.value.activitySm } : {}), ...(smartFilter.value.ounCodePtj ? { ounCodePtj: smartFilter.value.ounCodePtj } : {}), ...(smartFilter.value.costcenterSm ? { costcenterSm: smartFilter.value.costcenterSm } : {}), ...(smartFilter.value.oucStatus ? { oucStatus: smartFilter.value.oucStatus } : {}) });
   const res = await listCascadeStructures(`?${params.toString()}`);
   rows.value = res.data;
+  total.value = Number(res.meta?.total ?? rows.value.length);
 }
 async function openEdit(id: number) {
   const res = await getCascadeStructure(id);
@@ -149,7 +154,7 @@ onUnmounted(() => {
         <div class="border-b border-slate-100 px-4 py-3"><h1 class="text-base font-semibold text-slate-900">Cascade Structure</h1></div>
         <div class="space-y-4 p-4">
           <div class="flex flex-wrap items-end justify-between gap-4">
-            <div class="flex items-center gap-2"><label class="text-xs font-medium text-slate-600">Display</label><select v-model.number="limit" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm" @change="loadRows"><option v-for="n in [5,10,25,50,100]" :key="n" :value="n">{{ n }}</option></select></div>
+            <div class="flex items-center gap-2"><label class="text-xs font-medium text-slate-600">Display</label><select v-model.number="limit" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm" @change="page = 1; loadRows()"><option v-for="n in [5,10,25,50,100]" :key="n" :value="n">{{ n }}</option></select></div>
             <div class="flex items-center gap-2">
               <label class="text-xs font-medium text-slate-600">Search</label>
               <div class="relative">
@@ -170,15 +175,23 @@ onUnmounted(() => {
                   <X class="h-3.5 w-3.5" />
                 </button>
               </div>
-              <button class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm" @click="showSmartFilter = true"><Filter class="h-4 w-4" />Filter</button>
+              <button type="button" class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm" @click="showSmartFilter = true"><Filter class="h-4 w-4" />Filter</button>
             </div>
           </div>
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[1300px] text-sm">
-                <thead class="sticky top-0 bg-slate-50"><tr class="border-b border-slate-200 text-left"><th class="px-3 py-2 text-xs font-semibold uppercase">Fund</th><th class="px-3 py-2 text-xs font-semibold uppercase">Fund Desc</th><th class="px-3 py-2 text-xs font-semibold uppercase">Activity</th><th class="px-3 py-2 text-xs font-semibold uppercase">Activity Desc</th><th class="px-3 py-2 text-xs font-semibold uppercase">PTJ</th><th class="px-3 py-2 text-xs font-semibold uppercase">PTJ Desc</th><th class="px-3 py-2 text-xs font-semibold uppercase">Cost Center</th><th class="px-3 py-2 text-xs font-semibold uppercase">Cost Center Desc</th><th class="px-3 py-2 text-xs font-semibold uppercase">Status</th><th class="px-3 py-2 text-xs font-semibold uppercase">Action</th></tr></thead>
-                <tbody><tr v-for="row in rows" :key="row.oucOunitCostcentreId" class="border-b border-slate-100 hover:bg-slate-50"><td class="px-3 py-2">{{ row.ftyFundType }}</td><td class="px-3 py-2">{{ row.ftyFundDesc }}</td><td class="px-3 py-2">{{ row.atActivityCode }}</td><td class="px-3 py-2">{{ row.atActivityDescriptionBm }}</td><td class="px-3 py-2">{{ row.ounCode }}</td><td class="px-3 py-2">{{ row.ounDesc }}</td><td class="px-3 py-2">{{ row.ccrCostcentre }}</td><td class="px-3 py-2">{{ row.ccrCostcentreDesc }}</td><td class="px-3 py-2">{{ row.oucStatus }}</td><td class="px-3 py-2"><button class="rounded p-1 text-slate-500 hover:bg-slate-100" @click="openEdit(row.oucOunitCostcentreId)">✎</button></td></tr></tbody>
+              <table class="admin-table-kitchen w-full min-w-[1300px] text-sm">
+                <thead class="admin-table-thead-sticky"><tr class="border-b border-slate-200 text-left"><th class="px-3 py-2 text-xs font-semibold uppercase">Fund</th><th class="px-3 py-2 text-xs font-semibold uppercase">Fund Desc</th><th class="px-3 py-2 text-xs font-semibold uppercase">Activity</th><th class="px-3 py-2 text-xs font-semibold uppercase">Activity Desc</th><th class="px-3 py-2 text-xs font-semibold uppercase">PTJ</th><th class="px-3 py-2 text-xs font-semibold uppercase">PTJ Desc</th><th class="px-3 py-2 text-xs font-semibold uppercase">Cost Center</th><th class="px-3 py-2 text-xs font-semibold uppercase">Cost Center Desc</th><th class="px-3 py-2 text-xs font-semibold uppercase">Status</th><th class="px-3 py-2 text-xs font-semibold uppercase">Action</th></tr></thead>
+                <tbody><tr v-for="row in rows" :key="row.oucOunitCostcentreId" class="border-b border-slate-100 hover:bg-slate-50"><td class="px-3 py-2">{{ row.ftyFundType }}</td><td class="px-3 py-2">{{ row.ftyFundDesc }}</td><td class="px-3 py-2">{{ row.atActivityCode }}</td><td class="px-3 py-2">{{ row.atActivityDescriptionBm }}</td><td class="px-3 py-2">{{ row.ounCode }}</td><td class="px-3 py-2">{{ row.ounDesc }}</td><td class="px-3 py-2">{{ row.ccrCostcentre }}</td><td class="px-3 py-2">{{ row.ccrCostcentreDesc }}</td><td class="px-3 py-2">{{ row.oucStatus }}</td><td class="px-3 py-2"><button type="button" class="rounded p-1 text-slate-500 hover:bg-slate-100" @click="openEdit(row.oucOunitCostcentreId)">✎</button></td></tr></tbody>
               </table>
+            </div>
+          </div>
+          <div class="flex items-center justify-between text-sm text-slate-500">
+            <span>Showing {{ startIdx }}-{{ endIdx }} of {{ total }}</span>
+            <div class="flex items-center gap-2">
+              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50" :disabled="page <= 1 || total === 0" @click="page--; void loadRows()">Previous</button>
+              <span class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">{{ page }} / {{ totalPages }}</span>
+              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50" :disabled="page >= totalPages || total === 0" @click="page++; void loadRows()">Next</button>
             </div>
           </div>
           <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">

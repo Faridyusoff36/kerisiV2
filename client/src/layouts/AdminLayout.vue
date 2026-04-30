@@ -240,7 +240,7 @@ watch(
         <span class="h-full w-px bg-slate-200" />
 
         <div ref="settingsDropdownRef" class="relative flex h-full items-stretch">
-          <button
+          <button type="button"
             class="group relative flex h-full items-center px-4 text-slate-500 transition-colors hover:bg-[var(--accent-600)] hover:text-white"
             @click.stop="settingsOpen = !settingsOpen"
           >
@@ -254,7 +254,7 @@ watch(
           >
             <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Theme color</p>
             <div class="grid grid-cols-2 gap-2">
-              <button
+              <button type="button"
                 v-for="theme in themeChoices"
                 :key="theme.value"
                 class="flex items-center justify-between rounded-md border px-2.5 py-2 text-xs font-medium transition-colors"
@@ -285,7 +285,7 @@ watch(
             </div>
 
             <div class="mt-3 border-t border-slate-200 pt-3">
-              <button
+              <button type="button"
                 class="flex w-full items-center justify-between rounded-md border border-slate-200 px-2.5 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-[var(--accent-ring)]"
                 @click="toggleCompact"
               >
@@ -316,7 +316,7 @@ watch(
 
         <span class="h-full w-px bg-slate-200" />
 
-        <button
+        <button type="button"
           class="group relative flex h-full items-center px-4 text-slate-500 transition-colors hover:bg-[var(--accent-600)] hover:text-white"
           @click="signOut"
         >
@@ -331,7 +331,7 @@ watch(
         class="relative flex flex-col border-r border-slate-200 bg-slate-50/50 transition-[width] duration-300 ease-in-out md:min-h-[calc(100vh-40px)]"
         :class="isCollapsed ? 'w-full md:w-14' : 'w-full md:w-64'"
       >
-        <button
+        <button type="button"
           class="absolute -right-3.5 top-10 z-40 hidden h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-[var(--accent-600)] text-white shadow-md transition-all hover:bg-[var(--accent-700)] hover:shadow-lg md:flex"
           :title="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
           @click="toggleSidebar"

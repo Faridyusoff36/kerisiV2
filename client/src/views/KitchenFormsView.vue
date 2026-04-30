@@ -262,7 +262,7 @@ const sectionLinks = [
             </div>
             <div class="p-4">
               <div class="flex flex-wrap items-center gap-3">
-                <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800" @click="submit">
+                <button type="button" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800" @click="submit">
                   Save Changes
                 </button>
                 <button class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-slate-50">Save Draft</button>

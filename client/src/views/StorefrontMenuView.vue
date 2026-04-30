@@ -123,14 +123,14 @@ async function save() {
       <div class="flex items-center justify-between">
         <h1 class="page-title">Menus</h1>
         <div class="flex items-center gap-2">
-          <button
+          <button type="button"
             class="flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
             @click="addItem"
           >
             <Plus class="h-4 w-4" />
             Add Item
           </button>
-          <button
+          <button type="button"
             class="flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
             :disabled="saving"
             @click="save"
@@ -190,21 +190,21 @@ async function save() {
               New Tab
             </label>
             <div class="flex items-center gap-1">
-              <button
+              <button type="button"
                 class="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
                 :disabled="index === 0"
                 @click="moveItem(index, 'up')"
               >
                 <ChevronUp class="h-4 w-4" />
               </button>
-              <button
+              <button type="button"
                 class="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
                 :disabled="index === items.length - 1"
                 @click="moveItem(index, 'down')"
               >
                 <ChevronDown class="h-4 w-4" />
               </button>
-              <button
+              <button type="button"
                 class="flex h-8 w-8 items-center justify-center rounded-md text-rose-500 transition-colors hover:bg-rose-50"
                 @click="removeItem(index)"
               >

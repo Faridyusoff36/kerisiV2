@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { Download, FileDown, FileSpreadsheet, Filter, MoreVertical, Plus, Search, X } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import { createCostCentre, getCostCentre, getCostCentreOptions, listCostCentres, updateCostCentre } from "@/api/cms";
@@ -14,6 +14,9 @@ const page = ref(1);
 const limit = ref(10);
 const q = ref("");
 const total = ref(0);
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / limit.value)));
+const startIdx = computed(() => (total.value === 0 ? 0 : (page.value - 1) * limit.value + 1));
+const endIdx = computed(() => Math.min(page.value * limit.value, total.value));
 const showSmartFilter = ref(false);
 const showModal = ref(false);
 const editId = ref<number | null>(null);
@@ -176,20 +179,28 @@ onUnmounted(() => {
                   <X class="h-3.5 w-3.5" />
                 </button>
               </div>
-              <button class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm" @click="showSmartFilter = true"><Filter class="h-4 w-4" />Filter</button>
+              <button type="button" class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm" @click="showSmartFilter = true"><Filter class="h-4 w-4" />Filter</button>
             </div>
           </div>
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[1200px] text-sm">
-                <thead class="sticky top-0 bg-slate-50"><tr class="border-b border-slate-200 text-left"><th class="px-3 py-2 text-xs font-semibold uppercase">No</th><th class="px-3 py-2 text-xs font-semibold uppercase">Code</th><th class="px-3 py-2 text-xs font-semibold uppercase">Description (Malay)</th><th class="px-3 py-2 text-xs font-semibold uppercase">Description (English)</th><th class="px-3 py-2 text-xs font-semibold uppercase">PTJ</th><th class="px-3 py-2 text-xs font-semibold uppercase">PTJ Description</th><th class="px-3 py-2 text-xs font-semibold uppercase">Address</th><th class="px-3 py-2 text-xs font-semibold uppercase">Hostel Code</th><th class="px-3 py-2 text-xs font-semibold uppercase">Status</th><th class="px-3 py-2 text-xs font-semibold uppercase">Action</th></tr></thead>
+              <table class="admin-table-kitchen w-full min-w-[1200px] text-sm">
+                <thead class="admin-table-thead-sticky"><tr class="border-b border-slate-200 text-left"><th class="px-3 py-2 text-xs font-semibold uppercase">No</th><th class="px-3 py-2 text-xs font-semibold uppercase">Code</th><th class="px-3 py-2 text-xs font-semibold uppercase">Description (Malay)</th><th class="px-3 py-2 text-xs font-semibold uppercase">Description (English)</th><th class="px-3 py-2 text-xs font-semibold uppercase">PTJ</th><th class="px-3 py-2 text-xs font-semibold uppercase">PTJ Description</th><th class="px-3 py-2 text-xs font-semibold uppercase">Address</th><th class="px-3 py-2 text-xs font-semibold uppercase">Hostel Code</th><th class="px-3 py-2 text-xs font-semibold uppercase">Status</th><th class="px-3 py-2 text-xs font-semibold uppercase">Action</th></tr></thead>
                 <tbody>
                   <tr v-for="row in rows" :key="row.ccrCostcentreId" class="border-b border-slate-100 hover:bg-slate-50">
                     <td class="px-3 py-2">{{ row.index }}</td><td class="px-3 py-2">{{ row.ccrCostcentre }}</td><td class="px-3 py-2">{{ row.ccrCostcentreDesc }}</td><td class="px-3 py-2">{{ row.ccrCostcentreDescEng }}</td><td class="px-3 py-2">{{ row.ounCode }}</td><td class="px-3 py-2">{{ row.ounCodeDesc }}</td><td class="px-3 py-2">{{ row.ccrAddress }}</td><td class="px-3 py-2">{{ row.ccrHostelCode }}</td><td class="px-3 py-2">{{ row.ccrStatus }}</td>
-                    <td class="px-3 py-2"><button class="rounded p-1 text-slate-500 hover:bg-slate-100" @click="openEdit(row.ccrCostcentreId)">✎</button></td>
+                    <td class="px-3 py-2"><button type="button" class="rounded p-1 text-slate-500 hover:bg-slate-100" @click="openEdit(row.ccrCostcentreId)">✎</button></td>
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+          <div class="flex items-center justify-between text-sm text-slate-500">
+            <span>Showing {{ startIdx }}-{{ endIdx }} of {{ total }}</span>
+            <div class="flex items-center gap-2">
+              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50" :disabled="page <= 1 || total === 0" @click="page--; void loadRows()">Previous</button>
+              <span class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">{{ page }} / {{ totalPages }}</span>
+              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50" :disabled="page >= totalPages || total === 0" @click="page++; void loadRows()">Next</button>
             </div>
           </div>
           <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">

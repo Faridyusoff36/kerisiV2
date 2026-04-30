@@ -210,8 +210,8 @@ watch(
           </div>
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
-            <table :class="type === 'virement' ? 'w-full min-w-[1200px] text-sm' : 'w-full min-w-[960px] text-sm'">
-              <thead class="bg-slate-50">
+            <table class="admin-table-kitchen" :class="type === 'virement' ? 'w-full min-w-[1200px] text-sm' : 'w-full min-w-[960px] text-sm'">
+              <thead class="admin-table-thead-sticky">
                 <template v-if="type === 'virement'">
                   <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase">
                     <th class="px-3 py-2" rowspan="2">No</th>

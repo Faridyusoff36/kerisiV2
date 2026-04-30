@@ -135,7 +135,7 @@ onMounted(load);
       </article>
 
       <div class="flex items-center gap-3">
-        <button
+        <button type="button"
           class="flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
           :disabled="saving"
           @click="save"

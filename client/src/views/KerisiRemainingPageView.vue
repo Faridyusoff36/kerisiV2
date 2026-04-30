@@ -13,7 +13,10 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   ChevronLeft,
+  Copy,
+  Hash,
   ChevronsDown,
+  ChevronDown,
   Download,
   Eye,
   FileDown,
@@ -29,7 +32,14 @@ import {
   X,
 } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
-import { getKerisiPrToCancelDetails, kerisiWpnCancel, listKerisiRemainingData } from "@/api/cms";
+import {
+  getKerisiPrToCancelDetails,
+  kerisiPaymentRejectBatchPaymentCancel,
+  kerisiPaymentRejectBatchVoucherCancel,
+  kerisiWpnCancel,
+  listKerisiMoneyTransferVirementNumbers,
+  listKerisiRemainingData,
+} from "@/api/cms";
 import {
   getKerisiMenuTrailByMenuId,
   parseKerisiNumericMenuIdFromPath,
@@ -149,6 +159,69 @@ function formatKerisiWpnDateIfNeeded(mid: number | null, dt: KerisiRemainingData
   return `${dd}/${mm}/${yyyy}`;
 }
 
+function formatApCreditNoteListCell(mid: number | null, key: string, raw: string): string {
+  if (mid !== 3243 && mid !== 3264) return raw;
+  const lowerKey = key.toLowerCase();
+  if (["bim_ent_amt", "bim_bill_amt", "cna_ent_total_amount", "cna_cn_total_amount", "cna_ent_bal", "cna_cn_bal"].includes(lowerKey)) {
+    if (raw.trim() === "") return "";
+    return formatMoneyInput(raw);
+  }
+  if (["bim_cust_invoice_date", "cna_crnote_date", "cna_approve_date", "cna_cancel_date"].includes(lowerKey)) {
+    const t = raw.trim();
+    if (!t) return "";
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+    if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+    const d = new Date(t);
+    if (Number.isNaN(d.getTime())) return raw;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${dd}/${mm}/${d.getFullYear()}`;
+  }
+  return raw;
+}
+
+function formatApDebitNoteListCell(mid: number | null, key: string, raw: string): string {
+  if (mid !== 3543 && mid !== 3549) return raw;
+  const lowerKey = key.toLowerCase();
+  if (["bim_ent_amt", "bim_bill_amt", "dna_ent_total_amount", "dna_dn_total_amount", "dna_ent_bal", "dna_dn_bal", "dna_cn_bal"].includes(lowerKey)) {
+    if (raw.trim() === "") return "";
+    return formatMoneyInput(raw);
+  }
+  if (["bim_cust_invoice_date", "dna_dnnote_date", "dna_approve_date", "dna_cancel_date"].includes(lowerKey)) {
+    const t = raw.trim();
+    if (!t) return "";
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+    if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+    const d = new Date(t);
+    if (Number.isNaN(d.getTime())) return raw;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${dd}/${mm}/${d.getFullYear()}`;
+  }
+  return raw;
+}
+
+function formatApPaymentCell(mid: number | null, key: string, raw: string): string {
+  if (![1897, 2633, 2717, 3345, 3538].includes(mid ?? 0)) return raw;
+  const lowerKey = key.toLowerCase();
+  if (["pre_total_amt", "pre_total_amt_rm", "vde_amount"].includes(lowerKey)) {
+    if (raw.trim() === "") return "";
+    return formatMoneyInput(raw);
+  }
+  if (["approved_date", "pre_approve_date", "pyb_transfer_date", "pre_print_date", "pre_bankin_date"].includes(lowerKey)) {
+    const t = raw.trim();
+    if (!t) return "";
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+    if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+    const d = new Date(t);
+    if (Number.isNaN(d.getTime())) return raw;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${dd}/${mm}/${d.getFullYear()}`;
+  }
+  return raw;
+}
+
 function displayCell(row: Record<string, unknown>, dt: KerisiRemainingDatatable, colIdx: number): string {
   const key = cellKey(dt, colIdx);
   const tryKey = (k: string) => {
@@ -199,6 +272,70 @@ function displayCell(row: Record<string, unknown>, dt: KerisiRemainingDatatable,
     }
     if (["amount", "amountbalance", "amountmonthly"].includes(lowerKey)) {
       return formatMoneyInput(resolved ?? "");
+    }
+  }
+
+  if (menuId.value === 3270 && key.toLowerCase() === "oun_code") {
+    const code = row.oun_code != null ? String(row.oun_code) : "";
+    const descRaw = row.oun_code_desc ?? row.ounCodeDesc ?? row.oun_desc ?? row.ounDesc;
+    const desc = descRaw != null ? String(descRaw) : "";
+    if (code && desc) {
+      return `${code} - ${desc}`;
+    }
+    return code || desc || "";
+  }
+
+  if (menuId.value === 3270 && key.toLowerCase() === "mtm_cancel_date") {
+    const t = (resolved ?? "").trim();
+    if (!t) return "";
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+    if (iso) {
+      return `${iso[3]}/${iso[2]}/${iso[1]}`;
+    }
+    const d = new Date(t);
+    if (!Number.isNaN(d.getTime())) {
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      return `${dd}/${mm}/${d.getFullYear()}`;
+    }
+    return t;
+  }
+
+  if (menuId.value === 3348 && ["createddate", "vma_approve_date"].includes(key.toLowerCase())) {
+    const t = (resolved ?? "").trim();
+    if (!t) return "";
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+    if (iso) {
+      return `${iso[3]}/${iso[2]}/${iso[1]}`;
+    }
+    const d = new Date(t);
+    if (!Number.isNaN(d.getTime())) {
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      return `${dd}/${mm}/${d.getFullYear()}`;
+    }
+    return t;
+  }
+
+  const apCreditNoteFormatted = formatApCreditNoteListCell(menuId.value, key, resolved ?? "");
+  if (apCreditNoteFormatted !== (resolved ?? "")) return apCreditNoteFormatted;
+
+  const apDebitNoteFormatted = formatApDebitNoteListCell(menuId.value, key, resolved ?? "");
+  if (apDebitNoteFormatted !== (resolved ?? "")) return apDebitNoteFormatted;
+
+  const apPaymentFormatted = formatApPaymentCell(menuId.value, key, resolved ?? "");
+  if (apPaymentFormatted !== (resolved ?? "")) return apPaymentFormatted;
+
+  if (menuId.value === 1716) {
+    const lowerKey = key.toLowerCase();
+    if (["bim_cust_invoice_date", "createddate", "bim_approve_date"].includes(lowerKey)) {
+      return formatKerisiWpnDateIfNeeded(2082, dt, colIdx, resolved ?? "");
+    }
+    if (["bim_ent_amt", "bim_bill_amt", "cna_cn_total_amount", "bim_balance"].includes(lowerKey)) {
+      return formatMoneyInput(resolved ?? "");
+    }
+    if (lowerKey === "bim_status") {
+      return (resolved ?? "") === "RECEIVER" ? "RECEIVE" : (resolved ?? "");
     }
   }
 
@@ -259,6 +396,11 @@ function stripHtmlBrLabel(h: string | Record<string, unknown> | undefined): stri
 
 /** Registry `dtClass` may include `d-none` (legacy Bootstrap) to hide Id / internal columns. */
 function isHiddenDtCol(dt: KerisiRemainingDatatable, colIdx: number): boolean {
+  const key = String(dt.dtKey[colIdx] ?? "").trim().toLowerCase();
+  const label = stripHtmlBrLabel(dt.dtBi[colIdx]).trim().toLowerCase();
+  if ((menuId.value === 3346 || menuId.value === 3348) && key === "mtm_id") return true;
+  if (isMoneyTransferKitchenMenu(menuId.value) && label === "mtm_id") return true;
+
   const raw = dt.dtClass?.[colIdx];
   if (typeof raw !== "string" || !raw.trim()) return false;
   return /\bd-none\b/i.test(raw);
@@ -270,6 +412,27 @@ function visibleColIndices(dt: KerisiRemainingDatatable): number[] {
 
 function tableColspan(dt: KerisiRemainingDatatable): number {
   return visibleColIndices(dt).length;
+}
+
+function exportColIndices(dt: KerisiRemainingDatatable): number[] {
+  return visibleColIndices(dt).filter((i) => !isActionCol(dt.dtBi[i] ?? "") && !isNoCol(dt.dtBi[i] ?? ""));
+}
+
+function exportHeaders(dt: KerisiRemainingDatatable): string[] {
+  return exportColIndices(dt).map((i) => stripHtmlBrLabel(dt.dtBi[i]));
+}
+
+function exportBody(dt: KerisiRemainingDatatable): string[][] {
+  const idxs = exportColIndices(dt);
+  return rows.value.map((row) => idxs.map((i) => displayCell(row, dt, i)));
+}
+
+function exportFilename(extension: string): string {
+  const safeTitle = (spec.value?.pageTitle ?? "kerisi-export")
+    .replace(/[^a-z0-9]+/gi, "_")
+    .replace(/^_+|_+$/g, "")
+    .toLowerCase();
+  return `${safeTitle}_${new Date().toISOString().slice(0, 10)}.${extension}`;
 }
 
 /** Menu 1833 — grand total under Amount (Purchase Order List legacy). */
@@ -330,23 +493,34 @@ function purchasingGrnNumericColClass(dt: KerisiRemainingDatatable, hi: number):
 }
 
 function tableNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
-  return poNumericColClass(dt, hi) || wpnNumericColClass(dt, hi) || purchasingGrnNumericColClass(dt, hi);
+  return poNumericColClass(dt, hi) || wpnNumericColClass(dt, hi) || purchasingGrnNumericColClass(dt, hi) || billRegistrationNumericColClass(dt, hi);
 }
 
-/** Purchasing shell pages that use legacy purple thead (match screenshots). */
-const kerisiPurchasingPurpleShell = computed(() => {
-  const m = menuId.value;
-  return (
-    m === 1839 ||
-    m === 1939 ||
-    m === 1941 ||
-    m === 2085 ||
-    m === 2624 ||
-    m === 2626 ||
-    m === 3100 ||
-    m === 3106
-  );
-});
+function billRegistrationNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
+  if (menuId.value !== 1716) return "";
+  const key = String(dt.dtKey[hi] ?? "").toLowerCase();
+  if (["bim_ent_amt", "bim_bill_amt", "cna_cn_total_amount", "bim_balance"].includes(key)) {
+    return "text-right tabular-nums";
+  }
+  return "";
+}
+
+function billRegistrationStickyClass(dt: KerisiRemainingDatatable, hi: number, section: "head" | "body"): string {
+  if (menuId.value !== 1716) return "";
+  const key = String(dt.dtKey[hi] ?? "").toLowerCase();
+  const header = String(dt.dtBi[hi] ?? "").trim().toLowerCase();
+  const z = section === "head" ? "z-[4]" : "z-[2]";
+  if (header === "no" || header === "no.") {
+    return `sticky left-0 ${z} w-14 min-w-[3.5rem] bg-white`;
+  }
+  if (key === "bim_bills_no") {
+    return `sticky left-14 ${z} min-w-[10rem] bg-white`;
+  }
+  if (isActionCol(dt.dtBi[hi] ?? "")) {
+    return `sticky right-0 ${z} min-w-[8rem] bg-white text-center`;
+  }
+  return "";
+}
 
 const tenderQuotationMenuIds = new Set([2333, 3272, 2724, 2762, 2845, 2827]);
 const isTenderQuotationPage = computed(() => {
@@ -547,6 +721,73 @@ const secondaryGridTotal = ref(0);
 const kerisiFormOptions = ref<Record<string, unknown>>({});
 const kerisiFormValues = ref<Record<string, string>>({});
 
+/** List of Money Transfer (3270) — “New (From Virement)” modal */
+type Mt3270VirementRow = { bmmBudgetMovementId: number; bmmBudgetMovementNo: string };
+const showMt3270VirementModal = ref(false);
+const mt3270VirementRows = ref<Mt3270VirementRow[]>([]);
+const mt3270VirementLoading = ref(false);
+const mt3270VirementSelectedNo = ref("");
+
+function noopMoneyTransfer3270Manual(): void {
+  /* Manual new flow not migrated. */
+}
+
+async function openMt3270FromVirementModal(): Promise<void> {
+  showMt3270VirementModal.value = true;
+  mt3270VirementSelectedNo.value = "";
+  mt3270VirementLoading.value = true;
+  try {
+    const res = await listKerisiMoneyTransferVirementNumbers("?limit=500");
+    mt3270VirementRows.value = Array.isArray(res.data) ? res.data : [];
+  } catch {
+    toast.error("Money Transfer", "Could not load virement numbers.");
+    mt3270VirementRows.value = [];
+  } finally {
+    mt3270VirementLoading.value = false;
+  }
+}
+
+function closeMt3270VirementModal(): void {
+  showMt3270VirementModal.value = false;
+}
+
+function clearMt3270VirementSelection(): void {
+  mt3270VirementSelectedNo.value = "";
+}
+
+function confirmMt3270FromVirementModal(): void {
+  if (!mt3270VirementSelectedNo.value.trim()) {
+    toast.error("Virement No", "Please select a virement number.");
+    return;
+  }
+  const no = mt3270VirementSelectedNo.value.trim();
+  closeMt3270VirementModal();
+  void router.push({
+    name: "kerisi-ap-money-transfer-transfer-form",
+    query: { from_virement_no: no },
+  });
+}
+
+function isMoneyTransferKitchenMenu(mid: number | null = menuId.value): boolean {
+  return mid === 3270 || mid === 3346 || mid === 3348;
+}
+
+function isApCreditNoteKitchenMenu(mid: number | null = menuId.value): boolean {
+  return mid === 3243 || mid === 3264;
+}
+
+function isApDebitNoteKitchenMenu(mid: number | null = menuId.value): boolean {
+  return mid === 3543 || mid === 3549;
+}
+
+function isApPaymentKitchenMenu(mid: number | null = menuId.value): boolean {
+  return mid === 1897 || mid === 2633 || mid === 2717 || mid === 3345 || mid === 3538;
+}
+
+function isKitchenDatatableMenu(mid: number | null = menuId.value): boolean {
+  return isMoneyTransferKitchenMenu(mid) || isApCreditNoteKitchenMenu(mid) || isApDebitNoteKitchenMenu(mid) || isApPaymentKitchenMenu(mid);
+}
+
 function optionsForTopFilter(index: number): { value: string; label: string }[] {
   const legacyKey = `tf_${index}`;
   const camelKey = `tf${index}`;
@@ -619,6 +860,52 @@ function navigateToPurchaseRequisitionForm1771(rqmId: number): void {
     path: "/admin/kerisi/m/1771",
     query: { rqm_requisition_id: String(rqmId) },
   });
+}
+
+function goMoneyTransfer3270EditDraft(row: Record<string, unknown>): void {
+  const raw = row.mtm_id ?? row.mtmId;
+  const id = raw !== undefined && raw !== null ? String(raw).trim() : "";
+  void router.push({
+    name: "kerisi-ap-money-transfer-transfer-form",
+    query: id !== "" ? { mtm_id: id } : {},
+  });
+}
+
+function apCreditNoteUrl(row: Record<string, unknown>, mode: "edit" | "view"): string {
+  const explicit = mode === "edit" ? row.urlE ?? row.url_e : row.urlV ?? row.url_v;
+  if (explicit !== undefined && explicit !== null && String(explicit).trim() !== "") {
+    return String(explicit);
+  }
+  const raw = row.cna_id ?? row.cnaId ?? row.cna_credit_note_ap_master_id ?? row.cnaCreditNoteApMasterId;
+  const id = raw !== undefined && raw !== null ? String(raw).trim() : "";
+  return mode === "edit"
+    ? `/admin/kerisi/m/3242?cna_id=${encodeURIComponent(id)}`
+    : `/admin/kerisi/m/3242?cna_id=${encodeURIComponent(id)}&mode=view`;
+}
+
+function goApCreditNote(row: Record<string, unknown>, mode: "edit" | "view"): void {
+  void router.push(apCreditNoteUrl(row, mode));
+}
+
+function apDebitNoteUrl(row: Record<string, unknown>, mode: "edit" | "view"): string {
+  const explicit = mode === "edit" ? row.urlE ?? row.url_e : row.urlV ?? row.url_v;
+  if (explicit !== undefined && explicit !== null && String(explicit).trim() !== "") {
+    return String(explicit);
+  }
+  const raw = row.dna_id ?? row.dnaId ?? row.dna_debit_note_ap_master_id ?? row.dnaDebitNoteApMasterId;
+  const id = raw !== undefined && raw !== null ? String(raw).trim() : "";
+  return mode === "edit"
+    ? `/admin/kerisi/m/3548?dna_id=${encodeURIComponent(id)}`
+    : `/admin/kerisi/m/3548?dna_id=${encodeURIComponent(id)}&mode=view`;
+}
+
+function goApDebitNote(row: Record<string, unknown>, mode: "edit" | "view"): void {
+  void router.push(apDebitNoteUrl(row, mode));
+}
+
+function otherPaymentGroupId(row: Record<string, unknown>): string {
+  const raw = row.groupId ?? row.group_id;
+  return raw !== undefined && raw !== null ? String(raw).trim() : "";
 }
 
 function onAddPrimaryClick(di = 0) {
@@ -893,6 +1180,7 @@ function showDetailSection(di: number): boolean {
 const q       = ref("");
 /** Legacy cbox = wpm_progress_id + '_' + wpm_progress_no for WPN Cancel POST */
 const wpn2082SelectedCbox = ref<string>("");
+const paymentRejectBatchSelectedIds = ref<string[]>([]);
 let searchDebounce: ReturnType<typeof setTimeout> | null = null;
 
 async function loadRows() {
@@ -925,6 +1213,7 @@ async function loadRows() {
   try {
     const res = await listKerisiRemainingData(id, `?${params.toString()}`);
     rows.value = Array.isArray(res.data) ? res.data : [];
+    if (id === 3538) paymentRejectBatchSelectedIds.value = [];
     total.value = Number(res.meta?.total ?? 0);
     grandTotalPoAmtRm.value = null;
     const m = res.meta as Record<string, unknown> | undefined;
@@ -1050,38 +1339,139 @@ function applyTopFilter() {
   void loadRows();
 }
 
+function selectedPaymentRejectBatchIds(): number[] {
+  return paymentRejectBatchSelectedIds.value
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id > 0);
+}
+
+async function paymentRejectBatchPaymentCancel() {
+  const selectedIds = selectedPaymentRejectBatchIds();
+  if (selectedIds.length === 0) {
+    toast.info("Payment Reject Batch", "Please select at least one payment record.");
+    return;
+  }
+  if (!window.confirm(`Payment Cancel ${selectedIds.length} selected record(s)?`)) return;
+
+  try {
+    const res = await kerisiPaymentRejectBatchPaymentCancel({ selectedIds });
+    toast.success("Payment Cancel", `${res.data.processed} record(s) processed.`);
+    await loadRows();
+  } catch (e) {
+    toast.error("Payment Cancel failed", e instanceof Error ? e.message : "Unable to process payment cancel.");
+  }
+}
+
+async function paymentRejectBatchVoucherCancel() {
+  const selectedIds = selectedPaymentRejectBatchIds();
+  if (selectedIds.length === 0) {
+    toast.info("Payment Reject Batch", "Please select at least one payment record.");
+    return;
+  }
+  if (!window.confirm(`Voucher Cancel ${selectedIds.length} selected record(s)?`)) return;
+
+  try {
+    const res = await kerisiPaymentRejectBatchVoucherCancel({ selectedIds });
+    toast.success("Voucher Cancel", `${res.data.processed} record(s) processed.`);
+    await loadRows();
+  } catch (e) {
+    toast.error("Voucher Cancel failed", e instanceof Error ? e.message : "Unable to process voucher cancel.");
+  }
+}
+
 function applyCommitteeReportFilter() {
   page.value = 1;
   void loadRows();
 }
 
-// ── export stubs ──────────────────────────────────────────────────────────
-function handleDownloadPDF() {
-  toast.success("Export", "PDF export — connect backend when ready.");
+// ── exports ───────────────────────────────────────────────────────────────
+async function handleDownloadPDF() {
+  const dt = primaryDt.value;
+  if (!dt || rows.value.length === 0) {
+    toast.info("No data", "There is nothing to export.");
+    return;
+  }
+
+  try {
+    const { default: jsPDF } = await import("jspdf");
+    const autoTable = (await import("jspdf-autotable")).default;
+    const headers = exportHeaders(dt);
+    const body = exportBody(dt);
+    const doc = new jsPDF({ orientation: headers.length > 6 ? "landscape" : "portrait", unit: "mm", format: "a4" });
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(spec.value?.pageTitle ?? "Kerisi Export", 14, 15);
+    autoTable(doc, {
+      head: [["No", ...headers]],
+      body: body.map((cells, idx) => [idx + 1, ...cells]),
+      startY: 22,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: "bold" },
+    });
+    doc.save(exportFilename("pdf"));
+    toast.success("PDF downloaded");
+  } catch (e) {
+    toast.error("Export failed", e instanceof Error ? e.message : "PDF export failed.");
+  }
 }
 function handleDownloadCSV() {
   const dt = primaryDt.value;
-  if (!dt || rows.value.length === 0) { toast.error("Export", "No data to export."); return; }
-  const headers = dt.dtBi.filter((h, i) => !isActionCol(h) && !isNoCol(h) && !isHiddenDtCol(dt, i));
-  const keyIdxs = dt.dtBi
-    .map((_, i) => i)
-    .filter((i) => !isActionCol(dt.dtBi[i] ?? "") && !isNoCol(dt.dtBi[i] ?? "") && !isHiddenDtCol(dt, i));
+  if (!dt || rows.value.length === 0) {
+    toast.info("No data", "There is nothing to export.");
+    return;
+  }
+  const headers = exportHeaders(dt);
+  const body = exportBody(dt);
   const csvRows = [
-    headers.join(","),
-    ...rows.value.map((row) =>
-      keyIdxs.map((i) => `"${String(displayCell(row, dt, i)).replace(/"/g, '""')}"`).join(",")
-    ),
+    ["No", ...headers].map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
+    ...body.map((cells, idx) => [String(idx + 1), ...cells].map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")),
   ];
   const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href     = url;
-  a.download = `${spec.value?.pageTitle ?? "export"}.csv`;
+  a.download = exportFilename("csv");
   a.click();
   URL.revokeObjectURL(url);
+  toast.success("CSV downloaded");
 }
-function handleDownloadExcel() {
-  toast.success("Export", "Excel export — connect backend when ready.");
+async function handleDownloadExcel() {
+  const dt = primaryDt.value;
+  if (!dt || rows.value.length === 0) {
+    toast.info("No data", "There is nothing to export.");
+    return;
+  }
+
+  try {
+    const ExcelJS = await import("exceljs");
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet((spec.value?.pageTitle ?? "Kerisi Export").slice(0, 31));
+    const headers = exportHeaders(dt);
+    ws.addRow(["No", ...headers]);
+    exportBody(dt).forEach((cells, idx) => {
+      ws.addRow([idx + 1, ...cells]);
+    });
+    ws.columns.forEach((column) => {
+      let maxLength = 8;
+      if (Array.isArray(column.values)) {
+        column.values.forEach((value) => {
+          maxLength = Math.max(maxLength, String(value ?? "").length);
+        });
+      }
+      column.width = Math.min(Math.max(maxLength + 2, 12), 36);
+    });
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = exportFilename("xlsx");
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Excel downloaded");
+  } catch (e) {
+    toast.error("Export failed", e instanceof Error ? e.message : "Excel export failed.");
+  }
 }
 
 onMounted(() => {
@@ -1093,6 +1483,7 @@ watch(menuId, () => {
   initFilters();
   resetPr3038Details();
   wpn2082SelectedCbox.value = "";
+  paymentRejectBatchSelectedIds.value = [];
   void loadRows();
 });
 
@@ -1131,7 +1522,7 @@ onUnmounted(() => {
         <!-- Top Filter panel (rendered above datatables when present) -->
         <article v-if="showTopFilterUi" class="rounded-lg border border-slate-200 bg-white shadow-sm">
           <div class="border-b border-slate-100 px-4 py-3">
-            <h2 class="text-base font-semibold text-slate-900">Filter</h2>
+            <h2 class="text-base font-semibold text-slate-900">{{ menuId === 3538 ? "Payment Batch" : "Filter" }}</h2>
           </div>
           <div class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
             <div v-for="(f, fi) in spec?.topFilterFields ?? []" :key="'tf-' + fi">
@@ -1179,7 +1570,7 @@ onUnmounted(() => {
         </article>
 
         <!-- Form sections BEFORE datatable -->
-        <template v-if="formBeforeDataTable && menuId !== 1838 && menuId !== 1955 && menuId !== 2618 && menuId !== 3306 && !isNewVariationOrderPage">
+        <template v-if="formBeforeDataTable && menuId !== 1838 && menuId !== 1955 && menuId !== 2107 && menuId !== 3270 && menuId !== 2618 && menuId !== 3306 && !isNewVariationOrderPage">
           <article
             v-for="grp in formSectionGroups"
             :key="grp.title"
@@ -1626,7 +2017,7 @@ onUnmounted(() => {
             <h2 class="text-base font-semibold text-slate-900">
               {{ dt.componentTitle || "Data" }}
             </h2>
-            <div v-if="di === 0 || menuId !== 3038" class="flex items-center gap-2">
+            <div v-if="(!isKitchenDatatableMenu(menuId) || di !== 0) && (di === 0 || menuId !== 3038)" class="flex items-center gap-2">
               <!-- Add button (only on popup-modal pages or default) -->
               <button
                 v-if="
@@ -1688,30 +2079,61 @@ onUnmounted(() => {
           <div class="space-y-3 p-4">
             <!-- Search + smart-filter bar (primary datatable only) -->
           <template v-if="di === 0 || menuId === 2624 || menuId === 2626">
-              <div class="flex items-center gap-2">
-                <div class="relative flex-1">
-                  <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                  <input
-                    v-model="q"
-                    type="search"
-                    placeholder="Filter rows…"
-                    class="h-8 w-full rounded-lg border border-slate-300 pl-8 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
-                    @input="onSearch"
-                    @keydown="onSearchKeydown"
-                  />
-                  <button
-                    v-if="q"
-                    type="button"
-                    class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
-                    @click="clearSearch"
+              <div
+                class="flex flex-wrap gap-4 border-b border-slate-200 bg-white/90 pb-3"
+                :class="
+                  isKitchenDatatableMenu(menuId) ? 'items-end justify-between' : 'items-center gap-2'
+                "
+              >
+                <div v-if="isKitchenDatatableMenu(menuId)" class="flex flex-wrap items-center gap-2">
+                  <label class="text-xs font-medium text-slate-600" for="kerisi-mt-limit">Display</label>
+                  <select
+                    id="kerisi-mt-limit"
+                    v-model.number="limit"
+                    class="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                    @change="onLimitChange"
                   >
-                    <X class="h-3.5 w-3.5" />
-                  </button>
+                    <option v-for="n in [5, 10, 25, 50, 100]" :key="'mt-lim-' + n" :value="n">{{ n }}</option>
+                  </select>
+                  <span class="text-xs text-slate-500">records</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2" :class="isKitchenDatatableMenu(menuId) ? '' : 'flex-1'">
+                  <label
+                    v-if="isKitchenDatatableMenu(menuId)"
+                    class="text-xs font-medium text-slate-600"
+                    for="kerisi-mt-search"
+                  >
+                    Search
+                  </label>
+                  <div
+                    class="relative"
+                    :class="isKitchenDatatableMenu(menuId) ? 'w-full max-w-xs min-w-[13rem] shrink-0' : 'flex-1'"
+                  >
+                    <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                    <input
+                      id="kerisi-mt-search"
+                      v-model="q"
+                      type="search"
+                      placeholder="Filter rows…"
+                      aria-label="Filter table rows"
+                      class="h-9 w-full rounded-lg border border-slate-300 bg-white py-2 pl-8 pr-8 text-sm shadow-sm transition-colors focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                      @input="onSearch"
+                      @keydown="onSearchKeydown"
+                    />
+                    <button
+                      v-if="q"
+                      type="button"
+                      class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                      @click="clearSearch"
+                    >
+                      <X class="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
                 <button
                   v-if="showSmartFilterUi && di === 0"
                   type="button"
-                  class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 px-3 text-sm text-slate-600 hover:bg-slate-50"
+                  class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-600 shadow-sm hover:bg-slate-50"
                   @click="showSmartFilter = true"
                 >
                   <Filter class="h-3.5 w-3.5" />
@@ -1721,29 +2143,25 @@ onUnmounted(() => {
             </template>
 
             <!-- Table -->
-            <div :class="hasFreezeLeft(dt) ? 'overflow-x-auto' : ''">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr
-                    class="border-b border-slate-200"
-                    :class="
-                      kerisiPurchasingPurpleShell
-                        ? 'border-violet-700 bg-violet-600'
-                        : menuId === 2082
-                          ? 'bg-violet-100'
-                          : 'bg-slate-50'
-                    "
-                  >
+            <div :class="hasFreezeLeft(dt) || isKitchenDatatableMenu(menuId) ? 'overflow-x-auto' : ''">
+              <table
+                class="admin-table-kitchen"
+                :class="[
+                  menuId === 1716 ? 'min-w-[2200px]' : '',
+                  isMoneyTransferKitchenMenu(menuId) ? 'min-w-[720px]' : '',
+                  isApCreditNoteKitchenMenu(menuId) ? 'min-w-[1800px]' : '',
+                  isApDebitNoteKitchenMenu(menuId) ? 'min-w-[1800px]' : '',
+                  isApPaymentKitchenMenu(menuId) ? 'min-w-[1300px]' : '',
+                ]"
+              >
+                <thead class="admin-table-thead-sticky">
+                  <tr>
                     <th
                       v-for="hi in visibleColIndices(dt)"
                       :key="'h-' + dt.componentId + '-' + hi"
                       :class="[
-                        'px-3 py-2 text-left text-xs font-semibold tracking-wide',
-                        kerisiPurchasingPurpleShell
-                          ? 'normal-case text-white'
-                          : menuId === 2082
-                            ? 'normal-case text-violet-900'
-                            : 'uppercase text-slate-500',
+                        menuId === 3306 && isActionCol(dt.dtBi[hi] ?? '') ? '!normal-case text-center align-middle' : '',
+                        billRegistrationStickyClass(dt, hi, 'head'),
                       ]"
                     >
                       <input
@@ -1765,26 +2183,20 @@ onUnmounted(() => {
                     </td>
                   </tr>
                   <tr v-else-if="!shellTableLoading(di) && shellRows(di).length === 0">
-                    <td :colspan="tableColspan(dt)" class="px-3 py-6 text-center text-sm text-slate-400">
-                      No records
-                    </td>
+                    <td :colspan="tableColspan(dt)" class="admin-table-kitchen-caption">No records</td>
                   </tr>
                   <tr
                     v-else
                     v-for="(row, ri) in shellRows(di)"
                     :key="ri"
                     class="border-b border-slate-100 hover:bg-slate-50"
-                    :class="[
-                      menuId === 3038 && di === 0 ? 'cursor-pointer' : '',
-                      kerisiPurchasingPurpleShell && ri % 2 === 1 ? 'bg-slate-50/90' : '',
-                    ]"
+                    :class="[menuId === 3038 && di === 0 ? 'cursor-pointer' : '']"
                     @click="onShellMasterRowClick(di, row)"
                   >
                     <td
                       v-for="hi in visibleColIndices(dt)"
                       :key="'c-' + ri + '-' + hi"
-                      class="px-3 py-2 text-slate-700"
-                      :class="tableNumericColClass(dt, hi)"
+                      :class="[tableNumericColClass(dt, hi), billRegistrationStickyClass(dt, hi, 'body')]"
                     >
                       <template v-if="isNoCol(dt.dtBi[hi] ?? '')">
                         {{
@@ -1850,6 +2262,44 @@ onUnmounted(() => {
                             @change="onGrn2085CheckboxChange(row, ($event.target as HTMLInputElement).checked)"
                             @click.stop
                           />
+                        </div>
+                        <div v-else-if="menuId === 1716 && di === 0" class="flex items-center justify-center gap-1" @click.stop>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                            :disabled="['DRAFT', 'CANCELS', 'CANCEL'].includes(String(row.bim_status ?? row.bimStatus ?? '').toUpperCase())"
+                            title="Download"
+                            @click="toast.info('Bill Registration', 'Bill download is not wired in Kerisi20 yet.')"
+                          >
+                            <Download class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                            :disabled="String(row.bim_status ?? row.bimStatus ?? '').toUpperCase() === 'DRAFT'"
+                            title="View"
+                            @click="toast.info('Bill Registration', `Bill ${String(row.bim_bills_no ?? row.bimBillsNo ?? '')}: view is not wired in Kerisi20 yet.`)"
+                          >
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                            :disabled="String(row.bim_status ?? row.bimStatus ?? '').toUpperCase() !== 'DRAFT'"
+                            title="Edit"
+                            @click="toast.info('Bill Registration', `Bill ${String(row.bim_bills_no ?? row.bimBillsNo ?? '')}: edit is not wired in Kerisi20 yet.`)"
+                          >
+                            <Pencil class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30"
+                            :disabled="String(row.bim_status ?? row.bimStatus ?? '').toUpperCase() !== 'DRAFT'"
+                            title="Delete"
+                            @click="toast.info('Bill Registration', `Bill ${String(row.bim_bills_no ?? row.bimBillsNo ?? '')}: delete is not wired in Kerisi20 yet.`)"
+                          >
+                            <Trash2 class="h-3.5 w-3.5" />
+                          </button>
                         </div>
                         <div v-else-if="menuId === 1939 && di === 0" class="flex items-center justify-center gap-1" @click.stop>
                           <button
@@ -2023,6 +2473,182 @@ onUnmounted(() => {
                             aria-label="Select submission"
                           />
                         </div>
+                        <div v-else-if="menuId === 3270 && di === 0" class="flex items-center justify-center gap-1" @click.stop>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="View"
+                            @click="
+                              toast.info(
+                                'Money Transfer',
+                                `Application ${String(row.mtm_application_no ?? row.mtmApplicationNo ?? '')}: view is not wired in Kerisi20 yet.`,
+                              )
+                            "
+                          >
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-35"
+                            title="Edit"
+                            :disabled="
+                              String(row.mtm_status ?? row.mtmStatus ?? '')
+                                .toUpperCase()
+                                .trim() !== 'DRAFT'
+                            "
+                            @click="goMoneyTransfer3270EditDraft(row)"
+                          >
+                            <Pencil class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div v-else-if="isApCreditNoteKitchenMenu(menuId) && di === 0" class="flex items-center justify-center gap-1" @click.stop>
+                          <button
+                            v-if="menuId === 3243"
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="Download"
+                            @click="toast.info('Credit Note', `Credit note ${String(row.cna_crnote_no ?? row.cnaCrnoteNo ?? '')}: PDF download is not wired in Kerisi20 yet.`)"
+                          >
+                            <Download class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            v-if="menuId === 3243"
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                            :disabled="String(row.cna_status_cd ?? row.cnaStatusCd ?? '').toUpperCase() !== 'DRAFT'"
+                            title="Edit"
+                            @click="goApCreditNote(row, 'edit')"
+                          >
+                            <Pencil class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="View"
+                            @click="goApCreditNote(row, 'view')"
+                          >
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            v-if="menuId === 3243"
+                            type="button"
+                            class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30"
+                            :disabled="String(row.cna_status_cd ?? row.cnaStatusCd ?? '').toUpperCase() !== 'DRAFT'"
+                            title="Delete"
+                            @click="toast.info('Credit Note', `Credit note ${String(row.cna_crnote_no ?? row.cnaCrnoteNo ?? '')}: delete is not wired in Kerisi20 yet.`)"
+                          >
+                            <Trash2 class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div v-else-if="isApDebitNoteKitchenMenu(menuId) && di === 0" class="flex items-center justify-center gap-1" @click.stop>
+                          <button
+                            v-if="menuId === 3543"
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="Download"
+                            @click="toast.info('Debit Note', `Debit note ${String(row.dna_dnnote_no ?? row.dnaDnnoteNo ?? '')}: PDF download is not wired in Kerisi20 yet.`)"
+                          >
+                            <Download class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            v-if="menuId === 3543"
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                            :disabled="String(row.dna_status_dn ?? row.dnaStatusDn ?? '').toUpperCase() !== 'DRAFT'"
+                            title="Edit"
+                            @click="goApDebitNote(row, 'edit')"
+                          >
+                            <Pencil class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="View"
+                            @click="goApDebitNote(row, 'view')"
+                          >
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            v-if="menuId === 3543"
+                            type="button"
+                            class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30"
+                            :disabled="String(row.dna_status_dn ?? row.dnaStatusDn ?? '').toUpperCase() !== 'DRAFT'"
+                            title="Delete"
+                            @click="toast.info('Debit Note', `Debit note ${String(row.dna_dnnote_no ?? row.dnaDnnoteNo ?? '')}: delete is not wired in Kerisi20 yet.`)"
+                          >
+                            <Trash2 class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div v-else-if="isApPaymentKitchenMenu(menuId) && di === 0" class="flex items-center justify-center gap-1" @click.stop>
+                          <template v-if="menuId === 3538">
+                            <input
+                              v-if="String(row.pre_status ?? row.preStatus ?? '').toUpperCase() !== 'REPLACE'"
+                              v-model="paymentRejectBatchSelectedIds"
+                              type="checkbox"
+                              class="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+                              :value="String(row.pre_payment_record_id ?? row.prePaymentRecordId ?? '')"
+                              :aria-label="`Select payment ${String(row.pre_payment_no ?? row.prePaymentNo ?? '')}`"
+                            />
+                            <button
+                              v-if="
+                                String(row.has_posting ?? row.hasPosting ?? '').toLowerCase() !== 'yes' &&
+                                !['REPLACE', 'ERROR'].includes(String(row.pre_status ?? row.preStatus ?? '').toUpperCase())
+                              "
+                              type="button"
+                              class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600"
+                              title="Remove"
+                              @click="
+                                toast.info(
+                                  'Payment Reject Batch',
+                                  `Payment ${String(row.pre_payment_no ?? row.prePaymentNo ?? '')}: remove is not wired in Kerisi20 yet.`,
+                                )
+                              "
+                            >
+                              <X class="h-3.5 w-3.5" />
+                            </button>
+                          </template>
+                          <template v-else>
+                            <button
+                              v-if="menuId === 1897 || menuId === 3345"
+                              type="button"
+                              class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                              title="Edit"
+                              @click="
+                                toast.info(
+                                  menuId === 3345 ? 'Other Payment Update Date' : 'Other Payment',
+                                  `Group ${otherPaymentGroupId(row)}: edit form is not wired in Kerisi20 yet.`,
+                                )
+                              "
+                            >
+                              <Pencil class="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              v-else-if="menuId === 2633"
+                              type="button"
+                              class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                              title="View Notice"
+                              @click="toast.info('Payment Notice', `Payment ${String(row.pre_payment_no ?? row.prePaymentNo ?? '')}: notice view is not wired in Kerisi20 yet.`)"
+                            >
+                              <Eye class="h-3.5 w-3.5" />
+                            </button>
+                          </template>
+                        </div>
+                        <div v-else-if="(menuId === 3346 || menuId === 3348) && di === 0" class="flex items-center justify-center gap-1" @click.stop>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            :title="menuId === 3346 ? 'Voucher Details' : 'View Voucher'"
+                            @click="
+                              toast.info(
+                                menuId === 3346 ? 'Voucher Details' : 'Voucher Money Transfer',
+                                `Application ${String(row.mtm_application_no ?? row.mtmApplicationNo ?? '')}: ${menuId === 3346 ? 'voucher detail' : 'voucher view'} is not wired in Kerisi20 yet.`,
+                              )
+                            "
+                          >
+                            <ChevronsDown v-if="menuId === 3346" class="h-3.5 w-3.5" />
+                            <Eye v-else class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                         <div v-else class="flex items-center gap-1" @click.stop>
                           <button
                             type="button"
@@ -2046,12 +2672,12 @@ onUnmounted(() => {
                   </tr>
                 </tbody>
                 <tfoot v-if="di === 0 && menuId === 1833 && grandTotalPoAmtRm != null">
-                  <tr class="border-t-2 border-violet-600 bg-violet-100 font-semibold text-slate-900">
-                    <td class="px-3 py-2 text-left uppercase tracking-wide text-violet-950" :colspan="poGrandTotalColSpans(dt).label">
+                  <tr class="border-t-2 border-slate-200 bg-slate-50 font-semibold text-slate-900">
+                    <td class="px-3 py-2 text-left uppercase tracking-wide text-slate-800" :colspan="poGrandTotalColSpans(dt).label">
                       Grand Total
                     </td>
                     <td
-                      class="px-3 py-2 text-right tabular-nums text-violet-950"
+                      class="px-3 py-2 text-right tabular-nums text-slate-900"
                       :colspan="poGrandTotalColSpans(dt).amount"
                     >
                       {{ formatGrandPoTotal(grandTotalPoAmtRm) }}
@@ -2071,46 +2697,126 @@ onUnmounted(() => {
 
             <!-- Pagination (primary datatable only) -->
             <template v-if="di === 0">
-              <div class="flex items-center justify-between pt-1">
-                <div class="flex items-center gap-2 text-xs text-slate-500">
-                  <span>{{ menuId === 2082 || menuId === 2085 ? "Display" : "Show" }}</span>
-                  <select
-                    v-model="limit"
-                    class="rounded border border-slate-300 px-2 py-1 text-xs"
-                    @change="onLimitChange"
-                  >
-                    <option v-for="n in [5, 10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
-                  </select>
-                  <span>{{ menuId === 2082 || menuId === 2085 ? "records" : "entries" }}</span>
-                  <span v-if="menuId === 2082 || menuId === 2085" class="ml-4">
-                    {{ total === 0 ? "No records" : `${total} record${total === 1 ? "" : "s"}` }}
-                  </span>
-                  <span v-else class="ml-4">
-                    {{
-                      total === 0 ? "No records" : `${(page - 1) * limit + 1}–${Math.min(page * limit, total)} of ${total}`
-                    }}
-                  </span>
+              <template v-if="isKitchenDatatableMenu(menuId)">
+                <div class="mt-2 space-y-2 border-t border-slate-200 pt-2.5">
+                  <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+                    <span class="text-slate-500">
+                      {{
+                        total === 0
+                          ? "No records"
+                          : `Showing ${(page - 1) * limit + 1}-${Math.min(page * limit, total)} of ${total}`
+                      }}
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <button
+                        type="button"
+                        :disabled="page <= 1 || total === 0"
+                        class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        @click="prevPage"
+                      >
+                        Previous
+                      </button>
+                      <span class="rounded-lg bg-slate-100 px-3 py-1.5 text-sm font-medium tabular-nums">
+                        {{ page }} / {{ totalPages }}
+                      </span>
+                      <button
+                        type="button"
+                        :disabled="page >= totalPages || total === 0"
+                        class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        @click="nextPage"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                      @click="handleDownloadPDF"
+                    >
+                      <Download class="h-3.5 w-3.5" />
+                      PDF
+                    </button>
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                      @click="handleDownloadCSV"
+                    >
+                      <FileDown class="h-3.5 w-3.5" />
+                      CSV
+                    </button>
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                      @click="handleDownloadExcel"
+                    >
+                      <FileSpreadsheet class="h-3.5 w-3.5" />
+                      Excel
+                    </button>
+                    <button
+                      v-if="menuId === 3270"
+                      type="button"
+                      class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-slate-800"
+                      @click="openMt3270FromVirementModal"
+                    >
+                      <Plus class="h-3.5 w-3.5" />
+                      New (From Virement)
+                    </button>
+                    <button
+                      v-if="menuId === 3270"
+                      type="button"
+                      class="inline-flex items-center gap-1.5 rounded-lg border border-slate-900 bg-white px-3 py-1.5 text-xs font-medium text-slate-900 shadow-sm hover:bg-slate-50"
+                      @click="noopMoneyTransfer3270Manual"
+                    >
+                      <Plus class="h-3.5 w-3.5" />
+                      New (Manual)
+                    </button>
+                  </div>
                 </div>
-                <div class="flex items-center gap-1">
-                  <button
-                    type="button"
-                    :disabled="page <= 1"
-                    class="rounded border border-slate-300 px-2.5 py-1 text-xs disabled:opacity-40 hover:bg-slate-50"
-                    @click="prevPage"
-                  >
-                    ‹
-                  </button>
-                  <span class="px-2 text-xs text-slate-600">{{ page }} / {{ totalPages }}</span>
-                  <button
-                    type="button"
-                    :disabled="page >= totalPages"
-                    class="rounded border border-slate-300 px-2.5 py-1 text-xs disabled:opacity-40 hover:bg-slate-50"
-                    @click="nextPage"
-                  >
-                    ›
-                  </button>
+              </template>
+              <template v-else>
+                <div class="flex items-center justify-between pt-1">
+                  <div class="flex items-center gap-2 text-xs text-slate-500">
+                    <span>{{ menuId === 2082 || menuId === 2085 ? "Display" : "Show" }}</span>
+                    <select
+                      v-model="limit"
+                      class="rounded border border-slate-300 px-2 py-1 text-xs"
+                      @change="onLimitChange"
+                    >
+                      <option v-for="n in [5, 10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
+                    </select>
+                    <span>{{ menuId === 2082 || menuId === 2085 ? "records" : "entries" }}</span>
+                    <span v-if="menuId === 2082 || menuId === 2085" class="ml-4">
+                      {{ total === 0 ? "No records" : `${total} record${total === 1 ? "" : "s"}` }}
+                    </span>
+                    <span v-else class="ml-4">
+                      {{
+                        total === 0 ? "No records" : `Showing ${(page - 1) * limit + 1}-${Math.min(page * limit, total)} of ${total}`
+                      }}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      :disabled="page <= 1"
+                      class="rounded border border-slate-300 px-2.5 py-1 text-xs disabled:opacity-40 hover:bg-slate-50"
+                      @click="prevPage"
+                    >
+                      ‹
+                    </button>
+                    <span class="px-2 text-xs text-slate-600">{{ page }} / {{ totalPages }}</span>
+                    <button
+                      type="button"
+                      :disabled="page >= totalPages"
+                      class="rounded border border-slate-300 px-2.5 py-1 text-xs disabled:opacity-40 hover:bg-slate-50"
+                      @click="nextPage"
+                    >
+                      ›
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </template>
               <div v-if="menuId === 2082" class="flex justify-end pt-3">
                 <button
                   type="button"
@@ -2130,6 +2836,24 @@ onUnmounted(() => {
                 >
                   <X class="h-4 w-4" />
                   GRN Cancel
+                </button>
+              </div>
+              <div v-if="menuId === 3538" class="flex flex-wrap justify-center gap-2 pt-3">
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-center rounded bg-violet-500 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-sm hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="paymentRejectBatchSelectedIds.length === 0"
+                  @click="paymentRejectBatchPaymentCancel"
+                >
+                  Payment Cancel
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center justify-center rounded bg-violet-500 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white shadow-sm hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  :disabled="paymentRejectBatchSelectedIds.length === 0"
+                  @click="paymentRejectBatchVoucherCancel"
+                >
+                  Voucher Cancel
                 </button>
               </div>
             </template>
@@ -2200,11 +2924,11 @@ onUnmounted(() => {
               </div>
             </div>
             <div class="p-4">
-              <table class="w-full text-xs">
-                <thead>
-                  <tr class="bg-violet-500 text-white">
-                    <th class="px-3 py-2 text-left font-semibold">Description</th>
-                    <th class="px-3 py-2 text-left font-semibold">Sample Answer</th>
+              <table class="admin-table-kitchen text-xs">
+                <thead class="admin-table-thead-sticky">
+                  <tr>
+                    <th>Description</th>
+                    <th>Sample Answer</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2245,11 +2969,11 @@ onUnmounted(() => {
               </div>
             </div>
             <div class="p-4">
-              <table class="w-full text-xs">
-                <thead>
-                  <tr class="bg-violet-500 text-white">
-                    <th class="px-3 py-2 text-left font-semibold">Description</th>
-                    <th class="px-3 py-2 text-left font-semibold">Sample Answer</th>
+              <table class="admin-table-kitchen text-xs">
+                <thead class="admin-table-thead-sticky">
+                  <tr>
+                    <th>Description</th>
+                    <th>Sample Answer</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2299,7 +3023,7 @@ onUnmounted(() => {
         </template>
 
         <!-- Form sections AFTER datatable -->
-        <template v-if="!formBeforeDataTable && menuId !== 2845">
+        <template v-if="!formBeforeDataTable && menuId !== 2845 && menuId !== 2107 && menuId !== 3270 && menuId !== 3538">
           <article
             v-for="grp in formSectionGroups"
             :key="grp.title"
@@ -2337,6 +3061,110 @@ onUnmounted(() => {
         </article>
       </template>
     </div>
+
+    <!-- List of Money Transfer (3270) — New (From Virement) -->
+    <Teleport to="body">
+      <div
+        v-if="showMt3270VirementModal"
+        class="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 p-4"
+        role="presentation"
+        @click.self="closeMt3270VirementModal"
+      >
+        <div
+          class="flex max-h-[min(90vh,560px)] w-full max-w-lg flex-col overflow-hidden rounded-lg bg-white shadow-2xl"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mt3270-virement-title"
+        >
+          <div class="flex items-center justify-between bg-violet-600 px-4 py-3 text-white">
+            <h3 id="mt3270-virement-title" class="text-base font-semibold tracking-tight">Virement No</h3>
+            <div class="flex items-center gap-0.5">
+              <button
+                type="button"
+                class="rounded p-2 text-white/95 hover:bg-white/15"
+                aria-label="Reference"
+                @click.stop
+              >
+                <Hash class="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                class="rounded p-2 text-white/95 hover:bg-white/15"
+                aria-label="Copy"
+                @click.stop
+              >
+                <Copy class="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                class="rounded p-2 text-white/95 hover:bg-white/15"
+                aria-label="Edit"
+                @click.stop
+              >
+                <Pencil class="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                class="rounded p-2 text-white/95 hover:bg-white/15"
+                aria-label="Close"
+                @click="closeMt3270VirementModal"
+              >
+                <X class="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          <div class="flex flex-1 flex-col gap-4 p-5">
+            <div class="flex flex-wrap items-center gap-3">
+              <label for="mt3270-virement-select" class="shrink-0 text-sm font-medium text-slate-800">
+                Virement No <span class="text-red-600">*</span>
+                <span class="text-slate-500">:</span>
+              </label>
+              <div class="relative min-w-[12rem] flex-1">
+                <select
+                  id="mt3270-virement-select"
+                  v-model="mt3270VirementSelectedNo"
+                  :disabled="mt3270VirementLoading"
+                  class="w-full appearance-none rounded-lg border border-slate-300 bg-white py-2 pl-3 pr-16 text-sm text-slate-800 shadow-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200 disabled:bg-slate-100"
+                >
+                  <option value="">{{ mt3270VirementLoading ? "Loading…" : "— Select —" }}</option>
+                  <option v-for="r in mt3270VirementRows" :key="r.bmmBudgetMovementId + '-' + r.bmmBudgetMovementNo" :value="r.bmmBudgetMovementNo">
+                    {{ r.bmmBudgetMovementNo }}
+                  </option>
+                </select>
+                <div class="pointer-events-none absolute right-9 top-1/2 flex -translate-y-1/2 items-center text-slate-400">
+                  <ChevronDown class="h-4 w-4 opacity-70" aria-hidden="true" />
+                </div>
+                <button
+                  v-if="mt3270VirementSelectedNo"
+                  type="button"
+                  class="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Clear selection"
+                  @click="clearMt3270VirementSelection"
+                >
+                  <X class="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 border-t border-slate-200 bg-slate-50/90 px-4 py-3">
+            <button
+              type="button"
+              class="rounded-lg bg-red-600 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700"
+              @click="closeMt3270VirementModal"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="rounded-lg bg-violet-500 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-violet-600"
+              @click="confirmMt3270FromVirementModal"
+            >
+              Ok
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Smart Filter Modal -->
     <Teleport to="body">

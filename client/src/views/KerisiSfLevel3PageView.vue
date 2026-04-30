@@ -611,8 +611,8 @@ const formSectionGroups = computed(() => {
 
               <div class="overflow-x-auto rounded-lg border border-slate-200">
                 <div :class="rows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-                  <table class="w-full min-w-[720px] text-sm">
-                    <thead class="sticky top-0 bg-slate-50">
+                  <table class="admin-table-kitchen w-full min-w-[720px] text-sm">
+                    <thead class="admin-table-thead-sticky">
                       <tr class="border-b border-slate-200 text-left">
                         <th
                           v-for="(h, hi) in dt.dtBi"
@@ -719,8 +719,8 @@ const formSectionGroups = computed(() => {
                 Additional datagrid from legacy JSON — list data for this grid is not wired in the registry shell yet.
               </p>
               <div class="overflow-x-auto rounded-lg border border-dashed border-slate-200 bg-slate-50/50">
-                <table class="w-full min-w-[480px] text-sm">
-                  <thead class="bg-slate-100">
+                <table class="admin-table-kitchen w-full min-w-[480px] text-sm">
+                  <thead class="admin-table-thead-sticky">
                     <tr class="border-b border-slate-200 text-left">
                       <th
                         v-for="(h, hi) in dt.dtBi"

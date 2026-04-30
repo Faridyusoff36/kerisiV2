@@ -157,8 +157,8 @@ onMounted(load);
             </div>
           </div>
           <div class="mt-3 flex items-center gap-2">
-            <button class="rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800" @click="applyFilters">Apply</button>
-            <button class="rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50" @click="clearFilters">Clear</button>
+            <button type="button" class="rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800" @click="applyFilters">Apply</button>
+            <button type="button" class="rounded-lg border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50" @click="clearFilters">Clear</button>
           </div>
         </div>
       </article>
@@ -235,7 +235,7 @@ onMounted(load);
 
         <!-- Pagination -->
         <div v-if="totalPages > 1" class="flex items-center justify-between border-t border-slate-100 px-4 py-2.5">
-          <button
+          <button type="button"
             class="flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40"
             :disabled="page <= 1"
             @click="prevPage"

@@ -177,6 +177,8 @@ watch(q, () => {
 });
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / Math.max(1, limit.value))));
+const startIdx = computed(() => (total.value === 0 ? 0 : (page.value - 1) * limit.value + 1));
+const endIdx = computed(() => Math.min(page.value * limit.value, total.value));
 
 onMounted(async () => {
   await loadOptions();
@@ -284,7 +286,6 @@ onUnmounted(() => {
               </select>
             </div>
             <div class="flex items-center gap-2">
-              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-slate-50" @click="showSmartFilter = true">Filter</button>
               <label class="text-xs font-medium text-slate-600">Search</label>
               <div class="relative">
                 <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -299,12 +300,13 @@ onUnmounted(() => {
                   <X class="h-3.5 w-3.5" />
                 </button>
               </div>
+              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-slate-50" @click="showSmartFilter = true">Filter</button>
             </div>
           </div>
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[1100px] text-sm">
-                <thead class="sticky top-0 z-[1] bg-violet-600 text-white">
+              <table class="admin-table-kitchen w-full min-w-[1100px] text-sm">
+                <thead class="admin-table-thead-sticky z-[1]">
                   <tr class="border-b border-violet-500 text-left">
                     <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">No</th>
                     <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">Fund</th>
@@ -362,7 +364,7 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
-            <div class="text-xs text-slate-500">Page {{ page }} of {{ totalPages }} · {{ total }} record{{ total === 1 ? '' : 's' }}</div>
+            <div class="text-xs text-slate-500">Showing {{ startIdx }}-{{ endIdx }} of {{ total }}</div>
             <div class="flex items-center gap-2">
               <button
                 type="button"

@@ -408,14 +408,14 @@ onUnmounted(() => {
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[1160px] text-sm">
-                <thead class="sticky top-0 z-10 bg-violet-600 text-white shadow-sm">
+              <table class="admin-table-kitchen w-full min-w-[1160px] text-sm">
+                <thead class="admin-table-thead-sticky z-10 shadow-sm">
                   <tr class="text-left">
-                    <th class="whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase text-white">
+                    <th class="whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                       No
                     </th>
                     <th
-                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase text-white"
+                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-900"
                       @click="toggleSort('cim_invoice_no')"
                     >
                       Invoice No
@@ -424,7 +424,7 @@ onUnmounted(() => {
                       }}</span>
                     </th>
                     <th
-                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase text-white"
+                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-900"
                       @click="toggleSort('cim_invoice_date')"
                     >
                       Date
@@ -433,7 +433,7 @@ onUnmounted(() => {
                       }}</span>
                     </th>
                     <th
-                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase text-white"
+                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-900"
                       @click="toggleSort('cim_cust_id')"
                     >
                       Debtor ID
@@ -442,7 +442,7 @@ onUnmounted(() => {
                       }}</span>
                     </th>
                     <th
-                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase text-white"
+                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-900"
                       @click="toggleSort('cim_cust_name')"
                     >
                       Debtor Name
@@ -450,14 +450,14 @@ onUnmounted(() => {
                         sortDir === "asc" ? "↑" : "↓"
                       }}</span>
                     </th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase text-white">
+                    <th class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Debtor Type
                     </th>
-                    <th class="whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase text-white">
+                    <th class="whitespace-nowrap px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Invoice Date
                     </th>
                     <th
-                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase text-white"
+                      class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-900"
                       @click="toggleSort('cim_status')"
                     >
                       Status
@@ -466,7 +466,7 @@ onUnmounted(() => {
                       }}</span>
                     </th>
                     <th
-                      class="cursor-pointer whitespace-nowrap px-3 py-2 text-right text-xs font-semibold uppercase text-white"
+                      class="cursor-pointer whitespace-nowrap px-3 py-2 text-right text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-slate-900"
                       @click="toggleSort('cim_total_amt')"
                     >
                       Amount
@@ -474,10 +474,10 @@ onUnmounted(() => {
                         sortDir === "asc" ? "↑" : "↓"
                       }}</span>
                     </th>
-                    <th class="whitespace-nowrap px-3 py-2 text-center text-xs font-semibold uppercase text-white">
+                    <th class="whitespace-nowrap px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider text-slate-400">
                       Bulk
                     </th>
-                    <th class="px-3 py-2 text-xs font-semibold uppercase text-white">Action</th>
+                    <th class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Action</th>
                   </tr>
                 </thead>
                 <tbody>

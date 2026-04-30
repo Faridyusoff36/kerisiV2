@@ -174,14 +174,14 @@ onMounted(load);
                 </select>
               </div>
               <div class="flex items-center gap-2 pt-1">
-                <button
+                <button type="button"
                   class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
                   @click="save"
                 >
                   <Save class="h-4 w-4" />
                   {{ isEdit ? 'Update' : 'Publish' }}
                 </button>
-                <button
+                <button type="button"
                   class="flex items-center justify-center rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50"
                   @click="router.push('/admin/pages')"
                 >

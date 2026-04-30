@@ -177,7 +177,7 @@ class KerisiRemainingShellListService
             2336 => $this->ccAdvanceMonitoring($request, $page, $limit, $q),
             2364 => $this->ccReminderReport($request, $page, $limit, $q),
             2627 => $this->ccDebtorBucketAgeing($request, $page, $limit, $q),
-            2633 => $this->ccDebtMovementReport($request, $page, $limit, $q),
+            // 2633 is routed as Account Payable / Payment / Payment Notice in the migrated menu.
             3064 => $this->ccDebtorReminder($request, $page, $limit, $q),
             3069 => $this->ccBucketAgeingReport($request, $page, $limit, $q),
             3226 => $this->investmentNewApplication($request, $page, $limit, $q), // reuse
@@ -4647,21 +4647,45 @@ class KerisiRemainingShellListService
      * ══════════════════════════════════════════════════════════════════ */
     private function apBillRegistrationList(Request $r, int $page, int $limit, string $q): array
     {
-        // bills_master: bim_bills_id, bim_bills_no, vcs_vendor_code, bim_bill_amt, bim_status (verified)
+        $creditNotes = $this->conn()->table('credit_note_ap_master')
+            ->selectRaw('bim_bills_no, GROUP_CONCAT(cna_crnote_no ORDER BY cna_credit_note_ap_master_id SEPARATOR ", ") AS cna_crnote_no, SUM(COALESCE(cna_cn_total_amount, 0)) AS cna_cn_total_amount')
+            ->whereRaw("IFNULL(cna_status_cd, '') <> 'CANCEL'")
+            ->groupBy('bim_bills_no');
+
         $base = $this->conn()->table('bills_master as bm')
+            ->leftJoinSub($creditNotes, 'cn', function (JoinClause $join): void {
+                $join->on('cn.bim_bills_no', '=', 'bm.bim_bills_no');
+            })
             ->select([
-                'bm.bim_bills_id',
-                'bm.bim_bills_no',
-                'bm.bim_bills_desc',
-                'bm.vcs_vendor_code',
-                'bm.bim_bill_amt',
-                'bm.bim_status',
-                'bm.oun_code',
+                DB::raw('bm.bim_bills_id AS bim_bills_id'),
+                DB::raw('bm.bim_system_id AS bim_system_id'),
+                DB::raw('bm.bim_bills_no AS bim_bills_no'),
+                DB::raw('bm.grm_receive_no AS grm_receive_no'),
+                DB::raw('bm.rqm_requisition_no AS rqm_requisition_no'),
+                DB::raw('bm.bim_payee_count AS bim_payee_count'),
+                DB::raw('bm.bim_payto_id AS bim_payto_id'),
+                DB::raw('bm.bim_payto_name AS bim_payto_name'),
+                DB::raw('bm.bim_bills_desc AS bim_bills_desc'),
+                DB::raw('bm.bim_cust_invoice_no AS bim_cust_invoice_no'),
+                DB::raw('bm.bim_cust_invoice_date AS bim_cust_invoice_date'),
+                DB::raw('bm.bim_ent_amt AS bim_ent_amt'),
+                DB::raw('bm.bim_bill_amt AS bim_bill_amt'),
+                DB::raw('cn.cna_crnote_no AS cna_crnote_no'),
+                DB::raw('cn.cna_cn_total_amount AS cna_cn_total_amount'),
+                DB::raw('(COALESCE(bm.bim_bill_amt, 0) - COALESCE(cn.cna_cn_total_amount, 0)) AS bim_balance'),
+                DB::raw('bm.bim_status AS bim_status'),
+                DB::raw("CASE WHEN IFNULL(bm.bim_system_id, '') = '' THEN 'NO' ELSE 'YES' END AS isMigration"),
+                DB::raw('bm.createddate AS createddate'),
+                DB::raw('bm.bim_approve_date AS bim_approve_date'),
+                DB::raw('bm.bim_currency_code AS bim_currency_code'),
             ])
             ->orderByDesc('bm.bim_bills_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw("LOWER(CONCAT_WS('|', IFNULL(bm.bim_bills_no,''), IFNULL(bm.vcs_vendor_code,''))) LIKE ?", [$like]);
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(bm.bim_bills_no,''), IFNULL(bm.grm_receive_no,''), IFNULL(bm.rqm_requisition_no,''), IFNULL(bm.bim_payto_id,''), IFNULL(bm.bim_payto_name,''), IFNULL(bm.bim_bills_desc,''), IFNULL(bm.bim_cust_invoice_no,''), IFNULL(bm.bim_status,''))) LIKE ?",
+                [$like]
+            );
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_bill_registration_list']);
@@ -4784,32 +4808,110 @@ class KerisiRemainingShellListService
 
     private function apVoucherMoneyTransferList(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->apVoucherRegistration($r, $page, $limit, $q);
-    }
-
-    private function apOtherPayment(Request $r, int $page, int $limit, string $q): array
-    {
         $base = $this->conn()->table('voucher_master as vm')
+            ->leftJoin('money_transfer_master as m', 'm.mtm_application_no', '=', 'vm.mtm_application_no')
+            ->whereNotNull('vm.mtm_application_no')
+            ->where('vm.mtm_application_no', '!=', '')
             ->select([
-                'vm.vma_voucher_id',
+                'm.mtm_id',
+                'vm.mtm_application_no',
                 'vm.vma_voucher_no',
-                'vm.vma_payto_name',
-                'vm.vma_total_amt',
                 'vm.vma_vch_status',
                 'vm.createddate',
+                'vm.vma_approve_date',
             ])
             ->orderByDesc('vm.vma_voucher_id');
+
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw("LOWER(CONCAT_WS('|', IFNULL(vm.vma_voucher_no,''), IFNULL(vm.vma_payto_name,''))) LIKE ?", [$like]);
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(vm.mtm_application_no,''), IFNULL(vm.vma_voucher_no,''), IFNULL(vm.vma_vch_status,''))) LIKE ?",
+                [$like]
+            );
         }
 
-        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_other_payment']);
+        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_voucher_money_transfer_list']);
+    }
+
+    private function apOtherPayment(Request $r, int $page, int $limit, string $q, bool $includePaymentDate = false): array
+    {
+        $columns = [
+            DB::raw('MIN(vd.vde_voucher_detl_id) AS groupId'),
+            DB::raw('vm.vma_voucher_no AS vma_voucher_no'),
+            DB::raw('vm.vma_approve_date AS approved_date'),
+            DB::raw('vd.fty_fund_type AS fty_fund_type'),
+            DB::raw('COALESCE(vd.vde_payto_type, vm.vma_payto_type) AS vde_payto_type'),
+            DB::raw('COALESCE(vd.vde_payto_id, vm.vma_payto_id) AS vde_payto_id'),
+            DB::raw('COALESCE(vd.vde_payto_name, vm.vma_payto_name) AS vde_payto_name'),
+            DB::raw('vd.vde_bank_name AS vde_bank_name'),
+            DB::raw('vd.vde_bank_acctno AS vde_bank_acctno'),
+            DB::raw('vd.vde_factoring_type AS vde_factoring_type'),
+            DB::raw('MAX(COALESCE(fact_type.lde_description2, fact_type.lde_description, vd.vde_factoring_type)) AS vde_factoring_type_desc'),
+            DB::raw('vd.vde_factoring_id AS vde_factoring_id'),
+            DB::raw('vd.vde_factoring_name AS vde_factoring_name'),
+            DB::raw('MAX(COALESCE(fact_bank.lbm_bank_name, vd.vde_fact_bank_name)) AS vde_fact_bank_name_desc'),
+            DB::raw('vd.vde_fact_bank_acctno AS vde_fact_bank_acctno'),
+            DB::raw("CASE WHEN IFNULL(vd.vde_factoring_type, '') <> '' THEN CONCAT('Type: ', MAX(COALESCE(fact_type.lde_description2, fact_type.lde_description, vd.vde_factoring_type)), CHAR(10), 'ID: ', IFNULL(vd.vde_factoring_id,''), CHAR(10), 'Name: ', IFNULL(vd.vde_factoring_name,''), CHAR(10), 'Bank: ', MAX(COALESCE(fact_bank.lbm_bank_name, vd.vde_fact_bank_name)), CHAR(10), 'Acc No: ', IFNULL(vd.vde_fact_bank_acctno,'')) ELSE '' END AS factoring"),
+            DB::raw('vd.vde_amount AS vde_amount'),
+        ];
+
+        if ($includePaymentDate) {
+            $columns[] = DB::raw("(SELECT pr.pre_bankin_date FROM payment_record pr WHERE pr.pre_voucher_no = vm.vma_voucher_no ORDER BY pr.pre_payment_record_id DESC LIMIT 1) AS pre_bankin_date");
+        }
+
+        $base = $this->conn()->table('voucher_master as vm')
+            ->join('voucher_details as vd', 'vd.vma_voucher_id', '=', 'vm.vma_voucher_id')
+            ->leftJoin('lookup_details as fact_type', function (JoinClause $join): void {
+                $join->on('fact_type.lde_value', '=', 'vd.vde_factoring_type')
+                    ->where('fact_type.lma_code_name', '=', 'CUSTOMER_TYPE');
+            })
+            ->leftJoin('lookup_bank_main as fact_bank', 'fact_bank.lbm_bank_code', '=', 'vd.vde_fact_bank_name')
+            ->where('vm.vma_vch_status', 'APPROVE')
+            ->where('vd.vde_trans_type', 'DT')
+            ->whereNull('vd.vde_paymode')
+            ->select($columns)
+            ->groupBy([
+                'vm.vma_voucher_no',
+                'vm.vma_approve_date',
+                'vd.fty_fund_type',
+                'vd.vde_payto_type',
+                'vm.vma_payto_type',
+                'vd.vde_payto_id',
+                'vm.vma_payto_id',
+                'vd.vde_payto_name',
+                'vm.vma_payto_name',
+                'vd.vde_bank_name',
+                'vd.vde_bank_acctno',
+                'vd.vde_factoring_type',
+                'vd.vde_factoring_id',
+                'vd.vde_factoring_name',
+                'vd.vde_fact_bank_name',
+                'vd.vde_fact_bank_acctno',
+                'vd.vde_amount',
+            ]);
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(vm.vma_voucher_no,''), IFNULL(vd.vde_payto_id,''), IFNULL(vd.vde_payto_name,''), IFNULL(vd.vde_bank_name,''), IFNULL(vd.vde_factoring_name,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        $total = $this->conn()->query()->fromSub(clone $base, 'other_payment')->count();
+        $rows = $base
+            ->orderByDesc(DB::raw('MIN(vd.vde_voucher_detl_id)'))
+            ->skip(($page - 1) * $limit)
+            ->take($limit)
+            ->get()
+            ->map(fn ($r) => (array) $r)
+            ->toArray();
+
+        return ['rows' => $rows, 'total' => $total, 'connector' => 'ap_other_payment'];
     }
 
     private function apOtherPaymentUpdate(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->apOtherPayment($r, $page, $limit, $q);
+        return array_merge($this->apOtherPayment($r, $page, $limit, $q, true), ['connector' => 'ap_other_payment_update_date']);
     }
 
     private function apRefund(Request $r, int $page, int $limit, string $q): array
@@ -4844,20 +4946,26 @@ class KerisiRemainingShellListService
 
     private function apPaymentNotice(Request $r, int $page, int $limit, string $q): array
     {
-        // payment_batch: pyb_pybatch_id, pyb_batch_no, pyb_total_amt, pyb_transfer_date, pyb_status (verified)
-        $base = $this->conn()->table('payment_batch as pb')
+        $base = $this->conn()->table('payment_record as pr')
             ->select([
-                'pb.pyb_pybatch_id',
-                'pb.pyb_batch_no',
-                'pb.pyb_total_amt',
-                'pb.pyb_qty',
-                'pb.pyb_transfer_date',
-                'pb.pyb_status',
+                DB::raw('pr.pre_payee_type AS vma_payto_type'),
+                DB::raw('pr.pre_payto_id AS vma_payto_id'),
+                DB::raw('pr.pre_payto_name AS vma_payto_name'),
+                DB::raw('pr.pre_voucher_no AS pre_voucher_no'),
+                DB::raw('pr.pre_payment_no AS pre_payment_no'),
+                DB::raw('pr.pre_approve_date AS pre_approve_date'),
+                DB::raw('(SELECT pb.pyb_transfer_date FROM payment_batch pb WHERE pb.pyb_pybatch_id = pr.pre_payment_batch_id OR pb.pyb_batch_no = pr.pre_payment_batch ORDER BY pb.pyb_pybatch_id DESC LIMIT 1) AS pyb_transfer_date'),
+                DB::raw('COALESCE(pr.pre_total_amt_rm, pr.pre_total_amt) AS pre_total_amt_rm'),
+                DB::raw('pr.pre_bank_name AS pre_bank_name'),
+                DB::raw('pr.acm_acct_code_bank AS acm_acct_code_bank'),
             ])
-            ->orderByDesc('pb.pyb_pybatch_id');
+            ->orderByDesc('pr.pre_payment_record_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw("LOWER(IFNULL(pb.pyb_batch_no,'')) LIKE ?", [$like]);
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(pr.pre_payment_no,''), IFNULL(pr.pre_voucher_no,''), IFNULL(pr.pre_payto_id,''), IFNULL(pr.pre_payto_name,''), IFNULL(pr.pre_bank_name,''))) LIKE ?",
+                [$like]
+            );
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_payment_notice']);
@@ -4870,7 +4978,49 @@ class KerisiRemainingShellListService
 
     private function apPaymentListing(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->apPaymentNotice($r, $page, $limit, $q);
+        $base = $this->conn()->table('payment_record as pr')
+            ->select([
+                DB::raw('pr.pre_payment_no AS pre_payment_no'),
+                DB::raw('pr.pre_mod_type AS pre_mod_type'),
+                DB::raw('pr.pre_payto_id AS pre_payto_id'),
+                DB::raw('pr.pre_payto_name AS pre_payto_name'),
+                DB::raw('pr.pre_total_amt AS pre_total_amt'),
+                DB::raw('pr.pre_voucher_no AS pre_voucher_no'),
+                DB::raw('pr.pre_status AS pre_status'),
+                DB::raw('pr.pre_payment_batch AS pre_payment_batch'),
+                DB::raw('pr.pre_print_date AS pre_print_date'),
+                DB::raw('pr.pre_bankin_date AS pre_bankin_date'),
+            ])
+            ->orderByDesc('pr.pre_payment_record_id');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(pr.pre_payment_no,''), IFNULL(pr.pre_voucher_no,''), IFNULL(pr.pre_payto_id,''), IFNULL(pr.pre_payto_name,''), IFNULL(pr.pre_status,''), IFNULL(pr.pre_payment_batch,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        $status = trim((string) $r->input('sf_1', ''));
+        if ($status !== '') {
+            $base->where('pr.pre_status', $status);
+        }
+
+        $pack = $this->paginate($base, $page, $limit);
+        $statuses = $this->conn()->table('payment_record')
+            ->whereNotNull('pre_status')
+            ->distinct()
+            ->orderBy('pre_status')
+            ->pluck('pre_status')
+            ->map(fn ($v) => ['value' => (string) $v, 'label' => (string) $v])
+            ->values()->all();
+
+        return array_merge($pack, [
+            'connector' => 'ap_payment_listing',
+            'smart_filter_options' => [
+                'sf_1' => $statuses,
+            ],
+        ]);
     }
 
     private function apDownloadVoucherBatch(Request $r, int $page, int $limit, string $q): array
@@ -4921,25 +5071,78 @@ class KerisiRemainingShellListService
 
     private function apCreditNoteListing(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->apCreditNoteForm($r, $page, $limit, $q);
+        $base = $this->conn()->table('credit_note_ap_master as cam')
+            ->leftJoin('bills_master as bm', 'bm.bim_bills_no', '=', 'cam.bim_bills_no')
+            ->select([
+                DB::raw('cam.cna_credit_note_ap_master_id AS cna_id'),
+                DB::raw('cam.cna_crnote_no AS cna_crnote_no'),
+                DB::raw('cam.cna_crnote_desc AS cna_crnote_desc'),
+                DB::raw('cam.bim_bills_no AS bim_bills_no'),
+                DB::raw('bm.bim_bills_desc AS bim_bills_desc'),
+                DB::raw('bm.bim_cust_invoice_no AS bim_cust_invoice_no'),
+                DB::raw('bm.bim_cust_invoice_date AS bim_cust_invoice_date'),
+                DB::raw('COALESCE(cam.cna_currency_code, bm.bim_currency_code) AS bim_currency_code'),
+                DB::raw('bm.bim_ent_amt AS bim_ent_amt'),
+                DB::raw('bm.bim_bill_amt AS bim_bill_amt'),
+                DB::raw('bm.bim_status AS bim_status'),
+                DB::raw('cam.cna_ent_total_amount AS cna_ent_total_amount'),
+                DB::raw('cam.cna_cn_total_amount AS cna_cn_total_amount'),
+                DB::raw('(COALESCE(bm.bim_ent_amt, 0) - COALESCE(cam.cna_ent_total_amount, 0)) AS cna_ent_bal'),
+                DB::raw('(COALESCE(bm.bim_bill_amt, 0) - COALESCE(cam.cna_cn_total_amount, 0)) AS cna_cn_bal'),
+                DB::raw('cam.cna_crnote_date AS cna_crnote_date'),
+                DB::raw('cam.cna_approve_date AS cna_approve_date'),
+                DB::raw('cam.cna_status_cd AS cna_status_cd'),
+                DB::raw("CONCAT('/admin/kerisi/m/3242?cna_id=', cam.cna_credit_note_ap_master_id) AS urlE"),
+                DB::raw("CONCAT('/admin/kerisi/m/3242?cna_id=', cam.cna_credit_note_ap_master_id, '&mode=view') AS urlV"),
+            ])
+            ->whereRaw("IFNULL(cam.cna_status_cd, '') <> 'CANCEL'")
+            ->orderByDesc('cam.cna_credit_note_ap_master_id');
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(cam.cna_crnote_no,''), IFNULL(cam.cna_crnote_desc,''), IFNULL(cam.bim_bills_no,''), IFNULL(bm.bim_bills_desc,''), IFNULL(bm.bim_cust_invoice_no,''), IFNULL(cam.cna_status_cd,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_credit_note_listing']);
     }
 
     private function apCreditNoteCancel(Request $r, int $page, int $limit, string $q): array
     {
         $base = $this->conn()->table('credit_note_ap_master as cam')
+            ->leftJoin('bills_master as bm', 'bm.bim_bills_no', '=', 'cam.bim_bills_no')
             ->where('cam.cna_status_cd', 'CANCEL')
             ->select([
-                'cam.cna_credit_note_ap_master_id',
-                'cam.cna_crnote_no',
-                'cam.bim_bills_no',
-                'cam.cna_crnote_date',
-                'cam.cna_cn_total_amount',
-                'cam.cna_status_cd',
+                DB::raw('cam.cna_credit_note_ap_master_id AS cna_id'),
+                DB::raw('cam.cna_crnote_no AS cna_crnote_no'),
+                DB::raw('cam.cna_crnote_desc AS cna_crnote_desc'),
+                DB::raw('cam.bim_bills_no AS bim_bills_no'),
+                DB::raw('bm.bim_bills_desc AS bim_bills_desc'),
+                DB::raw('bm.bim_cust_invoice_no AS bim_cust_invoice_no'),
+                DB::raw('bm.bim_cust_invoice_date AS bim_cust_invoice_date'),
+                DB::raw('COALESCE(cam.cna_currency_code, bm.bim_currency_code) AS bim_currency_code'),
+                DB::raw('bm.bim_ent_amt AS bim_ent_amt'),
+                DB::raw('bm.bim_bill_amt AS bim_bill_amt'),
+                DB::raw('bm.bim_status AS bim_status'),
+                DB::raw('cam.cna_ent_total_amount AS cna_ent_total_amount'),
+                DB::raw('cam.cna_cn_total_amount AS cna_cn_total_amount'),
+                DB::raw('(COALESCE(bm.bim_ent_amt, 0) - COALESCE(cam.cna_ent_total_amount, 0)) AS cna_ent_bal'),
+                DB::raw('(COALESCE(bm.bim_bill_amt, 0) - COALESCE(cam.cna_cn_total_amount, 0)) AS cna_cn_bal'),
+                DB::raw('cam.cna_crnote_date AS cna_crnote_date'),
+                DB::raw('cam.cna_approve_date AS cna_approve_date'),
+                DB::raw('cam.cna_status_cd AS cna_status_cd'),
+                DB::raw('cam.cna_cancel_date AS cna_cancel_date'),
+                DB::raw('cam.cna_cancel_reason AS cna_cancel_reason'),
+                DB::raw("CONCAT('/admin/kerisi/m/3242?cna_id=', cam.cna_credit_note_ap_master_id, '&mode=view') AS urlV"),
             ])
             ->orderByDesc('cam.cna_credit_note_ap_master_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw("LOWER(IFNULL(cam.cna_crnote_no,'')) LIKE ?", [$like]);
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(cam.cna_crnote_no,''), IFNULL(cam.cna_crnote_desc,''), IFNULL(cam.bim_bills_no,''), IFNULL(bm.bim_bills_desc,''), IFNULL(cam.cna_cancel_reason,''), IFNULL(cam.cna_status_cd,''))) LIKE ?",
+                [$like]
+            );
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_credit_note_cancel']);
@@ -4947,20 +5150,38 @@ class KerisiRemainingShellListService
 
     private function apDebitNoteForm(Request $r, int $page, int $limit, string $q): array
     {
-        // debit_note_ap_master: dna_debit_note_ap_master_id, dna_dnnote_no, dna_dnnote_date, dna_dn_total_amount, dna_status_dn (verified)
         $base = $this->conn()->table('debit_note_ap_master as dam')
+            ->leftJoin('bills_master as bm', 'bm.bim_bills_no', '=', 'dam.bim_bills_no')
             ->select([
-                'dam.dna_debit_note_ap_master_id',
-                'dam.dna_dnnote_no',
-                'dam.bim_bills_no',
-                'dam.dna_dnnote_date',
-                'dam.dna_dn_total_amount',
-                'dam.dna_status_dn',
+                DB::raw('dam.dna_debit_note_ap_master_id AS dna_id'),
+                DB::raw('dam.dna_dnnote_no AS dna_dnnote_no'),
+                DB::raw('dam.dna_dnnote_desc AS dna_dnnote_desc'),
+                DB::raw('dam.bim_bills_no AS bim_bills_no'),
+                DB::raw('bm.bim_bills_desc AS bim_bills_desc'),
+                DB::raw('bm.bim_cust_invoice_no AS bim_cust_invoice_no'),
+                DB::raw('bm.bim_cust_invoice_date AS bim_cust_invoice_date'),
+                DB::raw('COALESCE(dam.dna_currency_code, bm.bim_currency_code) AS bim_currency_code'),
+                DB::raw('bm.bim_ent_amt AS bim_ent_amt'),
+                DB::raw('bm.bim_bill_amt AS bim_bill_amt'),
+                DB::raw('bm.bim_status AS bim_status'),
+                DB::raw('dam.dna_ent_total_amount AS dna_ent_total_amount'),
+                DB::raw('dam.dna_dn_total_amount AS dna_dn_total_amount'),
+                DB::raw('(COALESCE(bm.bim_ent_amt, 0) - COALESCE(dam.dna_ent_total_amount, 0)) AS dna_ent_bal'),
+                DB::raw('(COALESCE(bm.bim_bill_amt, 0) - COALESCE(dam.dna_dn_total_amount, 0)) AS dna_dn_bal'),
+                DB::raw('dam.dna_dnnote_date AS dna_dnnote_date'),
+                DB::raw('dam.dna_approve_date AS dna_approve_date'),
+                DB::raw('dam.dna_status_dn AS dna_status_dn'),
+                DB::raw("CONCAT('/admin/kerisi/m/3548?dna_id=', dam.dna_debit_note_ap_master_id) AS urlE"),
+                DB::raw("CONCAT('/admin/kerisi/m/3548?dna_id=', dam.dna_debit_note_ap_master_id, '&mode=view') AS urlV"),
             ])
+            ->whereRaw("IFNULL(dam.dna_status_dn, '') <> 'CANCEL'")
             ->orderByDesc('dam.dna_debit_note_ap_master_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw("LOWER(CONCAT_WS('|', IFNULL(dam.dna_dnnote_no,''), IFNULL(dam.bim_bills_no,''))) LIKE ?", [$like]);
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(dam.dna_dnnote_no,''), IFNULL(dam.dna_dnnote_desc,''), IFNULL(dam.bim_bills_no,''), IFNULL(bm.bim_bills_desc,''), IFNULL(bm.bim_cust_invoice_no,''), IFNULL(dam.dna_status_dn,''))) LIKE ?",
+                [$like]
+            );
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_debit_note_form']);
@@ -4969,19 +5190,38 @@ class KerisiRemainingShellListService
     private function apDebitNoteCancel(Request $r, int $page, int $limit, string $q): array
     {
         $base = $this->conn()->table('debit_note_ap_master as dam')
+            ->leftJoin('bills_master as bm', 'bm.bim_bills_no', '=', 'dam.bim_bills_no')
             ->where('dam.dna_status_dn', 'CANCEL')
             ->select([
-                'dam.dna_debit_note_ap_master_id',
-                'dam.dna_dnnote_no',
-                'dam.bim_bills_no',
-                'dam.dna_dnnote_date',
-                'dam.dna_dn_total_amount',
-                'dam.dna_status_dn',
+                DB::raw('dam.dna_debit_note_ap_master_id AS dna_id'),
+                DB::raw('dam.dna_dnnote_no AS dna_dnnote_no'),
+                DB::raw('dam.dna_dnnote_desc AS dna_dnnote_desc'),
+                DB::raw('dam.bim_bills_no AS bim_bills_no'),
+                DB::raw('bm.bim_bills_desc AS bim_bills_desc'),
+                DB::raw('bm.bim_cust_invoice_no AS bim_cust_invoice_no'),
+                DB::raw('bm.bim_cust_invoice_date AS bim_cust_invoice_date'),
+                DB::raw('COALESCE(dam.dna_currency_code, bm.bim_currency_code) AS bim_currency_code'),
+                DB::raw('bm.bim_ent_amt AS bim_ent_amt'),
+                DB::raw('bm.bim_bill_amt AS bim_bill_amt'),
+                DB::raw('bm.bim_status AS bim_status'),
+                DB::raw('dam.dna_ent_total_amount AS dna_ent_total_amount'),
+                DB::raw('dam.dna_dn_total_amount AS dna_dn_total_amount'),
+                DB::raw('(COALESCE(bm.bim_ent_amt, 0) - COALESCE(dam.dna_ent_total_amount, 0)) AS dna_ent_bal'),
+                DB::raw('(COALESCE(bm.bim_bill_amt, 0) - COALESCE(dam.dna_dn_total_amount, 0)) AS dna_cn_bal'),
+                DB::raw('dam.dna_dnnote_date AS dna_dnnote_date'),
+                DB::raw('dam.dna_approve_date AS dna_approve_date'),
+                DB::raw('dam.dna_status_dn AS dna_status_dn'),
+                DB::raw('dam.dna_cancel_date AS dna_cancel_date'),
+                DB::raw('dam.dna_cancel_reason AS dna_cancel_reason'),
+                DB::raw("CONCAT('/admin/kerisi/m/3550?dna_id=', dam.dna_debit_note_ap_master_id, '&mode=view') AS urlV"),
             ])
             ->orderByDesc('dam.dna_debit_note_ap_master_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw("LOWER(IFNULL(dam.dna_dnnote_no,'')) LIKE ?", [$like]);
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(dam.dna_dnnote_no,''), IFNULL(dam.dna_dnnote_desc,''), IFNULL(dam.bim_bills_no,''), IFNULL(bm.bim_bills_desc,''), IFNULL(dam.dna_cancel_reason,''), IFNULL(dam.dna_status_dn,''))) LIKE ?",
+                [$like]
+            );
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_debit_note_cancel']);
@@ -4999,20 +5239,40 @@ class KerisiRemainingShellListService
 
     private function apMoneyTransferList(Request $r, int $page, int $limit, string $q): array
     {
-        // vot_transfer_master: vtm_posting_id, vtm_posting_no, vtm_enter_date, vtm_total_amt, vtm_status (verified)
-        $base = $this->conn()->table('vot_transfer_master as vtm')
+        $conn = $this->conn();
+
+        // Destination PTJ (MIN oun_code from details; paired with organisation_unit.oun_desc for display).
+        $ptjAgg = $conn->table('money_transfer_details')
+            ->select(['mtm_id', DB::raw('MIN(oun_code) AS oun_code')])
+            ->whereNotNull('oun_code')
+            ->where('oun_code', '!=', '')
+            ->groupBy('mtm_id');
+
+        // wujud: Y when a voucher row is linked via mtm_application_no (legacy uses for Cancel rules).
+        $base = $conn->table('money_transfer_master as m')
+            ->leftJoinSub($ptjAgg, 'pj', 'pj.mtm_id', '=', 'm.mtm_id')
+            ->leftJoin('organization_unit as ou', 'ou.oun_code', '=', 'pj.oun_code')
             ->select([
-                'vtm.vtm_posting_id',
-                'vtm.vtm_posting_no',
-                'vtm.vtm_enter_date',
-                'vtm.vtm_total_amt',
-                'vtm.vtm_status',
-                'vtm.vtm_description',
+                'm.mtm_id',
+                'm.mtm_application_no',
+                'm.mtm_reference_no',
+                'm.mtm_status',
+                'm.mtm_cancel_reason',
+                'm.mtm_cancel_date',
+                'm.mtm_cancel_by',
+                'pj.oun_code',
+                'ou.oun_desc AS oun_code_desc',
+                DB::raw("(CASE WHEN EXISTS (SELECT 1 FROM voucher_master vm WHERE vm.mtm_application_no = m.mtm_application_no AND vm.mtm_application_no IS NOT NULL AND TRIM(vm.mtm_application_no) <> '') THEN 'Y' ELSE 'N' END) AS wujud"),
             ])
-            ->orderByDesc('vtm.vtm_posting_id');
+            ->orderByDesc('m.mtm_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw("LOWER(CONCAT_WS('|', IFNULL(vtm.vtm_posting_no,''), IFNULL(vtm.vtm_description,''))) LIKE ?", [$like]);
+            $base->whereRaw(
+                'LOWER(CONCAT_WS(\'|\', IFNULL(m.mtm_application_no,\'\'), IFNULL(m.mtm_reference_no,\'\'), '
+                .'IFNULL(m.mtm_status,\'\'), IFNULL(m.mtm_cancel_reason,\'\'), IFNULL(m.mtm_cancel_by,\'\'), '
+                .'IFNULL(pj.oun_code,\'\'), IFNULL(ou.oun_desc,\'\'))) LIKE ?',
+                [$like]
+            );
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_money_transfer_list']);
@@ -5020,7 +5280,32 @@ class KerisiRemainingShellListService
 
     private function apGenerateVoucherDraft(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->apVoucherRegistration($r, $page, $limit, $q);
+        $base = $this->conn()->table('money_transfer_master as m')
+            ->where('m.mtm_status', 'APPROVE')
+            ->whereNotExists(function (Builder $query): void {
+                $query->selectRaw('1')
+                    ->from('voucher_master as vm')
+                    ->whereColumn('vm.mtm_application_no', 'm.mtm_application_no')
+                    ->whereNotNull('vm.mtm_application_no')
+                    ->where('vm.mtm_application_no', '!=', '');
+            })
+            ->select([
+                'm.mtm_id',
+                'm.mtm_application_no',
+                'm.mtm_reference_no',
+                'm.mtm_status',
+            ])
+            ->orderByDesc('m.mtm_id');
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(m.mtm_application_no,''), IFNULL(m.mtm_reference_no,''), IFNULL(m.mtm_status,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_generate_voucher_draft']);
     }
 
     private function apBukuDaftarTerimaan(Request $r, int $page, int $limit, string $q): array
@@ -5040,7 +5325,73 @@ class KerisiRemainingShellListService
 
     private function apPaymentRejectBatch(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->shellPreview('ap_payment_reject_batch');
+        $batchId = trim((string) $r->input('tf_0', $r->input('pyb_pybatch_id', $r->input('pybPybatchId', ''))));
+
+        $base = $this->conn()->table('payment_record as pr')
+            ->join('payment_batch as pb', 'pb.pyb_pybatch_id', '=', 'pr.pre_payment_batch_id')
+            ->leftJoin('bank_master as bm', 'bm.bnm_bank_code', '=', 'pr.pre_bank_name')
+            ->leftJoin('lookup_bank_main as lbm', 'lbm.lbm_bank_code', '=', 'pr.pre_bank_name')
+            ->where('pb.pyb_status', 'REJECT')
+            ->select([
+                DB::raw('pr.pre_payment_record_id AS pre_payment_record_id'),
+                DB::raw('pr.pre_payment_no AS pre_payment_no'),
+                DB::raw('pr.pre_voucher_no AS pre_voucher_no'),
+                DB::raw('pr.pre_payee_type AS pre_payee_type'),
+                DB::raw('pr.pre_payto_id AS pre_payto_id'),
+                DB::raw('pr.pre_payto_name AS pre_payto_name'),
+                DB::raw('COALESCE(bm.bnm_bank_desc, lbm.lbm_bank_name, pr.pre_bank_name) AS bnm_bank_desc'),
+                DB::raw('pr.acm_acct_code_bank AS acm_acct_code_bank'),
+                DB::raw('COALESCE(pr.pre_total_amt_rm, pr.pre_total_amt) AS pre_total_amt'),
+                DB::raw('pr.pre_status AS pre_status'),
+                DB::raw("CASE WHEN IFNULL(pr.pre_cashbook_batch, '') <> '' OR IFNULL(pr.pre_approve_glbatch, '') <> '' THEN 'Yes' ELSE 'No' END AS has_posting"),
+                DB::raw('pr.pre_payment_batch_id AS pre_payment_batch_id'),
+            ])
+            ->orderByDesc('pr.pre_payment_record_id');
+
+        if ($batchId !== '') {
+            $base->where('pr.pre_payment_batch_id', $batchId);
+        }
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(pr.pre_payment_no,''), IFNULL(pr.pre_voucher_no,''), IFNULL(pr.pre_payee_type,''), IFNULL(pr.pre_payto_id,''), IFNULL(pr.pre_payto_name,''), IFNULL(pr.pre_bank_name,''), IFNULL(bm.bnm_bank_desc,''), IFNULL(lbm.lbm_bank_name,''), IFNULL(pr.acm_acct_code_bank,''), IFNULL(pr.pre_status,''), IFNULL(pb.pyb_batch_no,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        return array_merge($this->paginate($base, $page, $limit), [
+            'connector' => 'ap_payment_reject_batch',
+            'top_filter_options' => $this->apPaymentRejectBatchTopFilterOptions(),
+        ]);
+    }
+
+    /**
+     * @return array<string, list<int, array{value: string, label: string}>>
+     */
+    private function apPaymentRejectBatchTopFilterOptions(): array
+    {
+        $rows = $this->conn()->table('payment_batch as pb')
+            ->join('payment_record as pr', 'pr.pre_payment_batch_id', '=', 'pb.pyb_pybatch_id')
+            ->where('pb.pyb_status', 'REJECT')
+            ->select([
+                DB::raw('pb.pyb_pybatch_id AS id'),
+                DB::raw('pb.pyb_batch_no AS batch_no'),
+                DB::raw('COUNT(pr.pre_payment_record_id) AS record_count'),
+            ])
+            ->groupBy('pb.pyb_pybatch_id', 'pb.pyb_batch_no')
+            ->orderByDesc('pb.pyb_pybatch_id')
+            ->get();
+
+        return [
+            'tf_0' => $rows
+                ->map(fn ($row): array => [
+                    'value' => (string) $row->id,
+                    'label' => sprintf('%s (%d)', (string) $row->batch_no, (int) $row->record_count),
+                ])
+                ->values()
+                ->all(),
+        ];
     }
 
     private function apPaymentRecord(Request $r, int $page, int $limit, string $q): array

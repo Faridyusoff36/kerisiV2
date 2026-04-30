@@ -316,8 +316,8 @@ onUnmounted(() => {
           </div>
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="w-full min-w-[1800px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
+              <table class="admin-table-kitchen w-full min-w-[1800px] text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="px-3 py-2 text-xs font-semibold uppercase">Fund</th>
@@ -384,7 +384,7 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
-            <div class="text-xs text-slate-500">Page {{ page }} of {{ totalPages }} · {{ total }} record{{ total === 1 ? '' : 's' }}</div>
+            <div class="text-xs text-slate-500">Showing {{ total === 0 ? 0 : (page - 1) * limit + 1 }}-{{ Math.min(page * limit, total) }} of {{ total }}</div>
             <div class="flex items-center gap-2">
               <button
                 type="button"

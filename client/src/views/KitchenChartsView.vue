@@ -496,8 +496,8 @@ const sectionLinks = [
           </div>
           <div class="p-4">
             <div class="overflow-x-auto rounded-lg border border-dashed border-slate-300 bg-slate-50/50 p-5">
-              <table class="w-full text-sm">
-                <thead>
+              <table class="admin-table-kitchen w-full text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200">
                     <th class="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Month</th>
                     <th class="pb-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">Organic</th>

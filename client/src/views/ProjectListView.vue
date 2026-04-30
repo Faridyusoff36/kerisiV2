@@ -239,8 +239,8 @@ onUnmounted(() => { if (qTimer) clearTimeout(qTimer); });
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="w-full text-sm" :class="tableMinWidth">
-                <thead class="sticky top-0 bg-slate-50">
+              <table class="admin-table-kitchen w-full text-sm" :class="tableMinWidth">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSort('cpa_project_no')">Project No</th>

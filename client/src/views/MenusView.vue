@@ -329,14 +329,14 @@ async function resetToDefaults() {
       <div class="flex items-center justify-between">
         <h1 class="page-title">Menu Configuration</h1>
         <div class="flex items-center gap-2">
-          <button
+          <button type="button"
             class="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
             @click="resetToDefaults"
           >
             <RotateCcw class="h-4 w-4" />
             Reset
           </button>
-          <button
+          <button type="button"
             class="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-50"
             :disabled="saving"
             @click="save"
@@ -362,7 +362,7 @@ async function resetToDefaults() {
               <h2 class="text-sm font-semibold text-slate-900">{{ getGroupLabel(groupId) }}</h2>
             </div>
             <div class="flex items-center gap-2">
-              <button
+              <button type="button"
                 class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors"
                 :class="isGroupHidden(groupId) ? 'bg-slate-400' : 'bg-violet-600'"
                 @click="toggleGroupVisibility(groupId)"
@@ -372,14 +372,14 @@ async function resetToDefaults() {
                   :class="isGroupHidden(groupId) ? 'translate-x-[2px]' : 'translate-x-[18px]'"
                 />
               </button>
-              <button
+              <button type="button"
                 class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
                 :disabled="groupIndex === 0"
                 @click="moveGroup(groupId, 'up')"
               >
                 <ChevronUp class="h-4 w-4" />
               </button>
-              <button
+              <button type="button"
                 class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
                 :disabled="groupIndex === localPrefs.groupOrder.length - 1"
                 @click="moveGroup(groupId, 'down')"
@@ -410,7 +410,7 @@ async function resetToDefaults() {
                   </p>
                   <p class="truncate text-xs text-slate-400">{{ getItemDef(groupId, itemId)?.to }}</p>
                 </div>
-                <button
+                <button type="button"
                   class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors"
                   :class="isItemHidden(itemId, getItemDef(groupId, itemId)) ? 'bg-slate-400' : 'bg-violet-600'"
                   @click="toggleItemVisibility(groupId, itemId)"
@@ -420,14 +420,14 @@ async function resetToDefaults() {
                     :class="isItemHidden(itemId, getItemDef(groupId, itemId)) ? 'translate-x-[2px]' : 'translate-x-[14px]'"
                   />
                 </button>
-                <button
+                <button type="button"
                   class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
                   :disabled="itemIndex === 0"
                   @click="moveItem(groupId, itemId, 'up')"
                 >
                   <ChevronUp class="h-3.5 w-3.5" />
                 </button>
-                <button
+                <button type="button"
                   class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
                   :disabled="itemIndex === (localPrefs.itemOrder[groupId] || []).length - 1"
                   @click="moveItem(groupId, itemId, 'down')"
@@ -458,7 +458,7 @@ async function resetToDefaults() {
                       </p>
                       <p class="truncate text-xs text-slate-400">{{ getChildDef(groupId, itemId, childId)?.to }}</p>
                     </div>
-                    <button
+                    <button type="button"
                       class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors"
                       :class="isChildHidden(childId, getChildDef(groupId, itemId, childId)) ? 'bg-slate-400' : 'bg-violet-600'"
                       @click="toggleChildVisibility(groupId, itemId, childId)"
@@ -468,14 +468,14 @@ async function resetToDefaults() {
                         :class="isChildHidden(childId, getChildDef(groupId, itemId, childId)) ? 'translate-x-[2px]' : 'translate-x-[14px]'"
                       />
                     </button>
-                    <button
+                    <button type="button"
                       class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
                       :disabled="childIndex === 0"
                       @click="moveChild(itemId, childId, 'up')"
                     >
                       <ChevronUp class="h-3.5 w-3.5" />
                     </button>
-                    <button
+                    <button type="button"
                       class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
                       :disabled="childIndex === (localPrefs.childOrder[itemId] || []).length - 1"
                       @click="moveChild(itemId, childId, 'down')"
@@ -505,7 +505,7 @@ async function resetToDefaults() {
                         </p>
                         <p class="truncate text-[11px] text-slate-400">{{ getGrandchildDef(groupId, itemId, childId, grandchildId)?.to }}</p>
                       </div>
-                      <button
+                      <button type="button"
                         class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors"
                         :class="isGrandchildHidden(grandchildId, getGrandchildDef(groupId, itemId, childId, grandchildId)) ? 'bg-slate-400' : 'bg-violet-600'"
                         @click="toggleGrandchildVisibility(groupId, itemId, childId, grandchildId)"
@@ -515,14 +515,14 @@ async function resetToDefaults() {
                           :class="isGrandchildHidden(grandchildId, getGrandchildDef(groupId, itemId, childId, grandchildId)) ? 'translate-x-[2px]' : 'translate-x-[14px]'"
                         />
                       </button>
-                      <button
+                      <button type="button"
                         class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
                         :disabled="grandchildIndex === 0"
                         @click="moveGrandchild(childId, grandchildId, 'up')"
                       >
                         <ChevronUp class="h-3.5 w-3.5" />
                       </button>
-                      <button
+                      <button type="button"
                         class="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:opacity-30"
                         :disabled="grandchildIndex === (localPrefs.grandchildOrder[childId] || []).length - 1"
                         @click="moveGrandchild(childId, grandchildId, 'down')"

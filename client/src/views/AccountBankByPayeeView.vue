@@ -331,8 +331,8 @@ onUnmounted(() => {
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
               <!-- Generic (STUDENT / STAFF / VENDOR) -->
-              <table v-if="isGeneric" class="w-full min-w-[900px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
+              <table v-if="isGeneric" class="admin-table-kitchen w-full min-w-[900px] text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="px-3 py-2 text-xs font-semibold uppercase">Name</th>
@@ -357,8 +357,8 @@ onUnmounted(() => {
               </table>
 
               <!-- Sponsor -->
-              <table v-else-if="isSponsor" class="w-full min-w-[1400px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
+              <table v-else-if="isSponsor" class="admin-table-kitchen w-full min-w-[1400px] text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="px-3 py-2 text-xs font-semibold uppercase">Sponsor Code</th>
@@ -395,8 +395,8 @@ onUnmounted(() => {
               </table>
 
               <!-- Investment Institution -->
-              <table v-else-if="isInvestment" class="w-full min-w-[1500px] text-sm">
-                <thead class="sticky top-0 bg-slate-50">
+              <table v-else-if="isInvestment" class="admin-table-kitchen w-full min-w-[1500px] text-sm">
+                <thead class="admin-table-thead-sticky">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="px-3 py-2 text-xs font-semibold uppercase">Inst Code</th>

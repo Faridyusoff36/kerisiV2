@@ -631,8 +631,8 @@ function stubSubmit() {
           </button>
         </header>
         <div class="overflow-x-auto p-2">
-          <table class="min-w-[1100px] w-full text-xs">
-            <thead class="bg-violet-600 text-white">
+          <table class="admin-table-kitchen min-w-[1100px] w-full text-xs">
+            <thead class="admin-table-thead-sticky">
               <tr class="text-left">
                 <th class="whitespace-nowrap px-2 py-2">Cat.</th>
                 <th class="whitespace-nowrap px-2 py-2">Item</th>
@@ -713,8 +713,8 @@ function stubSubmit() {
           </button>
         </header>
         <div class="overflow-x-auto p-2">
-          <table class="min-w-[1100px] w-full text-xs">
-            <thead class="bg-violet-600 text-white">
+          <table class="admin-table-kitchen min-w-[1100px] w-full text-xs">
+            <thead class="admin-table-thead-sticky">
               <tr class="text-left">
                 <th class="whitespace-nowrap px-2 py-2">Cat.</th>
                 <th class="whitespace-nowrap px-2 py-2">Item</th>
@@ -783,8 +783,8 @@ function stubSubmit() {
           <h2 class="text-base font-semibold text-slate-900">Process flow</h2>
         </header>
         <div class="overflow-x-auto p-2">
-          <table class="min-w-[640px] w-full text-xs">
-            <thead class="bg-slate-100 text-slate-800">
+          <table class="admin-table-kitchen min-w-[640px] w-full text-xs">
+            <thead class="admin-table-thead-sticky">
               <tr class="text-left">
                 <th class="px-2 py-2">Stage</th>
                 <th class="px-2 py-2">Action</th>

@@ -156,7 +156,7 @@ onMounted(load);
         </div>
         <!-- Mode toggle -->
         <div v-if="!loading" class="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1">
-          <button
+          <button type="button"
             class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
             :class="mode === 'view' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'"
             @click="switchToView"
@@ -164,7 +164,7 @@ onMounted(load);
             <Eye class="h-3.5 w-3.5" />
             View
           </button>
-          <button
+          <button type="button"
             class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
             :class="mode === 'edit' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'"
             @click="switchToEdit"
@@ -223,9 +223,9 @@ onMounted(load);
           <div class="flex items-center justify-between">
             <span class="text-xs text-slate-400">{{ sections.length }} sections</span>
             <div class="flex items-center gap-2">
-              <button class="text-xs font-medium text-slate-500 hover:text-slate-700" @click="expandAll">Expand all</button>
+              <button type="button" class="text-xs font-medium text-slate-500 hover:text-slate-700" @click="expandAll">Expand all</button>
               <span class="text-slate-300">|</span>
-              <button class="text-xs font-medium text-slate-500 hover:text-slate-700" @click="collapseAll">Collapse all</button>
+              <button type="button" class="text-xs font-medium text-slate-500 hover:text-slate-700" @click="collapseAll">Collapse all</button>
             </div>
           </div>
 
@@ -236,7 +236,7 @@ onMounted(load);
               class="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden"
             >
               <!-- Accordion header -->
-              <button
+              <button type="button"
                 class="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50"
                 @click="toggleSection(index)"
               >
@@ -279,7 +279,7 @@ onMounted(load);
           <!-- ───── Actions ───── -->
           <div class="space-y-3">
             <div class="flex items-center gap-3">
-              <button
+              <button type="button"
                 class="flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-50"
                 :disabled="saving || !hasChanges"
                 @click="save"
@@ -287,7 +287,7 @@ onMounted(load);
                 <Save class="h-4 w-4" />
                 {{ saving ? 'Saving...' : 'Save & Sync All' }}
               </button>
-              <button
+              <button type="button"
                 v-if="hasChanges"
                 class="flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
                 @click="discard"
