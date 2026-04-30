@@ -13,9 +13,11 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   ChevronLeft,
+  ChevronsDown,
   Download,
   Eye,
   FileDown,
+  FileText,
   FileSpreadsheet,
   Filter,
   MoreVertical,
@@ -83,7 +85,7 @@ function cellKey(dt: KerisiRemainingDatatable, colIdx: number): string {
 
 /** Purchase Order shell — Amount shown as legacy grouped decimals. */
 function formatPurchasingPoAmountCell(mid: number | null, dt: KerisiRemainingDatatable, colIdx: number, raw: string): string {
-  if (mid !== 1833 && mid !== 2030 && mid !== 2039) return raw;
+  if (mid !== 1833 && mid !== 2030 && mid !== 2039 && mid !== 1939 && mid !== 1941) return raw;
   const dk = String(dt.dtKey[colIdx] ?? "").toLowerCase();
   const label = String(dt.dtBi[colIdx] ?? "").toLowerCase();
   if (!(dk.includes("pom_order_amt") || label.includes("amount"))) {
@@ -118,7 +120,7 @@ function formatKerisiWpnMoney(mid: number | null, dt: KerisiRemainingDatatable, 
 }
 
 function formatKerisiWpnDateIfNeeded(mid: number | null, dt: KerisiRemainingDatatable, colIdx: number, raw: string): string {
-  if (mid !== 2082 && mid !== 1839 && mid !== 2085 && mid !== 1828 && mid !== 2663) return raw;
+  if (mid !== 2082 && mid !== 1839 && mid !== 2085 && mid !== 1828 && mid !== 2663 && mid !== 1939 && mid !== 1941 && mid !== 3100 && mid !== 3106) return raw;
   const dk = String(dt.dtKey[colIdx] ?? "").toLowerCase();
   if (
     mid === 2082 &&
@@ -130,6 +132,8 @@ function formatKerisiWpnDateIfNeeded(mid: number | null, dt: KerisiRemainingData
   if (mid === 1839 && !dk.includes("created") && !dk.includes("date")) return raw;
   if (mid === 2085 && !dk.includes("tarikh") && !dk.includes("date")) return raw;
   if ((mid === 1828 || mid === 2663) && !dk.includes("date")) return raw;
+  if ((mid === 1939 || mid === 1941) && !dk.includes("date") && !dk.includes("update")) return raw;
+  if ((mid === 3100 || mid === 3106) && !dk.includes("date")) return raw;
   const t = raw.trim();
   if (!t) return "";
   // SQL date-only strings → DD/MM/YYYY without timezone shift
@@ -332,7 +336,16 @@ function tableNumericColClass(dt: KerisiRemainingDatatable, hi: number): string 
 /** Purchasing shell pages that use legacy purple thead (match screenshots). */
 const kerisiPurchasingPurpleShell = computed(() => {
   const m = menuId.value;
-  return m === 1839 || m === 2085 || m === 2624 || m === 2626;
+  return (
+    m === 1839 ||
+    m === 1939 ||
+    m === 1941 ||
+    m === 2085 ||
+    m === 2624 ||
+    m === 2626 ||
+    m === 3100 ||
+    m === 3106
+  );
 });
 
 const tenderQuotationMenuIds = new Set([2333, 3272, 2724, 2762, 2845, 2827]);
@@ -591,6 +604,23 @@ function openAddModal(context: "default" | "jobscope" | "taraf" = "default") {
 }
 
 /** Menu 1773 (Purchase Requisition List) navigates to New Purchase Requisition (1771); others keep modal UX. */
+function parseRqmRequisitionIdFrom1773Row(row: Record<string, unknown>): number | null {
+  const raw = row.rqm_requisition_id ?? row.rqmRequisitionId ?? row.id;
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) return raw;
+  if (typeof raw === "string") {
+    const n = Number.parseInt(raw.trim(), 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  return null;
+}
+
+function navigateToPurchaseRequisitionForm1771(rqmId: number): void {
+  void router.push({
+    path: "/admin/kerisi/m/1771",
+    query: { rqm_requisition_id: String(rqmId) },
+  });
+}
+
 function onAddPrimaryClick(di = 0) {
   if (menuId.value === 1773) {
     void router.push({ path: "/admin/kerisi/m/1771" });
@@ -606,6 +636,15 @@ function onAddPrimaryClick(di = 0) {
 }
 
 function openEditModal(row: Record<string, unknown>, context: "default" | "jobscope" | "taraf" = "default") {
+  if (menuId.value === 1773 && context === "default") {
+    const id = parseRqmRequisitionIdFrom1773Row(row);
+    if (id === null) {
+      toast.error("Purchase Requisition", "Could not read requisition id from this row.");
+      return;
+    }
+    navigateToPurchaseRequisitionForm1771(id);
+    return;
+  }
   modalMode.value = "edit";
   popupContext.value = context;
   if (menuId.value === 2618 && context === "jobscope") {
@@ -1590,7 +1629,21 @@ onUnmounted(() => {
             <div v-if="di === 0 || menuId !== 3038" class="flex items-center gap-2">
               <!-- Add button (only on popup-modal pages or default) -->
               <button
-                v-if="menuId === 1955 || menuId === 3306 || menuId === 2846 || menuId === 3320 || isTenderQuotationPage ? false : menuId === 2618 ? di < 2 : hasPopupForm || di === 0"
+                v-if="
+                  isTenderQuotationPage ||
+                  menuId === 1955 ||
+                  menuId === 3306 ||
+                  menuId === 2846 ||
+                  menuId === 3320 ||
+                  menuId === 1939 ||
+                  menuId === 1941 ||
+                  menuId === 3100 ||
+                  menuId === 3106
+                    ? false
+                    : menuId === 2618
+                      ? di < 2
+                      : hasPopupForm || di === 0
+                "
                 type="button"
                 class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
                 @click="onAddPrimaryClick(di)"
@@ -1713,7 +1766,7 @@ onUnmounted(() => {
                   </tr>
                   <tr v-else-if="!shellTableLoading(di) && shellRows(di).length === 0">
                     <td :colspan="tableColspan(dt)" class="px-3 py-6 text-center text-sm text-slate-400">
-                      No records.
+                      No records
                     </td>
                   </tr>
                   <tr
@@ -1797,6 +1850,91 @@ onUnmounted(() => {
                             @change="onGrn2085CheckboxChange(row, ($event.target as HTMLInputElement).checked)"
                             @click.stop
                           />
+                        </div>
+                        <div v-else-if="menuId === 1939 && di === 0" class="flex items-center justify-center gap-1" @click.stop>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-600 hover:bg-slate-100"
+                            title="Cetak salinan asal"
+                            @click="
+                              toast.info(
+                                'PO print',
+                                'Salinan asal export is not wired in Kerisi20 — use Kerisi Classic or connect POL.downloadBorang.',
+                              )
+                            "
+                          >
+                            <FileText class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-600 hover:bg-slate-100"
+                            title="Cetak salinan perolehan"
+                            @click="
+                              toast.info(
+                                'PO print',
+                                'Salinan perolehan is not wired in Kerisi20 — use Kerisi Classic.',
+                              )
+                            "
+                          >
+                            <Download class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-600 hover:bg-slate-100"
+                            title="Cetak salinan Bendahari"
+                            @click="
+                              toast.info(
+                                'PO print',
+                                'Salinan Bendahari is not wired in Kerisi20 — use Kerisi Classic.',
+                              )
+                            "
+                          >
+                            <ChevronsDown class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="Lihat PO"
+                            @click="
+                              toast.info(
+                                'Purchase order',
+                                `PO id ${String(row.pom_order_id ?? row.pomOrderId ?? '')}: open Purchasing > Purchase Order List in Kerisi Classic for full view.`,
+                              )
+                            "
+                          >
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div v-else-if="menuId === 1941 && di === 0" class="flex items-center justify-center gap-1" @click.stop>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-600 hover:bg-slate-100"
+                            title="Cetak salinan PTJ"
+                            @click="toast.info('PO print', 'Salinan PTJ is not wired in Kerisi20 — use Kerisi Classic.')"
+                          >
+                            <FileText class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-600 hover:bg-slate-100"
+                            title="Cetak salinan pembekal"
+                            @click="toast.info('PO print', 'Salinan pembekal is not wired in Kerisi20 — use Kerisi Classic.')"
+                          >
+                            <Download class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="Lihat PO"
+                            @click="
+                              toast.info(
+                                'Purchase order',
+                                `PO id ${String(row.pom_order_id ?? row.pomOrderId ?? '')}: open Purchasing in Kerisi Classic for full view.`,
+                              )
+                            "
+                          >
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
                         </div>
                         <div v-else-if="menuId === 1839 && di === 0" class="flex items-center gap-0.5" @click.stop>
                           <button
