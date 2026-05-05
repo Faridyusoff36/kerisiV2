@@ -2148,10 +2148,25 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
         ]
       },
       {
+        menuId: 993,
+        label: "Role",
+        to: "/admin/kerisi/m/993"
+      },
+      {
         menuId: 1008,
         label: "Role Configure",
         to: "/admin/kerisi/m/1008",
         hiddenByDefault: true
+      },
+      {
+        menuId: 987,
+        label: "List of Lookup",
+        to: "/admin/kerisi/m/987"
+      },
+      {
+        menuId: 1087,
+        label: "Fund Type Existing",
+        to: "/admin/kerisi/m/1087"
       },
       {
         menuId: 1330,
@@ -2169,6 +2184,11 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
         menuId: 3506,
         label: "Letter Phrase",
         to: "/admin/kerisi/m/3506"
+      },
+      {
+        menuId: 2953,
+        label: "Profile VC & TNC",
+        to: "/admin/kerisi/m/2953"
       },
       {
         menuId: 2073,
@@ -6672,6 +6692,11 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
             to: "/admin/kerisi/m/1025"
           },
           {
+            menuId: 1150,
+            label: "PTPTN (Masri)",
+            to: "/admin/kerisi/m/1150"
+          },
+          {
             menuId: 1478,
             label: "Sponsor Student",
             to: "/admin/kerisi/m/1478",
@@ -9154,11 +9179,6 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
     to: "/admin/kerisi/m/1178"
   },
   {
-    menuId: 2616,
-    label: "Debtor Information",
-    to: "/admin/kerisi/m/2616"
-  },
-  {
     menuId: 3,
     label: "User Manual",
     to: "/admin/kerisi/m/3"
@@ -9179,6 +9199,11 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
         to: "/admin/kerisi/m/-3"
       }
     ]
+  },
+  {
+    menuId: 2616,
+    label: "Debtor Information",
+    to: "/admin/kerisi/m/2616"
   }
 ];
 

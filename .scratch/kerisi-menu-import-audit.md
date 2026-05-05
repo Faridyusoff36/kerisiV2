@@ -1,0 +1,1058 @@
+# KERISI menu import audit — all 1005 rows from MENUS.csv
+
+Source CSV: `~/MENUS.csv` (1005 data rows)
+Project source: `client/src/config/kerisi-menu-source.csv`
+Generated tree: `client/src/config/kerisi-menu-migrated.ts`
+
+Legend: each MENUID is shown with its title; the route in the SPA is `/admin/kerisi/m/<MENUID>`. Rows are grouped by top-level KERISI section (MENUPARENT=0) in the order they will appear in the sidebar.
+
+
+## KERISI / Setup and Maintenance  _(MENUID 1003)_
+  - **2210** — General Ledger Structure  _(level 2, order 1)_
+    - **1551** — Fund Type  _(level 3, order 1)_
+    - **1566** — Activity Code  _(level 3, order 2)_
+    - **2295** — PTJ Code  _(level 3, order 3)_
+    - **1887** — Cost Centre  _(level 3, order 4)_
+    - **1552** — Account Code  _(level 3, order 5)_
+    - **1546** — Cascade Structure  _(level 3, order 6)_
+  - **2211** — List of General Ledger Structure  _(level 2, order 2)_
+    - **2330** — List of Fund Type  _(level 3, order 1)_
+    - **1874** — List of Activity Code  _(level 3, order 2)_
+    - **1886** — List of PTJ Code  _(level 3, order 3)_
+    - **2360** — List of Cost Centre  _(level 3, order 4)_
+    - **2167** — List of Cascade Structure  _(level 3, order 6)_
+    - **3453** — List of Account Code (PPI)  _(level 3, order 6)_
+  - **993** — Role  _(level 2, order 3)_
+  - **987** — List of Lookup  _(level 2, order 5)_
+  - **1087** — Fund Type Existing  _(level 2, order 6)_
+  - **3506** — Letter Phrase  _(level 2, order 9)_
+  - **2953** — Profile VC & TNC  _(level 2, order 10)_
+  - **2073** — HOD, VC & TNC  _(level 2, order 11)_
+  - **2276** — Integration  _(level 2, order 12)_
+    - **2277** — Integration - PTJ  _(level 3, order 1)_
+    - **2278** — Integration - Cost center  _(level 3, order 2)_
+    - **2443** — Integration - Profile  _(level 3, order 3)_
+    - **2444** — Integration - Activity  _(level 3, order 4)_
+  - **2656** — Report  _(level 2, order 12)_
+    - **2657** — Budget Not Exists  _(level 3, order 1)_
+  - **2740** — Cek yang mungkin error  _(level 2, order 14)_
+  - **3197** — Currency  _(level 2, order 17)_
+    - **3198** — List of Currency  _(level 3, order 1)_
+    - **3199** — AG Rate  _(level 3, order 2)_
+  - **3224** — Setup Carian Structure Budget  _(level 2, order 18)_
+
+## KERISI / Budget  _(MENUID 1007)_
+  - **1293** — Setup  _(level 2, order 2)_
+    - **1796** — Budget Code  _(level 3, order 2)_
+    - **1294** — Allocation  _(level 3, order 3)_
+    - **1334** — Budget Structure List  _(level 3, order 6)_
+    - **3456** — Budget Planning Schedule  _(level 3, order 8)_
+  - **1574** — Planning  _(level 2, order 3)_
+    - **1516** — New Application  _(level 3, order 1)_
+    - **2506** — Dasar Sedia Ada  _(level 3, order 5)_
+    - **3012** — Budget Planning Allocation 2 List  _(level 3, order 8)_
+    - **3013** — Budget Planning Allocation 3 List  _(level 3, order 9)_
+    - **3196** — Dasar Baru / One Off  _(level 3, order 10)_
+    - **3279** — Planning to Initial  _(level 3, order 12)_
+    - **3296** — Report  _(level 3, order 13)_
+      - **3427** — Grant Application by Type  _(level 4, order 2)_
+      - **3300** — ABM Justfikasi  _(level 4, order 3)_
+      - **3298** — ABM 4  _(level 4, order 4)_
+      - **3297** — ABM 5  _(level 4, order 5)_
+      - **3299** — ABM 7  _(level 4, order 6)_
+      - **3308** — Lampiran ABM 7  _(level 4, order 7)_
+  - **1541** — Initial  _(level 2, order 4)_
+  - **1471** — Monitoring  _(level 2, order 17)_
+  - **1554** — Increment  _(level 2, order 18)_
+  - **1555** — Decrement  _(level 2, order 19)_
+  - **1556** — Virement  _(level 2, order 20)_
+  - **1966** — Report  _(level 2, order 26)_
+    - **1968** — Total Allocation, Expenditure and Balance of Allocation  _(level 3, order 1)_
+    - **3457** — Laporan Belanjawan  _(level 3, order 1)_
+    - **3423** — Warrant  _(level 3, order 7)_
+      - **2426** — Warrant Initial  _(level 4, order 1)_
+      - **2429** — Warrant Increment  _(level 4, order 2)_
+      - **2430** — Warrant Decrement  _(level 4, order 3)_
+      - **2433** — Warrant Virement  _(level 4, order 4)_
+    - **3424** — Budget Report By PTJ  _(level 3, order 8)_
+      - **3408** — Budget Summary By PTJ (WBR071)  _(level 4, order 1)_
+      - **3239** — Variation Report (WBR074)  _(level 4, order 2)_
+      - **3384** — Vot Book Report (WBR051)  _(level 4, order 4)_
+    - **3425** — Budget Report By Account  _(level 3, order 9)_
+      - **3394** — Budget Summary By Account Code (WBR072)  _(level 4, order 1)_
+      - **2758** — Allocation, Expenditure & Balance of Allocation by Budget Code  _(level 4, order 2)_
+  - **2389** — Budget Closing  _(level 2, order 29)_
+  - **3154** — Closing  _(level 2, order 34)_
+
+## KERISI / Purchasing  _(MENUID 1684)_
+  - **1819** — Setup  _(level 2, order 1)_
+    - **1829** — Item Main Listing  _(level 3, order 2)_
+    - **1820** — Item Main  _(level 3, order 3)_
+    - **1932** — List Of Jobscope  _(level 3, order 4)_
+    - **2066** — Assessment Question  _(level 3, order 5)_
+  - **2319** — Purchase Requisition  _(level 2, order 6)_
+    - **1771** — New Purchase Requisition  _(level 3, order 1)_
+    - **1773** — Purchase Requisition List  _(level 3, order 3)_
+    - **2320** — List of Purchase Requisition Cancellation  _(level 3, order 4)_
+    - **3038** — List of PR To Be Cancel  _(level 3, order 6)_
+    - **3039** — Purchase Requisition Cancel  _(level 3, order 7)_
+    - **2361** — List of Cancel PR Partial  _(level 3, order 9)_
+    - **3041** — List of PR To Be Cancel Partial  _(level 3, order 11)_
+    - **3042** — Purchase Requisition Cancel Partial  _(level 3, order 12)_
+  - **2048** — Purchase Order  _(level 2, order 7)_
+    - **1833** — Purchase Order List  _(level 3, order 2)_
+    - **2039** — List of Purchase Order Cancellation  _(level 3, order 3)_
+    - **2030** — New PO Cancellation  _(level 3, order 4)_
+    - **2041** — Cancel PO Partial Listing  _(level 3, order 5)_
+    - **2042** — New Cancel PO Partial  _(level 3, order 6)_
+    - **3341** — Closing  _(level 3, order 7)_
+  - **3250** — Work Progress Note  _(level 2, order 8)_
+    - **1840** — Work Progress Note List  _(level 3, order 1)_
+    - **1838** — Work Progress Note Detail  _(level 3, order 2)_
+    - **2082** — Work Progress Note Cancel  _(level 3, order 3)_
+  - **2623** — Vendor Assessment  _(level 2, order 11)_
+    - **2624** — Good Receive Note  _(level 3, order 1)_
+    - **2626** — Work Progress Note  _(level 3, order 2)_
+  - **2087** — Good Receive Note  _(level 2, order 12)_
+    - **1839** — Good Receive Note List  _(level 3, order 17)_
+    - **2085** — Good Receive Note Cancel  _(level 3, order 125)_
+  - **2822** — Advertisement  _(level 2, order 13)_
+    - **2721** — Advertisement Request List  _(level 3, order 1)_
+    - **2618** — New Tender/Quotation  _(level 3, order 2)_
+    - **2828** — Duration Tender/Quotation  _(level 3, order 3)_
+    - **3306** — Committee Report  _(level 3, order 5)_
+  - **2826** — Tender/Quotation  _(level 2, order 15)_
+    - **2333** — Committe & Participant  _(level 3, order 2)_
+    - **3272** — Evaluation  _(level 3, order 3)_
+    - **2724** — Selection  _(level 3, order 5)_
+    - **2762** — Advertisement Complete  _(level 3, order 8)_
+    - **2845** — Generated Offer Letter  _(level 3, order 9)_
+    - **2827** — Tender/Quotation Cancellation  _(level 3, order 11)_
+  - **2884** — Variation Order(VO)  _(level 2, order 15)_
+    - **2848** — New Variation Order (VO)  _(level 3, order 1)_
+    - **2846** — List of Variation Order (VO)  _(level 3, order 2)_
+  - **2883** — Agreement  _(level 2, order 16)_
+    - **3320** — List of Agreement  _(level 3, order 2)_
+  - **1721** — Bank Guarantee  _(level 2, order 18)_
+    - **1660** — List of Bank Guarantee  _(level 3, order 4)_
+  - **1922** — Vendor  _(level 2, order 21)_
+    - **1828** — Vendor Profile  _(level 3, order 1)_
+    - **2663** — List of Vendor  _(level 3, order 2)_
+    - **1955** — Bank Account No For Updated  _(level 3, order 6)_
+  - **1841** — Status PO & PR  _(level 2, order 22)_
+  - **1938** — Report PO  _(level 2, order 24)_
+    - **1939** — Bendahari  _(level 3, order 1)_
+    - **1941** — PTJ  _(level 3, order 2)_
+  - **2852** — Report  _(level 2, order 26)_
+    - **2809** — Laporan  LPPM JPKA: KPT  _(level 3, order 1)_
+      - **2625** — Perolehan Melalui Kontrak Pusat & Kontrak Pusat Sistem Panel  _(level 4, order 2)_
+    - **2810** — Laporan Perolehan PTJ JPKA: LPPM  _(level 3, order 2)_
+      - **2647** — Senarai Tempoh Masa LPO  _(level 4, order 1)_
+      - **2814** — Laporan Keseluruhan Perolehan  _(level 4, order 2)_
+    - **3100** — Report Vendor Assessment (GRN)  _(level 3, order 6)_
+    - **3106** — Report Vendor Assessment (WPN)  _(level 3, order 7)_
+  - **3321** — Variation Order (VO)  _(level 2, order 27)_
+    - **3322** — List of VO  _(level 3, order 1)_
+    - **3323** — New Variation Order (VO)  _(level 3, order 2)_
+
+## KERISI / Account Payable  _(MENUID 1709)_
+  - **2377** — Bill  _(level 2, order 2)_
+    - **1716** — Bill Registration  _(level 3, order 1)_
+    - **2107** — Bill Registration Cancellation @ Knockoff  _(level 3, order 2)_
+    - **2409** — Journal Bill Cancel @ Knockoff  _(level 3, order 4)_
+    - **2355** — Bill Cancel @ Knockoff Listing  _(level 3, order 5)_
+  - **3269** — Money Transfer  _(level 2, order 4)_
+    - **3270** — List of Money Transfer  _(level 3, order 1)_
+    - **3346** — Generate Voucher Draft  _(level 3, order 3)_
+    - **3348** — List of Voucher Money Transfer  _(level 3, order 4)_
+  - **3241** — Credit Note  _(level 2, order 5)_
+    - **3242** — Credit Note Form  _(level 3, order 1)_
+    - **3243** — Credit Note Listing  _(level 3, order 2)_
+    - **3264** — Credit Note Cancellation  _(level 3, order 3)_
+  - **3542** — Debit Note  _(level 2, order 6)_
+    - **3543** — Debit Note Listing  _(level 3, order 1)_
+    - **3548** — Debit Note Form  _(level 3, order 2)_
+    - **3549** — Debit Note Cancellation  _(level 3, order 3)_
+    - **3550** — Debit Note Cancellation Form  _(level 3, order 4)_
+  - **1096** — Payment  _(level 2, order 8)_
+    - **1287** — Cheque  _(level 3, order 9)_
+      - **3285** — Book Cheque Setup  _(level 4, order 1)_
+      - **3511** — Book Cheque Setup By Fund  _(level 4, order 1)_
+      - **3283** — Cheque Processing  _(level 4, order 2)_
+      - **3518** — Process And Print Bank Cheque  _(level 4, order 2)_
+      - **3288** — Bank Cheque To Print or To Cancel  _(level 4, order 3)_
+      - **3519** — Cancel or Post Bank Cheque  _(level 4, order 3)_
+      - **3291** — Approved Bank Cheque  _(level 4, order 4)_
+      - **3522** — Collected Cheque  _(level 4, order 5)_
+      - **3527** — Transfer Cheque List  _(level 4, order 11)_
+      - **3536** — Cheque Payment List  _(level 4, order 12)_
+    - **2717** — Listing  _(level 3, order 11)_
+    - **2763** — Banker Cheque & Bank Draft  _(level 3, order 12)_
+      - **2718** — Preparation  _(level 4, order 1)_
+      - **2755** — Update Reference  _(level 4, order 2)_
+      - **2777** — Batch Listing  _(level 4, order 3)_
+    - **1848** — EFT  _(level 3, order 13)_
+      - **1849** — EFT Preparation  _(level 4, order 1)_
+      - **1852** — Batching EFT  _(level 4, order 2)_
+      - **1855** — Payment Batch Form  _(level 4, order 3)_
+      - **3533** — Batch Listing  _(level 4, order 3)_
+      - **1861** — Payment Batch List  _(level 4, order 4)_
+      - **1940** — Transfer Date  _(level 4, order 123)_
+    - **3450** — Host To Host (BIMB)  _(level 3, order 14)_
+      - **3451** — List to Transfer  _(level 4, order 1)_
+      - **3452** — List Transferred  _(level 4, order 2)_
+      - **3517** — Transaction Log  _(level 4, order 3)_
+    - **1897** — Other Payment V2  _(level 3, order 15)_
+    - **3345** — Other Payment (Update Payment Date)  _(level 3, order 15)_
+    - **2326** — Payment Rejected  _(level 3, order 16)_
+      - **2327** — Listing Reject  _(level 4, order 1)_
+      - **2307** — Reject/Replace Payment  _(level 4, order 2)_
+      - **2422** — Journal Payment Reject/Replace  _(level 4, order 4)_
+    - **1904** — Payroll Payment  _(level 3, order 17)_
+      - **3437** — Listing Approved Batching EPY  _(level 4, order 4)_
+    - **2633** — Payment Notice  _(level 3, order 18)_
+    - **2706** — Print SAB By Batch  _(level 3, order 19)_
+    - **3538** — Payment Reject Batch  _(level 3, order 21)_
+  - **1818** — Voucher  _(level 2, order 8)_
+    - **1823** — Voucher Registration  _(level 3, order 1)_
+    - **3461** — Direct Voucher  _(level 3, order 2)_
+    - **2297** — Voucher Listing  _(level 3, order 3)_
+    - **2298** — Voucher Cancel  _(level 3, order 4)_
+    - **2412** — Journal Voucher Cancel  _(level 3, order 5)_
+    - **3535** — Voucher Process  _(level 3, order 7)_
+    - **2337** — Voucher Replace  _(level 3, order 9)_
+    - **2817** — Download Voucher Supplier By Batch  _(level 3, order 10)_
+    - **3534** — Download Voucher By Reference  _(level 3, order 12)_
+    - **3546** — Voucher Information Creditor  _(level 3, order 14)_
+  - **1097** — Integration  _(level 2, order 9)_
+    - **1187** — Loan Disbursement  _(level 3, order 6)_
+    - **1928** — Refund  _(level 3, order 8)_
+    - **2496** — Cancellation  _(level 3, order 11)_
+      - **2497** — BRF  _(level 4, order 61)_
+  - **2877** — Notification  _(level 2, order 10)_
+    - **2878** — Send Email  _(level 3, order 1)_
+    - **2879** — Historical Sender  _(level 3, order 2)_
+  - **1969** — Report  _(level 2, order 11)_
+    - **3558** — Payment Record  _(level 3, order 1)_
+    - **1986** — Payee List Report  _(level 3, order 3)_
+    - **2166** — Bilangan Hari Daftar Bil Belum Bayar  _(level 3, order 6)_
+    - **2198** — Laporan Baucar Bayaran  _(level 3, order 8)_
+    - **2766** — Listing of Payee old  _(level 3, order 8)_
+    - **2895** — Bill Report  _(level 3, order 9)_
+    - **2974** — Transaction History  _(level 3, order 10)_
+    - **3133** — Payee List Report by PTJ  _(level 3, order 11)_
+    - **3372** — Buku Daftar Terimaan  _(level 3, order 12)_
+  - **1711** — Payee Registration (Others)  _(level 2, order 12)_
+  - **2078** — Account Bank Updated  _(level 2, order 13)_
+  - **3466** — Utility Registration  _(level 2, order 13)_
+  - **2751** — Account Bank by Payee  _(level 2, order 14)_
+  - **3253** — Journal Revaluation  _(level 2, order 15)_
+    - **3254** — Journal Revaluation Process  _(level 3, order 1)_
+  - **3525** — Update Information  _(level 2, order 18)_
+    - **3526** — Update Bank Account and Factoring for Bill  _(level 3, order 1)_
+    - **3529** — Update Bank Account and Factoring for Voucher  _(level 3, order 2)_
+
+## KERISI / Account Receivable  _(MENUID 1024)_
+  - **1727** — Debtor  _(level 2, order 1)_
+  - **1040** — Invoice  _(level 2, order 3)_
+    - **1581** — My Request  _(level 3, order 3)_
+    - **1582** — My Request Form  _(level 3, order 4)_
+    - **1728** — Debtor Profile  _(level 3, order 5)_
+    - **1757** — Recurring List  _(level 3, order 6)_
+    - **1758** — Recurring Contract Setup  _(level 3, order 8)_
+    - **3275** — Salary Deduction Calculator  _(level 3, order 11)_
+    - **3280** — Salary Deduction Schedule Listing  _(level 3, order 12)_
+  - **1041** — Credit Note  _(level 2, order 3)_
+  - **1782** — Credit Note Form  _(level 2, order 4)_
+  - **1042** — Debit Note  _(level 2, order 5)_
+  - **1783** — Debit Note Form  _(level 2, order 7)_
+  - **1043** — Discount Note  _(level 2, order 8)_
+  - **1784** — Discount Note Form  _(level 2, order 9)_
+  - **1020** — Debtor - En Masri  _(level 2, order 10)_
+  - **1044** — Receipt  _(level 2, order 10)_
+    - **1590** — List of Receipts  _(level 3, order 1)_
+    - **1598** — Entry Form  _(level 3, order 2)_
+    - **1742** — Bank-In Slip Generation  _(level 3, order 5)_
+    - **1761** — Bank-In Slip Download  _(level 3, order 6)_
+    - **2347** — List of Receipt on Behalf  _(level 3, order 6)_
+    - **2939** — Online Payment Requery  _(level 3, order 6)_
+    - **1740** — Update Foreign Currency  _(level 3, order 7)_
+    - **2348** — Entry Form on Behalf  _(level 3, order 7)_
+    - **1741** — Update Card Info  _(level 3, order 13)_
+    - **3249** — Cash Receipt Release  _(level 3, order 14)_
+  - **1655** — Cheque  _(level 2, order 11)_
+    - **1652** — Cheque Registry  _(level 3, order 1)_
+    - **1656** — Cheque Release  _(level 3, order 3)_
+    - **2528** — List of Cheque Release  _(level 3, order 61)_
+    - **1720** — Cheque List  _(level 3, order 119)_
+  - **1747** — Cheque Return  _(level 2, order 12)_
+    - **1045** — List Of Return Cheque  _(level 3, order 1)_
+  - **1046** — Authorized Receipting  _(level 2, order 13)_
+  - **1952** — Authorized Receipting  _(level 2, order 13)_
+  - **1953** — Authorized Receipting Form  _(level 2, order 14)_
+  - **1047** — Offline Receipt  _(level 2, order 15)_
+    - **2183** — Application  _(level 3, order 1)_
+    - **2370** — Offline Receipt Application Form  _(level 3, order 2)_
+    - **2108** — Receipt Collection Entry  _(level 3, order 4)_
+    - **2500** — Counter  _(level 3, order 8)_
+  - **1048** — Pre-printed Receipt  _(level 2, order 15)_
+  - **1049** — Cashbook PTJ  _(level 2, order 17)_
+  - **1731** — Payee Registration Details Add  _(level 2, order 18)_
+  - **1786** — Setup  _(level 2, order 21)_
+    - **1787** — Discount Policy  _(level 3, order 1)_
+    - **1789** — Discount Policy Details  _(level 3, order 2)_
+    - **1936** — Non-Invoice Structure  _(level 3, order 4)_
+    - **2572** — Signature Setup  _(level 3, order 7)_
+    - **3507** — Premise Details  _(level 3, order 8)_
+    - **2117** — Invoice Structure  _(level 3, order 124)_
+  - **1909** — xxxxx  _(level 2, order 123)_
+  - **1908** — xxxxx  _(level 2, order 124)_
+
+## KERISI / General Ledger  _(MENUID 1052)_
+  - **1409** — Posting to GL (TB)  _(level 2, order 1)_
+  - **2519** — General Ledger Listing  _(level 2, order 3)_
+  - **2056** — Journal Listing  _(level 2, order 4)_
+  - **2089** — Manual Journal Listing  _(level 2, order 9)_
+  - **2090** — Manual Journal Form  _(level 2, order 11)_
+  - **2135** — Reversal  _(level 2, order 17)_
+    - **1514** — Journal to be Reversed  _(level 3, order 12)_
+    - **2081** — Listing  _(level 3, order 16)_
+  - **2220** — Unidentified Receipt  _(level 2, order 19)_
+    - **2280** — Entry Form Unidentified Receipt  _(level 3, order 1)_
+    - **2221** — List of Unidentified Receipt  _(level 3, order 2)_
+    - **2225** — Manual Journal Entry  _(level 3, order 3)_
+    - **2411** — Report of Identified Receipts  _(level 3, order 125)_
+  - **1950** — Report  _(level 2, order 20)_
+    - **1882** — GL Opening  _(level 3, order 1)_
+    - **3428** — Trial Balance Summary  _(level 3, order 3)_
+    - **3430** — Details Transaction  _(level 3, order 7)_
+    - **3508** — Trial Balance  _(level 3, order 7)_
+  - **3085** — Yearly Closing  _(level 2, order 22)_
+    - **3026** — Yearly Closing Process  _(level 3, order 1)_
+    - **3086** — Journal Adjustment Listing  _(level 3, order 2)_
+    - **3087** — Journal Adjustment Form  _(level 3, order 3)_
+  - **3287** — List of Year and Month  _(level 2, order 23)_
+  - **3463** — Financial Statement (PPI)  _(level 2, order 23)_
+    - **3487** — Combine Report  _(level 3, order 1)_
+    - **3582** — Report Item Setup  _(level 3, order 3)_
+    - **3516** — BS P&L  _(level 3, order 4)_
+
+## KERISI / Refund  _(MENUID 1246)_
+  _(no children)_
+
+## KERISI / Cashbook  _(MENUID 1701)_
+  - **3246** — Bank Setup  _(level 2, order 1)_
+  - **2036** — Bank Master  _(level 2, order 2)_
+  - **2097** — Bank Account  _(level 2, order 3)_
+  - **1702** — List Of CashBook (Daily)  _(level 2, order 5)_
+  - **2471** — List Of Cashbook (Monthly)  _(level 2, order 6)_
+  - **3255** — Reconciliation  _(level 2, order 7)_
+    - **2127** — Reconciliation Daily  _(level 3, order 1)_
+    - **2242** — Reconciliation Monthly  _(level 3, order 2)_
+    - **3256** — Unmatched Matching Record  _(level 3, order 3)_
+  - **1869** — Daily  _(level 2, order 10)_
+    - **2099** — Listing Of Bank Statement  _(level 3, order 2)_
+    - **1871** — List Of Bank Statement Upload  _(level 3, order 3)_
+  - **2061** — Monthly  _(level 2, order 11)_
+    - **2100** — Listing Of Bank Statement  _(level 3, order 123)_
+    - **2094** — List Of Bank Statement Upload  _(level 3, order 124)_
+  - **2262** — Report  _(level 2, order 11)_
+    - **2269** — Attachment 1 - Baucar Yang Belum Didebitkan oleh Bank  _(level 3, order 1)_
+    - **2264** — Attachment 2 - Penerimaan Yang Belum DiKreditkan Oleh Bank  _(level 3, order 2)_
+    - **2263** — Attachment 3 - Senarai Debit/Kredit Dalam Penyata Bank Yang Tiada Dalam Buku Tunai  _(level 3, order 3)_
+    - **2281** — Matching Report Transaction  _(level 3, order 4)_
+    - **2331** — Penyata Penyesuaian Bank  _(level 3, order 5)_
+    - **2664** — Daily Summary  _(level 3, order 8)_
+    - **2665** — Monthly Summary  _(level 3, order 9)_
+    - **2670** — Cash Balance By Fund  _(level 3, order 10)_
+  - **2532** — Closing  _(level 2, order 12)_
+    - **2479** — Cashbook Closing  _(level 3, order 1)_
+    - **2542** — Master File  _(level 3, order 2)_
+    - **2553** — List of Cashbook (Monthly)  _(level 3, order 3)_
+    - **3009** — Penyata Penyesuaian Bank  _(level 3, order 4)_
+    - **2533** — Closing - Attachment 1  _(level 3, order 5)_
+    - **2534** — Closing - Attachment 2  _(level 3, order 6)_
+    - **2535** — Closing - Attachment 3  _(level 3, order 7)_
+
+## KERISI / Credit Control  _(MENUID 1651)_
+  - **1664** — Setup  _(level 2, order 1)_
+    - **1663** — Execution & Enforcement  _(level 3, order 2)_
+    - **1665** — Bucket Ageing  _(level 3, order 2)_
+  - **2676** — Profile  _(level 2, order 2)_
+  - **2677** — Advance  _(level 2, order 3)_
+    - **2680** — Advance Payment  _(level 3, order 1)_
+    - **2627** — Advance Monitoring  _(level 3, order 3)_
+  - **2141** — Loan  _(level 2, order 4)_
+    - **2682** — Loan Profile  _(level 3, order 1)_
+    - **2683** — Loan Disburse  _(level 3, order 2)_
+  - **1809** — Deposit  _(level 2, order 7)_
+  - **3066** — List of Deposit  _(level 2, order 9)_
+  - **2678** — Refund  _(level 2, order 10)_
+    - **2285** — Refund (Staff)  _(level 3, order 2)_
+      - **2702** — Admin  _(level 4, order 1)_
+        - **2286** — Refund Application  _(level 5, order 1)_
+        - **2287** — List of Refund  _(level 5, order 2)_
+      - **2604** — List of Refund Portal  _(level 4, order 3)_
+      - **2289** — List Of Refund Bill  _(level 4, order 4)_
+      - **2290** — Report of Refund Bill  _(level 4, order 5)_
+  - **3397** — Detail of Deposit  _(level 2, order 12)_
+  - **2679** — Debt Monitoring  _(level 2, order 15)_
+    - **2690** — Reminder  _(level 3, order 1)_
+      - **2145** — Staff  _(level 4, order 2)_
+        - **2230** — Reminder 1  _(level 5, order 1)_
+          - **2131** — List Of Outstanding  _(level 6, order 1)_
+          - **2250** — Generated Reminder  _(level 6, order 3)_
+        - **2231** — Reminder 2  _(level 5, order 2)_
+          - **2132** — List of Reminder  _(level 6, order 1)_
+            - **2256** — By Email  _(level 7, order 1)_
+            - **2257** — By Post  _(level 7, order 2)_
+          - **2266** — Generated Reminder  _(level 6, order 2)_
+        - **2232** — Reminder 3  _(level 5, order 4)_
+          - **2133** — List of Reminder  _(level 6, order 1)_
+            - **2259** — By Email  _(level 7, order 1)_
+            - **2258** — By Post  _(level 7, order 2)_
+          - **2268** — Generated Reminder  _(level 6, order 2)_
+        - **2457** — Report  _(level 5, order 5)_
+          - **2869** — Successful Generated Reminder  _(level 6, order 3)_
+      - **2120** — Others  _(level 4, order 3)_
+      - **2789** — Advance  _(level 4, order 6)_
+        - **2791** — Reminder 1  _(level 5, order 2)_
+          - **2793** — List of Reminder  _(level 6, order 1)_
+          - **2794** — Generated Reminder  _(level 6, order 2)_
+        - **2792** — Reminder 2  _(level 5, order 3)_
+          - **2795** — List of Reminder  _(level 6, order 1)_
+          - **2796** — Generated Reminder  _(level 6, order 2)_
+      - **2689** — Loan  _(level 4, order 7)_
+      - **2669** — Successful Generated Reminder  _(level 4, order 9)_
+  - **3388** — Invoice Balance  _(level 2, order 21)_
+  - **2292** — Report  _(level 2, order 22)_
+    - **2667** — Subsidiary Statement  _(level 3, order 2)_
+    - **3379** — Subsidiary Ledger  _(level 3, order 3)_
+      - **3380** — Individual Subsidiary Ledger  _(level 4, order 1)_
+      - **3381** — All Subsidiary Ledger  _(level 4, order 2)_
+    - **2336** — Report Ageing  _(level 3, order 4)_
+    - **2642** — Report Detail Ageing  _(level 3, order 5)_
+    - **3400** — Debt Movement Report  _(level 3, order 9)_
+    - **2364** — Statistik Reminder  _(level 3, order 11)_
+    - **3069** — Report Deposit  _(level 3, order 15)_
+    - **3369** — Creditor Ageing  _(level 3, order 16)_
+      - **3370** — Creditor Ageing Summary  _(level 4, order 1)_
+      - **3445** — Creditor Ageing Summary ( > 6 Years )  _(level 4, order 3)_
+      - **3371** — Creditor Ageing Details  _(level 4, order 4)_
+      - **3443** — Creditor Ageing Details( > 6 Years)  _(level 4, order 4)_
+      - **3375** — Creditor AP Listing  _(level 4, order 5)_
+    - **3376** — Debtor Ageing  _(level 3, order 17)_
+      - **3447** — Debtor Ageing Summary ( > 6 Years)  _(level 4, order 3)_
+      - **3446** — Debtor Ageing Details ( > 6 Years )  _(level 4, order 4)_
+    - **3385** — Deposit Statement  _(level 3, order 18)_
+    - **3407** — Advance Ageing  _(level 3, order 19)_
+      - **3448** — Advance Ageing Summary (> 6 Years)  _(level 4, order 2)_
+      - **3409** — Advance Listing  _(level 4, order 3)_
+    - **3433** — Deposit Statement (Management)  _(level 3, order 20)_
+
+## KERISI / Payroll  _(MENUID 1122)_
+  - **1461** — Lookup  _(level 2, order 1)_
+    - **3310** — Job Type  _(level 3, order 1)_
+    - **3328** — Staff Prefix  _(level 3, order 2)_
+    - **1462** — Status Staff  _(level 3, order 3)_
+    - **1463** — Job Status  _(level 3, order 4)_
+    - **1464** — Title Staff  _(level 3, order 5)_
+    - **1467** — Religion  _(level 3, order 7)_
+    - **1468** — Race  _(level 3, order 8)_
+    - **1469** — State  _(level 3, order 9)_
+    - **1474** — Service Scheme  _(level 3, order 10)_
+    - **3329** — Salary Grade  _(level 3, order 13)_
+  - **1436** — Setup  _(level 2, order 2)_
+    - **1440** — Monthly Setup Salary  _(level 3, order 1)_
+    - **1441** — Employer Account Info  _(level 3, order 2)_
+    - **1442** — Income Type  _(level 3, order 3)_
+    - **1443** — Tax Child Relief  _(level 3, order 4)_
+    - **3339** — Bank Negara Malaysia (BNM)  _(level 3, order 7)_
+    - **1410** — Table  _(level 3, order 8)_
+    - **2153** — Zakat / Waqaf Deduction  _(level 3, order 9)_
+      - **2154** — Type  _(level 4, order 1)_
+      - **2155** — Category  _(level 4, order 2)_
+    - **2438** — Other Deduction  _(level 3, order 10)_
+    - **2674** — Tax Rate Calculator  _(level 3, order 11)_
+    - **2948** — Activity Mapping  _(level 3, order 12)_
+    - **2940** — Income Code by Invoice Type  _(level 3, order 13)_
+    - **3020** — Change EPF Contribution  _(level 3, order 13)_
+    - **3222** — Deduction Code by Account Code  _(level 3, order 16)_
+  - **1051** — Staff Profile Information  _(level 2, order 3)_
+    - **1325** — List Of Staff  _(level 3, order 5)_
+  - **1250** — Salary Processing  _(level 2, order 4)_
+    - **2027** — Salary Generation Verification  _(level 3, order 1)_
+    - **1260** — Payroll Process  _(level 3, order 2)_
+    - **1518** — Payroll Calculation (Temp)  _(level 3, order 3)_
+      - **1485** — Payroll Process Daily  _(level 4, order 1)_
+    - **3465** — Bonus Generation  _(level 3, order 6)_
+  - **1140** — Salary Crediting  _(level 2, order 5)_
+    - **1927** — Journal  _(level 3, order 8)_
+    - **1425** — Vouchers  _(level 3, order 11)_
+    - **2022** — Generate Autopay File  _(level 3, order 16)_
+      - **1791** — Others  _(level 4, order 2)_
+  - **1854** — Allowance And Deduction  _(level 2, order 7)_
+    - **1850** — List Of Allowance And Deduction  _(level 3, order 2)_
+    - **1845** — Allowance And Deduction Bulks  _(level 3, order 3)_
+    - **1891** — Individual Allowance & Deduction  _(level 3, order 4)_
+    - **3032** — Delete By Bulk  _(level 3, order 4)_
+  - **2101** — Employee Benefit (GCR)  _(level 2, order 9)_
+    - **2102** — GCR Listing  _(level 3, order 1)_
+    - **2103** — Setup  _(level 3, order 2)_
+      - **3033** — No of Days GCR  _(level 4, order 2)_
+    - **2136** — GCR  _(level 3, order 3)_
+      - **2105** — GCR Calculate  _(level 4, order 1)_
+      - **2137** — List of GCR  _(level 4, order 2)_
+      - **3360** — List of Paid GCR  _(level 4, order 3)_
+  - **1359** — Income Tax Forms  _(level 2, order 19)_
+    - **2308** — EC Account Code  _(level 3, order 2)_
+    - **2112** — EC Process  _(level 3, order 3)_
+    - **2526** — EC Process By Individual  _(level 3, order 4)_
+    - **2313** — EC Remuneration Staff  _(level 3, order 6)_
+    - **1367** — Income Tax Report  _(level 3, order 7)_
+      - **1368** — EC Summary CP8C  _(level 4, order 1)_
+      - **1369** — EC Summary CP8D  _(level 4, order 2)_
+      - **2529** — PRAISI Covid-19  _(level 4, order 61)_
+      - **2527** — PRAISI  _(level 4, order 62)_
+    - **2759** — Process By Bill  _(level 3, order 7)_
+  - **1481** — Report  _(level 2, order 20)_
+    - **1476** — Penyata Gaji Induk  _(level 3, order 1)_
+    - **1480** — Penyata Saraan dan Potongan  _(level 3, order 2)_
+    - **1888** — Crediting To Bank  _(level 3, order 3)_
+    - **1893** — Income Adjustment Report  _(level 3, order 4)_
+    - **1836** — Listing of Staff  _(level 3, order 5)_
+    - **1889** — Variance Allowance And Deduction  _(level 3, order 6)_
+    - **1995** — Checklist Of Data Transfer  _(level 3, order 7)_
+    - **1978** — Data Change Checklist (Before Process Payroll)  _(level 3, order 8)_
+    - **1894** — List Of Payment Receiver  _(level 3, order 9)_
+    - **1917** — Payslip  _(level 3, order 10)_
+    - **3034** — PCB Calculator LHDN  _(level 3, order 12)_
+    - **2549** — Journal Log  _(level 3, order 14)_
+    - **2675** — Variance By Income Code  _(level 3, order 16)_
+    - **2681** — Variance By Type  _(level 3, order 17)_
+    - **2698** — Allowance and Deduction  _(level 3, order 18)_
+    - **2735** — Emolument  _(level 3, order 19)_
+    - **2835** — Deduction List Per Month  _(level 3, order 20)_
+    - **2913** — Income Type List  _(level 3, order 21)_
+    - **2926** — Laporan Keberhutangan Staff  _(level 3, order 22)_
+    - **3337** — Perjawatan  _(level 3, order 25)_
+    - **3335** — Senarai Tuntutan Elaun Lebih Masa  _(level 3, order 26)_
+    - **3336** — Laporan Kod Elaun / Potongan  _(level 3, order 27)_
+  - **1695** — Integration  _(level 2, order 21)_
+    - **3023** — Zakat / Waqaf Deduction Application Portal  _(level 3, order 4)_
+      - **2552** — New of Application Waqaf/Zakat Deduction  _(level 4, order 1)_
+      - **3022** — List of Application Waqaf / Zakat Deduction  _(level 4, order 2)_
+    - **2540** — Other Deduction  _(level 3, order 5)_
+    - **2773** — Emergency Fund  _(level 3, order 6)_
+    - **3309** — Loan Deferred Payment  _(level 3, order 8)_
+    - **2749** — Monthly Loan  _(level 3, order 10)_
+    - **2962** — Monthly Invoice  _(level 3, order 11)_
+    - **3347** — Loan Status Complete  _(level 3, order 12)_
+  - **3327** — Journal Adjustment  _(level 2, order 22)_
+  - **3442** — Kew 8  _(level 2, order 25)_
+    - **3440** — Kew.8 List of Staff  _(level 3, order 1)_
+    - **3449** — List of Kew 8 form  _(level 3, order 3)_
+
+## KERISI / Asset  _(MENUID 1547)_
+  - **1549** — Setup  _(level 2, order 1)_
+    - **1561** — General  _(level 3, order 1)_
+      - **1564** — Asset Dispose Method  _(level 4, order 1)_
+      - **3118** — Disposal Secretariat Setup  _(level 4, order 2)_
+      - **1645** — Asset Account Setup  _(level 4, order 3)_
+      - **2455** — Depreciation Group  _(level 4, order 4)_
+      - **2483** — Depreciation Setup (Tanah)  _(level 4, order 5)_
+      - **2293** — Item Main  _(level 4, order 7)_
+      - **3148** — Role Listing  _(level 4, order 8)_
+      - **3338** — Asset Deprecition Scheduler Setup  _(level 4, order 9)_
+      - **3471** — Asset Verification Officer  _(level 4, order 10)_
+    - **1677** — LookUp  _(level 3, order 2)_
+      - **1562** — Location  _(level 4, order 1)_
+      - **2746** — Location Listing  _(level 4, order 2)_
+      - **1563** — Item LIsting  _(level 4, order 3)_
+  - **1548** — List of Asset  _(level 2, order 2)_
+  - **1668** — Asset Registration  _(level 2, order 3)_
+    - **1835** — GRN  _(level 3, order 3)_
+    - **1946** — Journal  _(level 3, order 4)_
+    - **2151** — Bill  _(level 3, order 5)_
+    - **1959** — Asset Approval (GRN/Bill)  _(level 3, order 6)_
+    - **3302** — Asset Registration Approval (Journal)  _(level 3, order 9)_
+  - **2574** — Asset Verification  _(level 2, order 4)_
+  - **2591** — Asset Cancellation  _(level 2, order 6)_
+  - **2697** — Asset Cancellation For Verification  _(level 2, order 7)_
+  - **2756** — Asset Cancellation Listing  _(level 2, order 9)_
+  - **1975** — Asset Depreciation  _(level 2, order 15)_
+    - **1622** — Asset Depreciation Process  _(level 3, order 1)_
+    - **1628** — Asset Depreciation Accrual  _(level 3, order 2)_
+    - **1683** — Asset Depreciation Listing  _(level 3, order 3)_
+  - **3530** — Asset Transfer  _(level 2, order 16)_
+    - **2544** — Asset Transfer Request (Outside PTJ)  _(level 3, order 1)_
+    - **2543** — Asset Transfer Listing  _(level 3, order 2)_
+  - **3494** — Asset Movement  _(level 2, order 17)_
+    - **3495** — Movement List  _(level 3, order 1)_
+    - **3496** — Movement Application  _(level 3, order 2)_
+  - **3468** — Asset Maintenance  _(level 2, order 18)_
+    - **3469** — Damage Report  _(level 3, order 1)_
+      - **3481** — Damage Asset Application  _(level 4, order 1)_
+      - **3470** — Damage Report List  _(level 4, order 2)_
+    - **3491** — Preventive Maintenance  _(level 3, order 2)_
+      - **3492** — Preventive Maintenance Listing  _(level 4, order 1)_
+      - **3493** — Preventive Maintenance Form  _(level 4, order 2)_
+      - **3502** — Schedule Maintenance Listing  _(level 4, order 3)_
+    - **3497** — Corrective Maintenance  _(level 3, order 3)_
+      - **3498** — Corrective Maintenance List  _(level 4, order 1)_
+      - **3499** — Corrective Maintenance Form  _(level 4, order 2)_
+    - **3501** — Schedule Maintenance Listing  _(level 3, order 4)_
+  - **1976** — Asset Disposal  _(level 2, order 19)_
+    - **1647** — Disposal Application  _(level 3, order 1)_
+    - **2397** — Disposal Application Listing  _(level 3, order 2)_
+    - **2495** — Asset Disposal Registration  _(level 3, order 3)_
+    - **1674** — Disposed Batch Listing  _(level 3, order 4)_
+    - **3387** — Asset Disposal Listing  _(level 3, order 5)_
+    - **3390** — Integration  _(level 3, order 6)_
+      - **3391** — Asset Disposal (Inbound)  _(level 4, order 1)_
+  - **3503** — Asset Lost  _(level 2, order 20)_
+    - **3504** — Asset Lost Listing  _(level 3, order 1)_
+    - **3505** — Asset Lost  Application  _(level 3, order 2)_
+  - **1991** — Report  _(level 2, order 22)_
+    - **3531** — Report KewPa  _(level 3, order 1)_
+      - **2589** — Kew Pa 1 - Penerimaan Aset  _(level 4, order 1)_
+      - **2597** — Kew Pa 2 - Penolakan Aset  _(level 4, order 2)_
+      - **1992** — Kew Pa 3 - Pendaftaran Aset  _(level 4, order 3)_
+      - **1996** — Kew Pa 4 - Pendaftaran Inventori  _(level 4, order 4)_
+      - **2595** — Kew Pa 5 - Senarai Daftar Aset  _(level 4, order 5)_
+      - **2596** — Kew Pa 6 - Senarai Daftar Inventori  _(level 4, order 6)_
+      - **2007** — Kew Pa 7 - Senarai Aset Alih Mengikut Ruang  _(level 4, order 7)_
+      - **2781** — Kew Pa 8 -  Laporan Kedudukan Semasa Aset Alih  _(level 4, order 8)_
+      - **2610** — Kew Pa 9 - Borang Permohonan Pergerakan/Pinjaman Aset Alih  _(level 4, order 9)_
+      - **3500** — Kew Pa 10 - Borang Aduan Kerosakan Aset Alih  _(level 4, order 10)_
+      - **2517** — Kew Pa 11 - Borang Pemeriksaan Aset  _(level 4, order 11)_
+      - **2643** — Kew Pa 12 - Laporan Pemeriksaan Aset Mengikut Suku Tahun  _(level 4, order 12)_
+      - **2782** — Kew Pa 13 - Sijil Tahunan Pemeriksaan Aset Alih  _(level 4, order 13)_
+      - **2611** — Kew Pa 14 - Senarai Aset Alih Kerajaan Yang Memerlukan Penyelenggaraan Berjadual  _(level 4, order 14)_
+      - **2612** — Kew Pa 15 - Rekod Penyelenggaraan Aset Alih  _(level 4, order 15)_
+      - **3486** — Kew Pa 16 - Laporan Penyelenggaraan Aset Alih  _(level 4, order 16)_
+      - **2705** — Kew Pa 17 - Borang Pindahan Aset Alih  _(level 4, order 17)_
+      - **2783** — Kew Pa 18 - Laporan Pindahan Aset Alih  _(level 4, order 18)_
+      - **2550** — Kew Pa 19 - Borang Perakuan Lupus (Teknikal)  _(level 4, order 19)_
+      - **2566** — Kew Pa 20 - Borang Lantikan Lembaga Pemeriksa  _(level 4, order 20)_
+      - **2551** — Kew Pa 21 - Borang Pelupusan  _(level 4, order 21)_
+      - **2567** — KewPa 22 - Sijil Penyaksian Pelupusan  _(level 4, order 22)_
+      - **2577** — Kew Pa 23 - Sijil Pelupusan  _(level 4, order 23)_
+      - **2854** — Kew Pa 25 - Borang Tender Pelupusan Aset Alih  _(level 4, order 25)_
+      - **2857** — Kew Pa 27 - Kenyataan Tawaran Sebut Harga Pelupusan Aset Alih  _(level 4, order 27)_
+      - **2859** — Kew Pa 29 - Jadual Sebut Harga Pelupusan Aset Alih  _(level 4, order 29)_
+      - **2861** — Kew Pa 31- Senarai Aset Alih Yang Dilelong  _(level 4, order 31)_
+      - **2784** — Kew Pa 32 - Laporan Pelupusan Aset Alih  _(level 4, order 32)_
+      - **3515** — Kew Pa 33 - LAPORAN AWAL KEHILANGAN ASET ALIH  _(level 4, order 33)_
+      - **3512** — Kew Pa 34 - PELANTIKAN JAWATANKUASA PENYIASAT KEHILANGAN ASET ALIH  _(level 4, order 34)_
+      - **3513** — Kew Pa 35 - LAPORAN AKHIR KEHILANGAN ASET ALIH  _(level 4, order 35)_
+      - **2988** — Kew Pa 36 - Sijil Hapus Kira Aset  _(level 4, order 36)_
+      - **3514** — Kew Pa 37 - LAPORAN HAPUS KIRA ASET ALIH  _(level 4, order 37)_
+    - **2774** — Asset Movement Report  _(level 3, order 2)_
+    - **3064** — Auditor Asset Listing  _(level 3, order 2)_
+    - **3374** — Laporan Pendaftaran Aset  _(level 3, order 4)_
+    - **2431** — Laporan Aset Mengikut Jabatan Dan Lokasi  _(level 3, order 5)_
+    - **3349** — Laporan Susut Nilai Aset  _(level 3, order 6)_
+    - **2847** — Senarai Semak Pembatalan Pendaftaran Aset  _(level 3, order 7)_
+    - **2906** — Senarai Aset Alih Tidak Dilulus Untuk Dilupuskan  _(level 3, order 8)_
+    - **2934** — Senarai Aset Disokong Untuk Pelupusan  _(level 3, order 9)_
+    - **3330** — Asset Disposal Report  _(level 3, order 10)_
+
+## KERISI / Student Finance  _(MENUID 1019)_
+  - **1509** — Student Profile or Ledger  _(level 2, order 1)_
+  - **1023** — Invoice  _(level 2, order 2)_
+  - **1231** — Invoice Generation  _(level 2, order 3)_
+  - **1149** — Sponsor  _(level 2, order 4)_
+    - **2390** — Student Journal Approval  _(level 3, order 1)_
+    - **1507** — PTPTN  _(level 3, order 2)_
+    - **1025** — Profile  _(level 3, order 3)_
+    - **1150** — PTPTN (Masri)  _(level 3, order 3)_
+    - **1491** — Invoice Generation  _(level 3, order 4)_
+    - **2020** — Advance Payment  _(level 3, order 13)_
+  - **1529** — Credit Note  _(level 2, order 6)_
+  - **1575** — Debit Note  _(level 2, order 7)_
+  - **1570** — Discount Note  _(level 2, order 8)_
+  - **1601** — Bill Presentment or Payment  _(level 2, order 9)_
+    - **1029** — Outbound data  _(level 3, order 1)_
+    - **1030** — Receipt by Batch  _(level 3, order 1)_
+  - **1081** — Bank Account Update  _(level 2, order 10)_
+  - **1031** — PTPTN Data  _(level 2, order 12)_
+  - **1059** — setup  _(level 2, order 13)_
+    - **1067** — Sponsor Type  _(level 3, order 1)_
+    - **1058** — Fee Category  _(level 3, order 2)_
+    - **1070** — Account Code Setup  _(level 3, order 5)_
+    - **1071** — Discount Structure  _(level 3, order 6)_
+    - **1072** — Insurance Institution  _(level 3, order 7)_
+    - **1073** — Barring Type  _(level 3, order 8)_
+    - **1074** — Barring Policy  _(level 3, order 9)_
+    - **1075** — Barring Report  _(level 3, order 10)_
+    - **1082** — Fee Item  _(level 3, order 11)_
+    - **1083** — Fee Structure  _(level 3, order 12)_
+    - **1084** — Academic Calendar  _(level 3, order 13)_
+    - **1192** — Invoice Note  _(level 3, order 14)_
+    - **1193** — CN Policy by Event  _(level 3, order 15)_
+    - **1252** — Role SF  _(level 3, order 16)_
+    - **1253** — Role Configure SF  _(level 3, order 17)_
+    - **1255** — Workflow Invoice  _(level 3, order 18)_
+    - **1354** — Discount Type  _(level 3, order 19)_
+    - **1911** — Non-fee Structure  _(level 3, order 19)_
+    - **2093** — Fee Items  _(level 3, order 20)_
+    - **2750** — Academic Calendar (NEW)  _(level 3, order 21)_
+    - **2834** — CN Policy by Event  _(level 3, order 22)_
+    - **2840** — CN Policy by Event Form  _(level 3, order 23)_
+  - **1061** — form  _(level 2, order 14)_
+    - **1257** — Fee Structure  _(level 3, order 2)_
+    - **1278** — CN Form - En Masri  _(level 3, order 3)_
+    - **1530** — Credit Note Form  _(level 3, order 4)_
+    - **1279** — DN Form - En Masri  _(level 3, order 5)_
+    - **1576** — Debit Note Form  _(level 3, order 6)_
+    - **1280** — DC Form - En Masri  _(level 3, order 7)_
+    - **1571** — Discount Note Form  _(level 3, order 8)_
+    - **1311** — Receipt by Batch Form  _(level 3, order 9)_
+    - **1298** — Outbound Data Form  _(level 3, order 10)_
+    - **1313** — Receipt by Batch Knockoff  _(level 3, order 11)_
+    - **1323** — PTPTN Data Form  _(level 3, order 12)_
+    - **1326** — PTPTN Process Form  _(level 3, order 13)_
+    - **1327** — PTPTN Gen Invoice Form  _(level 3, order 14)_
+    - **1328** — PTPTN Export Form  _(level 3, order 15)_
+    - **1335** — Discount Policy Form  _(level 3, order 16)_
+    - **1069** — Sponsor To Student  _(level 3, order 17)_
+    - **1822** — View Outbound Data  _(level 3, order 19)_
+    - **2096** — Fee Items Form  _(level 3, order 21)_
+  - **1263** — Report  _(level 2, order 16)_
+    - **1262** — Invoice-Report Listing General  _(level 3, order 1)_
+    - **1284** — CN - Report Listing General  _(level 3, order 2)_
+    - **1285** — DN - Report Listing General  _(level 3, order 3)_
+    - **1286** — DC - Report Listing General  _(level 3, order 4)_
+    - **1538** — Insurance Report Listing  _(level 3, order 5)_
+    - **1539** — Statistic Record By Category  _(level 3, order 6)_
+    - **1550** — Sponsor Invoice Data Listing  _(level 3, order 7)_
+    - **1790** — Summary Report Of Fees By Semester  _(level 3, order 8)_
+    - **1794** — Report of Accommodation Fees  according to Student Accommodation  _(level 3, order 9)_
+    - **1795** — Summary Report on Accommodation Fee Charges by Student Accommodation (Inasis)  _(level 3, order 10)_
+    - **1797** — Fee Data Report for Ministry of Higher Education (MYMOHES)  _(level 3, order 11)_
+    - **1798** — List of Students by Incoming Session Invoice Generated  _(level 3, order 12)_
+    - **1799** — List of Active Students Not Invoiced  _(level 3, order 13)_
+    - **1800** — List of Takaful Deduction Students by Admission Session  _(level 3, order 14)_
+    - **1801** — List of Students by Student Accommodation  _(level 3, order 15)_
+    - **1802** — List of Students By Study Center  _(level 3, order 16)_
+    - **1804** — List of VIVA Students by Graduate School  _(level 3, order 18)_
+    - **1806** — List Of Students According To The Fees Charged  _(level 3, order 19)_
+    - **1807** — List Of Graduate Students  _(level 3, order 20)_
+    - **1810** — List of Student Debt According to Student Inasis  _(level 3, order 21)_
+    - **1811** — List Of Graduate Student Debt By Year  _(level 3, order 22)_
+    - **1812** — Report Of International Student Debt  _(level 3, order 23)_
+    - **1814** — Student Debt List  _(level 3, order 25)_
+    - **1816** — List of Students Inasis Students (Inasis)  _(level 3, order 27)_
+    - **1918** — List of Student by Sponsor  _(level 3, order 34)_
+    - **1954** — Report of Student Debt by Sponsor  _(level 3, order 44)_
+    - **1923** — List of Student Without Sponsor Invoice  _(level 3, order 47)_
+    - **2437** — List of Student C1330/C12154  _(level 3, order 48)_
+    - **2622** — Student Hostel History  _(level 3, order 49)_
+    - **2064** — Bill Payment Data From Bank  _(level 3, order 123)_
+    - **1916** — List of Sponsor  _(level 3, order 124)_
+    - **2026** — Semakan Pindaan Bill Payment/Presentment ke (Hutang Pelajar/ Pemiutang Pelajar C1330 /Hasil PTJ) - By Batch  _(level 3, order 124)_
+    - **2029** — Semakan Pindaan Bill Payment/Presentment ke (Hutang Pelajar/ Pemiutang Pelajar C1330 /Hasil PTJ) - By  Date  _(level 3, order 124)_
+    - **1949** — Report of Invoice by Student  _(level 3, order 125)_
+    - **1956** — Summary Report of Total Sponsorship  _(level 3, order 125)_
+    - **2008** — Report Data Listing  _(level 3, order 125)_
+    - **1924** — List of Claim by Sponsor  _(level 3, order 126)_
+    - **1965** — CN - Deferment Report  _(level 3, order 126)_
+    - **1984** — List Of New Registered Student  _(level 3, order 126)_
+    - **1988** — CN Data Listing  _(level 3, order 126)_
+    - **2010** — List of Bill Payment/Presentment Batch  _(level 3, order 126)_
+  - **1032** — Insurance  _(level 2, order 17)_
+    - **1038** — List of Offered Student  _(level 3, order 1)_
+    - **1339** — Import Data Insurance  _(level 3, order 2)_
+    - **1039** — New/Returning Student  _(level 3, order 4)_
+    - **2797** — List of returning student whose insurance invoice at iFAS  _(level 3, order 4)_
+    - **2799** — List of new/returning student whose insurance is duplicate/multiple  _(level 3, order 5)_
+  - **2557** — Barring  _(level 2, order 19)_
+    - **2556** — List of Students  _(level 3, order 2)_
+    - **2601** — Release Registration Fee for New Student (Offered)  _(level 3, order 3)_
+  - **1900** — CN By Batch Submit  _(level 2, order 20)_
+  - **1899** — CN By Batch Entry  _(level 2, order 21)_
+  - **2636** — List of Offered  _(level 2, order 22)_
+  - **2897** — Manual Invoice Listing  _(level 2, order 24)_
+  - **2898** — Manual Invoice Form  _(level 2, order 25)_
+  - **3093** — Bank Account Update  _(level 2, order 25)_
+    - **2937** — Offer Student  _(level 3, order 1)_
+    - **2802** — Manual Update  _(level 3, order 2)_
+
+## KERISI / Investment  _(MENUID 1404)_
+  - **1405** — Setup  _(level 2, order 1)_
+    - **1417** — Bank  _(level 3, order 4)_
+    - **1418** — Investment Type & GL Code  _(level 3, order 6)_
+    - **1431** — Tenure  _(level 3, order 9)_
+    - **1408** — Institution  _(level 3, order 11)_
+  - **3225** — Investment Application  _(level 2, order 3)_
+    - **3226** — New Application  _(level 3, order 1)_
+    - **3231** — List of Draft Application  _(level 3, order 2)_
+    - **3232** — List of Rejected Application  _(level 3, order 3)_
+  - **1497** — Investment Withdrawal  _(level 2, order 4)_
+    - **1472** — Apply for Withdrawal  _(level 3, order 1)_
+    - **1499** — List of Investments Withdrawal  _(level 3, order 3)_
+    - **1493** — List of Withdrawal - Rejected  _(level 3, order 4)_
+  - **3311** — Generate Journal for Investment  _(level 2, order 5)_
+    - **3312** — List of Investments  _(level 3, order 1)_
+    - **3313** — Journal Details  _(level 3, order 2)_
+  - **2808** — Summary List of Investments  _(level 2, order 6)_
+  - **1448** — List of Investments  _(level 2, order 7)_
+  - **1458** — Investment Monitoring  _(level 2, order 9)_
+  - **3485** — Investment to be Withdrawn  _(level 2, order 10)_
+  - **1446** — Accrual  _(level 2, order 12)_
+  - **1475** — Generate Schedule  _(level 2, order 12)_
+  - **1414** — Report  _(level 2, order 13)_
+    - **1415** — Generate Letter for Investment  _(level 3, order 1)_
+    - **1465** — Generate Letter for Withdraw  _(level 3, order 2)_
+    - **3268** — Generate Instruction Letter / Cadangan Pelaburan  _(level 3, order 3)_
+    - **1517** — Monthly Schedule Investment  _(level 3, order 4)_
+    - **1487** — FD Summary  _(level 3, order 5)_
+    - **1488** — FD Details  _(level 3, order 6)_
+    - **3188** — List of Investment Accrual (Posting)  _(level 3, order 7)_
+    - **3191** — List of Accrual (No Posting Number)  _(level 3, order 8)_
+    - **3319** — Investment Report  _(level 3, order 9)_
+    - **1971** — Report Accrual  _(level 3, order 11)_
+    - **3438** — Laporan Daftar Pelaburan  _(level 3, order 11)_
+  - **1877** — List Of Accrual  _(level 2, order 18)_
+
+## KERISI / Declaration/Claim  _(MENUID 1133)_
+  _(no children)_
+
+## KERISI / Activity Advance  _(MENUID 1132)_
+  _(no children)_
+
+## KERISI / Travelling Claim  _(MENUID 1134)_
+  _(no children)_
+
+## KERISI / PCB/Zakat  _(MENUID 1137)_
+  - **1427** — PCB/Zakat Request  _(level 2, order 1)_
+
+## KERISI / Others Deduction  _(MENUID 1138)_
+  - **1432** — Others Deduction Request  _(level 2, order 1)_
+
+## KERISI / Petty Cash  _(MENUID 1489)_
+  - **1526** — Setup  _(level 2, order 1)_
+    - **1528** — Petty Cash Personnel  _(level 3, order 2)_
+  - **1490** — List of Petty Cash Application  _(level 2, order 2)_
+  - **1872** — Petty Cash Claim Form  _(level 2, order 3)_
+  - **2346** — Release Payment  _(level 2, order 4)_
+  - **2761** — List of Released Payment  _(level 2, order 5)_
+  - **1534** — Petty Cash Recoup Form  _(level 2, order 7)_
+  - **1532** — Petty Cash Recoup List  _(level 2, order 8)_
+  - **3343** — Generate Voucher Draft  _(level 2, order 9)_
+  - **2400** — Bill Petty Cash  _(level 2, order 10)_
+  - **2399** — List Petty Cash by PTJ  _(level 2, order 11)_
+  - **2456** — List of Bill Petty Cash  _(level 2, order 13)_
+  - **3344** — List of Voucher Petty Cash  _(level 2, order 14)_
+  - **2424** — Confirmation Payment  _(level 2, order 16)_
+  - **1880** — Report  _(level 2, order 17)_
+    - **1881** — Report Of Petty Cash Recoup  _(level 3, order 1)_
+    - **2417** — Laporan Baucar Panjar Wang Runcit  _(level 3, order 3)_
+    - **2502** — Laporan Buku Tunai Panjar Wang Runcit  _(level 3, order 4)_
+    - **3350** — Laporan Buku Tunai  _(level 3, order 5)_
+
+## KERISI / TP1  _(MENUID 1251)_
+  - **1281** — TP1 (Tax Relief) Listing  _(level 2, order 1)_
+
+## KERISI / Portal  _(MENUID 1533)_
+  - **1914** — Staff Profile  _(level 2, order 1)_
+  - **2055** — Payslip  _(level 2, order 3)_
+  - **2778** — Remuneration Statement  _(level 2, order 4)_
+  - **3484** — Medical Statement  _(level 2, order 4)_
+  - **2371** — EC Form  _(level 2, order 5)_
+  - **1130** — Loan  _(level 2, order 7)_
+    - **1616** — Loan Application  _(level 3, order 2)_
+      - **3284** — Quotation Review  _(level 4, order 4)_
+      - **3331** — Loan Balance Confirmation  _(level 4, order 11)_
+      - **3342** — Full Settlement Amount  _(level 4, order 12)_
+    - **2017** — Loan Application (Special Case)  _(level 3, order 3)_
+    - **3060** — Advance Payment  _(level 3, order 6)_
+    - **1639** — Loan Information  _(level 3, order 10)_
+    - **2067** — Regenerate Schedule  _(level 3, order 13)_
+    - **2765** — Monthly Loan  _(level 3, order 19)_
+    - **2818** — Loan Change Status to Complete  _(level 3, order 20)_
+    - **3307** — Loan Change Status to Cancel  _(level 3, order 21)_
+    - **2819** — Loan Stop Accrual  _(level 3, order 22)_
+    - **3290** — Update Loan Payment  _(level 3, order 23)_
+  - **1152** — Petty Cash  _(level 2, order 7)_
+    - **3015** — New Application  _(level 3, order 2)_
+    - **1157** — List of Petty Cash  _(level 3, order 3)_
+  - **2092** — Setup Overtime Approval  _(level 2, order 8)_
+    - **1957** — Staff Overtime Hierarchy  _(level 3, order 124)_
+  - **1135** — Work Order  _(level 2, order 9)_
+    - **1194** — Work Order Instruction  _(level 3, order 3)_
+    - **1220** — List of Work Order Instruction  _(level 3, order 4)_
+    - **1666** — Work Order Received  _(level 3, order 5)_
+  - **1732** — Personal Information  _(level 2, order 10)_
+    - **1733** — Profile  _(level 3, order 1)_
+  - **1136** — Overtime Claim  _(level 2, order 12)_
+    - **1998** — Manage  _(level 3, order 2)_
+      - **3483** — Staff Approved Overtime  _(level 4, order 1)_
+      - **1980** — Staff Overtime Claim  _(level 4, order 2)_
+      - **1999** — Staff Collected Hours  _(level 4, order 3)_
+      - **3137** — Staff Roster Schedule  _(level 4, order 4)_
+      - **3065** — Rejected Overtime Claim  _(level 4, order 5)_
+      - **3353** — Input Roster Schedule  _(level 4, order 6)_
+      - **3357** — Input Shift Day Off  _(level 4, order 7)_
+      - **3358** — Staff Shift Day Off  _(level 4, order 8)_
+    - **1196** — List of Overtime Claim  _(level 3, order 4)_
+    - **1249** — Notification OT Claim  _(level 3, order 4)_
+    - **1981** — Collected Hours  _(level 3, order 5)_
+    - **2833** — Roster Schedule  _(level 3, order 7)_
+    - **2842** — Shift Day Off  _(level 3, order 8)_
+  - **1736** — Financial Information  _(level 2, order 13)_
+    - **2366** — Statement of Account (SOA)  _(level 3, order 2)_
+    - **1847** — Online Payment History  _(level 3, order 5)_
+    - **1859** — Receipt  _(level 3, order 5)_
+    - **1843** — Credit Note  _(level 3, order 7)_
+    - **1857** — Discount Note  _(level 3, order 8)_
+    - **1858** — Sponsor  _(level 3, order 8)_
+    - **1875** — Debit Note  _(level 3, order 9)_
+    - **1860** — Payment Information  _(level 3, order 12)_
+    - **1892** — Advance Payment / Deposit  _(level 3, order 13)_
+    - **1834** — Bank Account Information / Update Bank Account Information  _(level 3, order 14)_
+    - **1876** — Voucher Information  _(level 3, order 14)_
+  - **2045** — Refund  _(level 2, order 13)_
+    - **2046** — New Application  _(level 3, order 1)_
+    - **2053** — List of Refund Application  _(level 3, order 2)_
+  - **1174** — Emergency Fund  _(level 2, order 14)_
+    - **1985** — New Application  _(level 3, order 1)_
+    - **1993** — List of Emergency Fund  _(level 3, order 2)_
+    - **2768** — List of Emergency Fund (Verify)  _(level 3, order 3)_
+    - **2708** — List of Emergency Fund (Paid)  _(level 3, order 4)_
+    - **2754** — Emergency Fund Cashbook Report  _(level 3, order 5)_
+    - **2709** — Emergency Fund (Unblock)  _(level 3, order 6)_
+    - **2736** — List of Received Recoup Amount  _(level 3, order 7)_
+  - **2138** — Vehicle Information  _(level 2, order 15)_
+    - **2139** — List of Vehicle Information  _(level 3, order 123)_
+  - **2058** — Refund  _(level 2, order 16)_
+    - **2059** — New Application  _(level 3, order 1)_
+    - **2060** — List of Refund Application  _(level 3, order 2)_
+  - **1945** — Remuneration Statements (OLD)  _(level 2, order 17)_
+  - **2157** — Zakat / Waqaf Deduction  _(level 2, order 19)_
+    - **2158** — Application  _(level 3, order 1)_
+    - **2159** — Listing Application  _(level 3, order 2)_
+  - **2315** — Advance Staff / Declaration  _(level 2, order 20)_
+    - **2368** — Setup  _(level 3, order 1)_
+      - **2404** — Advance Personnel  _(level 4, order 1)_
+      - **3411** — Disabled Screen  _(level 4, order 4)_
+      - **2373** — Cash Advance Type  _(level 4, order 124)_
+      - **2369** — Payment Method  _(level 4, order 125)_
+    - **2342** — Activity Advance Application  _(level 3, order 2)_
+      - **1303** — New Application  _(level 4, order 1)_
+      - **1200** — List of Activity Advance Application  _(level 4, order 2)_
+    - **2536** — Advance Declaration  _(level 3, order 3)_
+      - **2537** — List of Advance Declaration Application  _(level 4, order 2)_
+      - **2619** — Manual Journal  _(level 4, order 4)_
+      - **2538** — List of Advance Declaration Application (Admin)  _(level 4, order 6)_
+      - **2960** — List of Advance Declaration Application (Checker)  _(level 4, order 7)_
+    - **2344** — Manage  _(level 3, order 4)_
+      - **2421** — Advance Staff (Admin)  _(level 4, order 1)_
+      - **2640** — PWR  _(level 4, order 3)_
+      - **2463** — Paid  _(level 4, order 5)_
+      - **2466** — Accrual  _(level 4, order 6)_
+      - **2711** — Recoupment  _(level 4, order 7)_
+        - **2425** — Recoupment (Batch)  _(level 5, order 1)_
+        - **2715** — Generate Bill Recoupment  _(level 5, order 2)_
+        - **2713** — Recoup Form  _(level 5, order 3)_
+        - **2452** — List of Recoupment  _(level 5, order 5)_
+        - **2760** — Staff Advance Cashbook Report  _(level 5, order 6)_
+      - **2324** — List of Advance  _(level 4, order 8)_
+      - **2325** — Advance Staff (Generate Bill)  _(level 4, order 9)_
+      - **2343** — List of Activity Advance (Unblock)  _(level 4, order 10)_
+      - **2473** — Received Recoup Amount  _(level 4, order 12)_
+      - **2832** — List of Advance (Checker)  _(level 4, order 14)_
+  - **2445** — Other Deduction  _(level 2, order 22)_
+  - **2592** — TP1  _(level 2, order 24)_
+    - **2593** — TP1 Application  _(level 3, order 1)_
+    - **2594** — List of Application  _(level 3, order 2)_
+    - **2752** — List of All Application (Approver)  _(level 3, order 4)_
+  - **2823** — List of Letter  _(level 2, order 25)_
+  - **2867** — Stock Application  _(level 2, order 26)_
+    - **2868** — New Application  _(level 3, order 1)_
+    - **2915** — List of Application  _(level 3, order 2)_
+
+## KERISI / Debtor Portal  _(MENUID 1229)_
+  - **2189** — Debtor Profile  _(level 2, order 1)_
+  - **2608** — List of Profile Update Application  _(level 2, order 3)_
+  - **2267** — Debtors Statement  _(level 2, order 4)_
+  - **2312** — Financial Information  _(level 2, order 5)_
+    - **2195** — Outstanding Invoice  _(level 3, order 1)_
+    - **2279** — Receipt  _(level 3, order 2)_
+    - **2282** — Credit Note  _(level 3, order 3)_
+    - **2283** — Debit Note  _(level 3, order 4)_
+    - **2588** — Online Payment History  _(level 3, order 6)_
+  - **2584** — Reminder  _(level 2, order 10)_
+  - **2700** — Reset Password  _(level 2, order 12)_
+
+## KERISI / EIS  _(MENUID 3401)_
+  - **3421** — Setup  _(level 2, order 1)_
+    - **3414** — Setup Belanja Mengikut Segmen  _(level 3, order 1)_
+  - **3402** — Ringkasan  _(level 2, order 2)_
+  - **3406** — Prestasi Perbelanjaan  _(level 2, order 4)_
+  - **3412** — Prestasi Kewangan  _(level 2, order 5)_
+  - **3410** — Kedudukan Kewangan  _(level 2, order 6)_
+  - **3413** — Belanja Mengikut Segmen  _(level 2, order 7)_
+  - **3403** — JPKA  _(level 2, order 8)_
+    - **-3411** — Prestasi Perbelanjaan  _(level 3, order 1)_
+    - **3426** — Pengurusan Perakaunan  _(level 3, order 3)_
+    - **3416** — Perbelanjaan LPPM  _(level 3, order 4)_
+    - **3431** — Terimaan dan Bayaran Bil  _(level 3, order 5)_
+
+## KERISI / Vendor Portal  _(MENUID 1228)_
+  - **2130** — Profile  _(level 2, order 5)_
+  - **2947** — Debt Collector Agent  _(level 2, order 6)_
+    - **2949** — List Assign  _(level 3, order 1)_
+    - **2951** — Completed List  _(level 3, order 5)_
+    - **3018** — Commission  _(level 3, order 8)_
+      - **3010** — Calculation of Commission  _(level 4, order 1)_
+      - **3011** — Commission to be Paid  _(level 4, order 2)_
+  - **1961** — Vendor Portal  _(level 2, order 7)_
+  - **2003** — Renew Vendor Registration  _(level 2, order 9)_
+  - **2015** — Purchase Order Status  _(level 2, order 9)_
+  - **2072** — Financial Status  _(level 2, order 13)_
+  - **2152** — Reset Password  _(level 2, order 14)_
+  - **2767** — Tender/Quotation List  _(level 2, order 15)_
+
+## KERISI / Staff Medical  _(MENUID 3454)_
+  - **3455** — Medical Information  _(level 2, order 1)_
+  - **3459** — Reports  _(level 2, order 2)_
+    - **3460** — Treatment Ledger by Clinic  _(level 3, order 1)_
+    - **3472** — Treatment Ledger by Year  _(level 3, order 2)_
+    - **3475** — Treatment Statement by Staff  _(level 3, order 3)_
+    - **3474** — Overall Treatment Ledger by Staff  _(level 3, order 4)_
+    - **3473** — Notification Letter  _(level 3, order 5)_
+
+## KERISI / Project Monitoring  _(MENUID 1543)_
+  - **1544** — List Of Project  _(level 2, order 1)_
+  - **2065** — Updated Balance  _(level 2, order 2)_
+  - **2114** — Budget  _(level 2, order 3)_
+    - **2115** — List of Budget  _(level 3, order 1)_
+    - **2110** — New Budget  _(level 3, order 2)_
+  - **2672** — Report  _(level 2, order 4)_
+    - **2673** — Allocation Receive Log  _(level 3, order 1)_
+    - **2963** — Project Monitoring  _(level 3, order 3)_
+    - **3077** — Auditor WIP Report  _(level 3, order 4)_
+
+## KERISI / Portal Debt Collector Agent (DCA)  _(MENUID 1177)_
+  _(no children)_
+
+## KERISI / Portal Legal  _(MENUID 1178)_
+  _(no children)_
+
+## KERISI / User Manual  _(MENUID 3)_
+  _(no children)_
+
+## KERISI / Audit Trail  _(MENUID 55)_
+  - **5** — System Transaction  _(level 2, order 2)_
+  - **-3** — Disk Usage  _(level 2, order 5)_
+
+## KERISI / Debtor Information  _(MENUID 2616)_
+  _(no children)_
+
+---
+
+Total MENUIDs listed: 1005
+
+Top-level KERISI sections: 31

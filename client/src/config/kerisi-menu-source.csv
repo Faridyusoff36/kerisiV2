@@ -29,7 +29,7 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 1178,"Portal Legal",0,1,54
 3,"User Manual",0,1,57
 55,"Audit Trail",0,1,59
-2616,"Debtor Information",0,1,56
+2616,"Debtor Information",0,1,60
 1281,"TP1 (Tax Relief) Listing",1251,2,1
 1405,Setup,1404,2,1
 1409,"Posting to GL (TB)",1052,2,1
@@ -999,3 +999,8 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 2259,"By Email",2133,7,1
 2257,"By Post",2132,7,2
 2258,"By Post",2133,7,2
+993,Role,1003,2,3
+987,"List of Lookup",1003,2,5
+1087,"Fund Type Existing",1003,2,6
+2953,"Profile VC & TNC",1003,2,10
+1150,"PTPTN (Masri)",1149,3,3

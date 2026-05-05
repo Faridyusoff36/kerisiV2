@@ -8,6 +8,7 @@ import type { MenuItemDef, MenuNode } from "@/config/admin-menu";
 import { useSidebarCollapse } from "@/composables/useSidebarCollapse";
 import { useToast } from "@/composables/useToast";
 import AppToastRegion from "@/components/AppToastRegion.vue";
+import AdminSidebarSubmenu from "@/components/AdminSidebarSubmenu.vue";
 
 import { useAuthStore } from "@/stores/auth";
 import { useMenuStore } from "@/stores/menu";
@@ -422,48 +423,17 @@ watch(
                 </span>
               </router-link>
 
-              <div
+              <AdminSidebarSubmenu
                 v-if="item.children && item.children.length > 0 && openMenus[item.id] && !isCollapsed"
-                class="ml-5 mt-1 space-y-0.5 border-l-2 border-slate-200 pl-4"
-              >
-                <template v-for="child in item.children" :key="child.id">
-                  <button
-                    v-if="child.children && child.children.length > 0"
-                    type="button"
-                    class="flex w-full items-center rounded-md text-left transition-all hover:bg-[var(--accent-50)]"
-                    :class="[childRowClass, childClass(isNodeActive(child) ? route.path : child.to)]"
-                    @click="toggleMenu(child.id)"
-                  >
-                    <span class="flex-1">{{ child.label }}</span>
-                    <ChevronDown
-                      class="h-3.5 w-3.5 text-slate-400 transition-transform duration-200"
-                      :class="{ '-rotate-90': !openMenus[child.id] }"
-                    />
-                  </button>
-
-                  <router-link
-                    v-else
-                    :to="child.to"
-                    :class="[childRowClass, childClass(child.to)]"
-                  >
-                    {{ child.label }}
-                  </router-link>
-
-                  <div
-                    v-if="child.children && child.children.length > 0 && openMenus[child.id]"
-                    class="ml-4 mt-1 space-y-0.5 border-l border-slate-200 pl-3"
-                  >
-                    <router-link
-                      v-for="grandchild in child.children"
-                      :key="grandchild.id"
-                      :to="grandchild.to"
-                      :class="[childRowClass, childClass(grandchild.to)]"
-                    >
-                      {{ grandchild.label }}
-                    </router-link>
-                  </div>
-                </template>
-              </div>
+                :nodes="item.children"
+                :depth="0"
+                :open-menus="openMenus"
+                :is-node-active="isNodeActive"
+                :child-row-class="childRowClass"
+                :child-class="childClass"
+                :toggle="toggleMenu"
+                :route-path="route.path"
+              />
             </div>
           </div>
         </nav>
