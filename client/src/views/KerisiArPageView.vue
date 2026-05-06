@@ -34,6 +34,8 @@ import {
 import type { KerisiArDatatable, KerisiArPageSpec } from "@/config/kerisi-ar-registry.generated";
 import { getKerisiArSpec } from "@/config/kerisi-ar-registry.generated";
 import { useToast } from "@/composables/useToast";
+import { useDatatableFeatures } from "@/composables/useDatatableFeatures";
+import type { DatatableRefApi } from "@/composables/useDatatableFeatures";
 
 const toast   = useToast();
 const route   = useRoute();
@@ -250,7 +252,33 @@ function onLimitChange() {
   void loadRows();
 }
 
+const overflowOpen = ref(false);
+const overflowRoot = ref<HTMLElement | null>(null);
+
+function onClickOutside(event: MouseEvent) {
+  if (!overflowOpen.value) return;
+  if (overflowRoot.value?.contains(event.target as Node)) return;
+  overflowOpen.value = false;
+}
+
+const {
+  templateFileInputRef,
+  isGrouped,
+  handleSaveTemplate,
+  handleLoadTemplate,
+  onTemplateFileChange,
+  handleGroupList,
+  handleUngroupList,
+} = useDatatableFeatures({
+  pageName: "AR Module",
+  apiDataPath: "",
+  defaultExportColumns: [],
+  getFilteredList: () => [],
+  datatableRef: ref<DatatableRefApi | null>(null),
+  searchKeyword: ref(''),
+});
 onMounted(() => {
+  document.addEventListener("click", onClickOutside);
   initFilters();
   void loadRows();
 });
@@ -261,6 +289,7 @@ watch(menuId, () => {
 });
 
 onUnmounted(() => {
+  document.removeEventListener("click", onClickOutside);
   if (searchDebounce) clearTimeout(searchDebounce);
 });
 </script>
@@ -365,13 +394,17 @@ onUnmounted(() => {
                 <FileSpreadsheet class="h-3.5 w-3.5" />
                 Excel
               </button>
-              <button
-                type="button"
-                class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
-                aria-label="More options"
-              >
-                <MoreVertical class="h-4 w-4" />
-              </button>
+                            <div ref="overflowRoot" class="relative">
+                  <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" @click.stop="overflowOpen = !overflowOpen">
+                    <MoreVertical class="h-4 w-4" />
+                  </button>
+                  <div v-if="overflowOpen" class="absolute right-0 z-30 mt-1 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg" @click.stop>
+                    <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleSaveTemplate()">Save template</button>
+                    <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleLoadTemplate()">Load template</button>
+                    <button v-if="isGrouped" type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleUngroupList()">Ungroup list</button>
+                    <button v-else type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleGroupList()">Group list</button>
+                  </div>
+              </div>
             </div>
           </div>
 

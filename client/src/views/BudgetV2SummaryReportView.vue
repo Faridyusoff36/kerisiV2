@@ -220,7 +220,21 @@ watch(q, () => {
 });
 
 const datatableRef = ref<DatatableRefApi | null>(null);
-const { templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } = useDatatableFeatures({
+const overflowOpen = ref(false);
+const overflowRoot = ref<HTMLElement | null>(null);
+
+function onClickOutside(event: MouseEvent) {
+  if (!overflowOpen.value) return;
+  if (overflowRoot.value?.contains(event.target as Node)) return;
+  overflowOpen.value = false;
+}
+
+const {
+  isGrouped,
+  handleSaveTemplate,
+  handleLoadTemplate,
+  handleUngroupList,
+  handleGroupList, templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } = useDatatableFeatures({
   pageName: EXPORT_PAGE_LABEL[props.menuId],
   apiDataPath: "/budget/report/v2-budget-summary/listing",
   defaultExportColumns: exportColumns,
@@ -270,10 +284,15 @@ async function exportExcel() {
 }
 
 onMounted(async () => {
+  document.addEventListener("click", onClickOutside);
   await loadOptions();
   if (topFilter.value.bdgYear) {
     await loadRows();
   }
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', onClickOutside);
 });
 </script>
 
@@ -401,9 +420,17 @@ onMounted(async () => {
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <h2 class="text-base font-semibold text-slate-900">Listing</h2>
-          <button class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="More" type="button">
-            <MoreVertical class="h-4 w-4" />
-          </button>
+                    <div ref="overflowRoot" class="relative">
+            <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" @click.stop="overflowOpen = !overflowOpen">
+              <MoreVertical class="h-4 w-4" />
+            </button>
+            <div v-if="overflowOpen" class="absolute right-0 z-30 mt-1 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg" @click.stop>
+              <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleSaveTemplate()">Save template</button>
+              <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleLoadTemplate()">Load template</button>
+              <button v-if="isGrouped" type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleUngroupList()">Ungroup list</button>
+              <button v-else type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleGroupList()">Group list</button>
+            </div>
+          </div>
         </div>
         <div class="space-y-4 p-4">
           <div class="flex flex-wrap items-end justify-between gap-4">
