@@ -50,6 +50,24 @@ import type {
   GlListingSmartFilter,
 } from "@/types";
 
+const props = withDefaults(
+  defineProps<{
+    pageBreadcrumb?: string;
+    cardTitle?: string;
+    creditControlSubsidiary?: boolean;
+  }>(),
+  {
+    pageBreadcrumb: "",
+    cardTitle: "",
+    creditControlSubsidiary: false,
+  },
+);
+
+const displayBreadcrumb = computed(
+  () => props.pageBreadcrumb || "General Ledger / General Ledger Listing",
+);
+const displayCardTitle = computed(() => props.cardTitle || "General Ledger Listing");
+
 const toast = useToast();
 const datatableRef = ref<DatatableRefApi | null>(null);
 const rows = ref<GlListingRow[]>([]);
@@ -203,6 +221,7 @@ async function loadRows() {
     ...(f.reference1 ? { pde_reference1: f.reference1 } : {}),
     ...(f.transType ? { pde_trans_type: f.transType } : {}),
     ...(f.statementItem ? { acm_behavior: f.statementItem } : {}),
+    ...(props.creditControlSubsidiary ? { credit_control_subsidiary: "1" } : {}),
   });
   try {
     const res = await listGlListing(`?${params.toString()}`);
@@ -336,7 +355,7 @@ const {
   handleUngroupList,
   handleGroupList, templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } =
   useDatatableFeatures({
-    pageName: "General Ledger Listing",
+    pageName: displayCardTitle.value,
     apiDataPath: "/general-ledger/general-ledger-listing",
     defaultExportColumns: exportColumns,
     getFilteredList: () => rows.value.map(rowToRecord),
@@ -452,13 +471,11 @@ onUnmounted(() => {
         class="hidden"
         @change="onTemplateFileChange"
       />
-      <h1 class="page-title">
-        General Ledger / General Ledger Listing
-      </h1>
+      <h1 class="page-title">{{ displayBreadcrumb }}</h1>
 
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-          <h1 class="text-base font-semibold text-slate-900">General Ledger Listing</h1>
+          <h1 class="text-base font-semibold text-slate-900">{{ displayCardTitle }}</h1>
                     <div ref="overflowRoot" class="relative">
             <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" @click.stop="overflowOpen = !overflowOpen">
               <MoreVertical class="h-4 w-4" />

@@ -821,7 +821,8 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 2552,"New of Application Waqaf/Zakat Deduction",3023,4,1
 2589,"Kew Pa 1 - Penerimaan Aset",3531,4,1
 2647,"Senarai Tempoh Masa LPO 			",2810,4,1
-2702,Admin,2285,4,1
+2291,"Request Refund",2285,4,1
+2702,Admin,2285,4,2
 2718,Preparation,2763,4,1
 3010,"Calculation of Commission ",3018,4,1
 3285,"Book Cheque Setup",1287,4,1
@@ -874,7 +875,7 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 1999,"Staff Collected Hours",1998,4,3
 2120,Others,2690,4,3
 2430,"Warrant Decrement",3423,4,3
-2604,"List of Refund Portal",2285,4,3
+2604,"List Of Refund Application (Portal)",2285,4,3
 2640,PWR,2344,4,3
 2777,"Batch Listing",2763,4,3
 3288,"Bank Cheque To Print or To Cancel",1287,4,3

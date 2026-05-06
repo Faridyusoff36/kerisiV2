@@ -67,6 +67,14 @@ import type {
   SaveDiscountNoteResponse,
   AuthorizedReceiptingFormData,
   SaveAuthorizedReceiptingResponse,
+  CreditControlAgeingRow,
+  CreditControlRefundStaffDetailRow,
+  CreditControlReminderLookupOption,
+  CreditControlReminderStatusRow,
+  CcListOfRefundPortalRow,
+  CcRefundApplicationAdminRow,
+  CcRefundBrIntegrationRow,
+  CcRequestRefundStaffRow,
   CurrentStaffProfile,
   ArEventSearchOption,
   ArStaffSearchOption,
@@ -2426,6 +2434,116 @@ export async function listEmergencyFundAccrualListing(params = "") {
 export async function listEmergencyFundReleaseQueueListing(params = "") {
   return apiRequest<{ data: EmergencyFundReleaseQueueRow[]; meta: Record<string, unknown> }>(
     `/api/credit-control/emergency-fund-release-queue-listing${params}`,
+  );
+}
+
+/** Credit Control Level 4 — ageing & AP-style bucket reports (secondary DB). */
+export async function listCreditControlAgeingReports(params = "") {
+  return apiRequest<{ data: CreditControlAgeingRow[]; meta: Record<string, unknown> }>(
+    `/api/credit-control/ageing-reports${params}`,
+  );
+}
+
+/** MENUID 2289 — non-approved staff refund BRI rows. */
+export async function listCreditControlRefundBrIntegration(params = "") {
+  return apiRequest<{ data: CcRefundBrIntegrationRow[]; meta: Record<string, unknown> }>(
+    `/api/credit-control/refund-br-integration${params}`,
+  );
+}
+
+/** MENUID 2290 — refund process line listing. */
+export async function listCreditControlRefundStaffDetail(params = "") {
+  return apiRequest<{ data: CreditControlRefundStaffDetailRow[]; meta: Record<string, unknown> }>(
+    `/api/credit-control/refund-staff-detail-listing${params}`,
+  );
+}
+
+/** MENUID 2604 — portal refund applications. */
+export async function listCreditControlListOfRefundPortal(params = "") {
+  return apiRequest<{ data: CcListOfRefundPortalRow[]; meta: Record<string, unknown> }>(
+    `/api/credit-control/list-of-refund-portal${params}`,
+  );
+}
+
+/** Legacy `checkReject` — selections must map to one `tra_application_no`. */
+export async function checkCreditControlRefundPortalSubmit(body: { tra_ids: number[] }) {
+  return apiRequest<{
+    data: { ok: boolean; distinct_application_count: number; tra_application_no: string | null };
+  }>("/api/credit-control/list-of-refund-portal/submit-check", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+/** Staff batch submit (`tra_process` / `tra_status_process` draft). */
+export async function submitCreditControlRefundPortalBatch(body: { tra_ids: number[] }) {
+  return apiRequest<{ data: { updated: number; tra_application_no: string | null } }>(
+    "/api/credit-control/list-of-refund-portal/submit",
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+/** Staff batch reject (`tra_status` REJECT + `tra_reason_reject`). */
+export async function rejectCreditControlRefundPortalBatch(body: { tra_ids: number[]; remark: string }) {
+  return apiRequest<{ data: { updated: number; tra_application_no: string | null } }>(
+    "/api/credit-control/list-of-refund-portal/reject",
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+/** MENUID 2286 — admin refund applications (legacy `SNA_API_CC_REFUNDSTAFF` / `dt_listapply`). */
+export async function listCreditControlRefundApplication(params = "") {
+  return apiRequest<{ data: CcRefundApplicationAdminRow[]; meta: Record<string, unknown> }>(
+    `/api/credit-control/refund-application${params}`,
+  );
+}
+
+export type CcRefundApplicationSubmitBody = {
+  tra_ids: number[];
+  fty_fund_type?: string;
+  acm_acct_code?: string;
+  bill_reg_integration_type?: string;
+};
+
+export async function checkCreditControlRefundApplicationSubmit(body: CcRefundApplicationSubmitBody) {
+  return apiRequest<{
+    data: { ok: boolean; distinct_application_count: number; tra_application_no: string | null };
+  }>("/api/credit-control/refund-application/submit-check", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function submitCreditControlRefundApplicationBatch(body: CcRefundApplicationSubmitBody) {
+  return apiRequest<{ data: { updated: number; tra_application_no: string | null } }>(
+    "/api/credit-control/refund-application/submit",
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+/** MENUID 2291 — Request Refund (`SNA_API_CREDITCONTROL_REQUESTREFUNDSTAFF` / `dt_listapply`). */
+export async function listCreditControlRequestRefundStaff(params = "") {
+  return apiRequest<{ data: CcRequestRefundStaffRow[]; meta: Record<string, unknown> }>(
+    `/api/credit-control/request-refund-staff${params}`,
+  );
+}
+
+export async function getCreditControlReminderDebtorCreditorTypes() {
+  return apiRequest<{ data: CreditControlReminderLookupOption[] }>(
+    "/api/credit-control/reminder-status/types",
+  );
+}
+
+export async function getCreditControlReminderBusinessTypes(type: string) {
+  const q = new URLSearchParams({ type });
+  return apiRequest<{ data: CreditControlReminderLookupOption[] }>(
+    `/api/credit-control/reminder-status/business-types?${q.toString()}`,
+  );
+}
+
+export async function listCreditControlReminderStatus(params = "") {
+  return apiRequest<{ data: CreditControlReminderStatusRow[]; meta: Record<string, unknown> }>(
+    `/api/credit-control/reminder-status${params}`,
   );
 }
 

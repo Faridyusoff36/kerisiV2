@@ -41,6 +41,13 @@ use App\Http\Controllers\Api\CheckErrorController;
 use App\Http\Controllers\Api\CostCentreController;
 use App\Http\Controllers\Api\CreditNoteController;
 use App\Http\Controllers\Api\CreditNoteFormController;
+use App\Http\Controllers\Api\CreditControlAgeingReportController;
+use App\Http\Controllers\Api\CreditControlListOfRefundPortalController;
+use App\Http\Controllers\Api\CreditControlRefundApplicationController;
+use App\Http\Controllers\Api\CreditControlRequestRefundStaffController;
+use App\Http\Controllers\Api\CreditControlRefundBrIntegrationController;
+use App\Http\Controllers\Api\CreditControlRefundStaffDetailController;
+use App\Http\Controllers\Api\CreditControlReminderStatusController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DebitNoteController;
 use App\Http\Controllers\Api\DebitNoteFormController;
@@ -906,6 +913,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/credit-control/deposit-form/{id}', [DepositFormController::class, 'show'])->whereNumber('id');
     Route::put('/credit-control/deposit-form/{id}', [DepositFormController::class, 'update'])->whereNumber('id');
     Route::put('/credit-control/deposit-form/{id}/detail/{detailId}', [DepositFormController::class, 'updateDetail'])->whereNumber('id')->whereNumber('detailId');
+
+    // Credit Control — Level 4 migrated reports / refund staff (mysql_secondary, ORM/query builder).
+    Route::get('/credit-control/reminder-status/types', [CreditControlReminderStatusController::class, 'debtorCreditorTypes']);
+    Route::get('/credit-control/reminder-status/business-types', [CreditControlReminderStatusController::class, 'businessTypes']);
+    Route::get('/credit-control/reminder-status', [CreditControlReminderStatusController::class, 'index']);
+    Route::get('/credit-control/refund-br-integration', [CreditControlRefundBrIntegrationController::class, 'index']);
+    Route::get('/credit-control/refund-staff-detail-listing', [CreditControlRefundStaffDetailController::class, 'index']);
+    Route::get('/credit-control/list-of-refund-portal', [CreditControlListOfRefundPortalController::class, 'index']);
+    Route::post('/credit-control/list-of-refund-portal/submit-check', [CreditControlListOfRefundPortalController::class, 'submitCheck']);
+    Route::post('/credit-control/list-of-refund-portal/submit', [CreditControlListOfRefundPortalController::class, 'submit']);
+    Route::post('/credit-control/list-of-refund-portal/reject', [CreditControlListOfRefundPortalController::class, 'reject']);
+    // MENUID 2286 — Admin / Refund Application (refined scope vs raw `dt_listapply`).
+    Route::get('/credit-control/refund-application', [CreditControlRefundApplicationController::class, 'index']);
+    Route::post('/credit-control/refund-application/submit-check', [CreditControlRefundApplicationController::class, 'submitCheck']);
+    Route::post('/credit-control/refund-application/submit', [CreditControlRefundApplicationController::class, 'submit']);
+    // Refund (Staff) / Request Refund — legacy `SNA_API_CREDITCONTROL_REQUESTREFUNDSTAFF` (`dt_listapply`).
+    Route::get('/credit-control/request-refund-staff', [CreditControlRequestRefundStaffController::class, 'index']);
+    Route::get('/credit-control/ageing-reports', [CreditControlAgeingReportController::class, 'index']);
 
     // Portal pages — read-only vendor/debtor self-service listings.
     // Debtor Portal > List of Profile Update Application (PAGEID 2155 / MENUID 2608).

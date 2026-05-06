@@ -2827,6 +2827,124 @@ export type GlListingFooter = {
   transAmt: number;
 };
 
+/** Credit Control — ageing bucket reports (`CreditControlAgeingReportController`). */
+export type CreditControlAgeingRow = Record<string, string | number | null>;
+
+/** MENUID 2289 — temp_refund_bills_master (BRI, non-approved). */
+export type CcRefundBrIntegrationRow = {
+  index: number;
+  bimBillsId: number;
+  bimBillsNo: string | null;
+  bimBillsType: string | null;
+  bimPaytoId: string | null;
+  bimPaytoName: string | null;
+  bimBillsDesc: string | null;
+  bimBillAmt: number | null;
+  bimStatus: string | null;
+  createddate: string | null;
+  viewUrl: string;
+  editUrl: string;
+};
+
+/** MENUID 2604 — portal refund applications (legacy ListOfRefund / list apply). */
+export type CcListOfRefundPortalRow = {
+  index: number;
+  traId: number;
+  applicationNo: string | null;
+  /** Payee / portal vendor or staff id */
+  id: string | null;
+  name: string | null;
+  accountCode: string | null;
+  accountLabel: string | null;
+  referenceNo: string | null;
+  applicationDate: string | null;
+  /** Legacy `tra_amt_refund` — amount refund / eligible (RM), shown as "Amount Refund (RM)". */
+  amountEligibleRefund: number | null;
+  /** Legacy `tra_amt` — portal amount (RM). */
+  traAmt: number | null;
+  status: string | null;
+  remark: string | null;
+  /** Raw supporting document path from `dz_path` when exposed by API. */
+  dzPath?: string | null;
+  /** Resolved URL for viewing/download (absolute or site-relative). */
+  supportingDocumentUrl?: string | null;
+  dpmDepositNo: string | null;
+  reportUrl: string;
+};
+
+/** MENUID 2286 — admin refund applications (same row shape as MENUID 2604). */
+export type CcRefundApplicationAdminRow = CcListOfRefundPortalRow;
+
+/** MENUID 2291 — Request Refund (`SNA_API_CREDITCONTROL_REQUESTREFUNDSTAFF` / `dt_listapply`). */
+export type CcRequestRefundStaffRow = {
+  index: number;
+  traId: number;
+  applicationNo: string | null;
+  amountRm: number | null;
+  staffId: string | null;
+  staffName: string | null;
+  reference: string | null;
+  fundType: string | null;
+  activityCode: string | null;
+  ptj: string | null;
+  costCenter: string | null;
+  accountCode: string | null;
+  status: string | null;
+  requestBy: string | null;
+  requestDate: string | null;
+  actionUrl: string;
+};
+
+/** MENUID 2290 — line-level staff refund process listing (secondary DB keys from API). */
+export type CreditControlRefundStaffDetailRow = {
+  index: number;
+  bim_bills_id?: number | null;
+  bim_bills_no?: string | null;
+  bim_bills_type_label?: string | null;
+  bim_bills_desc?: string | null;
+  bim_bill_amt?: number | string | null;
+  bim_cust_invoice_no?: string | null;
+  bim_cust_invoice_date?: string | null;
+  bim_payto_id?: string | null;
+  bim_payto_name?: string | null;
+  bim_status?: string | null;
+  createddate?: string | null;
+  bid_payto_id?: string | null;
+  bid_payto_name?: string | null;
+  vsa_bank_accno?: string | null;
+  fty_fund_type?: string | null;
+  at_activity_code?: string | null;
+  oun_code?: string | null;
+  ccr_costcentre?: string | null;
+  acm_acct_code?: string | null;
+  bid_amt?: number | string | null;
+  third_party_info?: string | null;
+  third_party_bank_name?: string | null;
+  tra_3rd_bank_acc_no?: string | null;
+  novoucher?: string | null;
+  voucherdate?: string | null;
+  paymode?: string | null;
+  eftdate?: string | null;
+  eftno?: string | null;
+};
+
+export type CreditControlReminderLookupOption = { id: string; label: string };
+
+export type CreditControlReminderStatusRow = {
+  index: number;
+  seqid: number;
+  debtorid: string | null;
+  debtorname: string | null;
+  type2: string | null;
+  category: string | null;
+  loano: string | null;
+  noinv: string | null;
+  outstandingAmt: number | null;
+  reminderBill: string | null;
+  referenceNo: string | null;
+  reminderDate: string | null;
+};
+
 // Student Finance > Student Profile or Ledger (PAGEID 1232 / MENUID 1509).
 // Source: FIMS BL `V2_SFSP_LEDGER_API`. Read-only datatable with smart
 // filter (Matric / Name / NRIC/Passport / Semester No. / Program Level /

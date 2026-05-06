@@ -232,7 +232,6 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 1617,"Insurance Type",1577,3,6
 1708,"Overtime Limit",1659,3,6
 1830,"Laporan Bulanan",1602,3,6
-2288,"Payment In Advance Details",2285,3,6
 2460,"Request Refund",2000,3,6
 2585,"Change Method",1703,3,6
 1380,"EFT Cancel",1096,3,7
@@ -293,7 +292,6 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 1579,Blacklist,1577,3,9
 1620,"Workflow Loan Application for Computer & Smart Phone",1616,3,9
 2077,"List of Refund Application (Portal)",2000,3,9
-2485,"Payment In Advance Details (Draft)",2285,3,9
 3282,"Laporan Pinjaman <Komputer/Kenderaan>",1602,3,9
 1434,"GL Code Setup",1405,3,10
 1501,"Tag Sponsor to Student",1064,3,10

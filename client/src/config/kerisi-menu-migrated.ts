@@ -4968,6 +4968,11 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
             to: "/admin/kerisi/m/2285",
             children: [
               {
+                menuId: 2291,
+                label: "Request Refund",
+                to: "/admin/kerisi/m/2291"
+              },
+              {
                 menuId: 2702,
                 label: "Admin",
                 to: "/admin/kerisi/m/2702",
@@ -4986,7 +4991,7 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
               },
               {
                 menuId: 2604,
-                label: "List of Refund Portal",
+                label: "List Of Refund Application (Portal)",
                 to: "/admin/kerisi/m/2604"
               },
               {
@@ -4998,18 +5003,6 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
                 menuId: 2290,
                 label: "Report of Refund Bill",
                 to: "/admin/kerisi/m/2290"
-              },
-              {
-                menuId: 2288,
-                label: "Payment In Advance Details",
-                to: "/admin/kerisi/m/2288",
-                hiddenByDefault: true
-              },
-              {
-                menuId: 2485,
-                label: "Payment In Advance Details (Draft)",
-                to: "/admin/kerisi/m/2485",
-                hiddenByDefault: true
               }
             ]
           }

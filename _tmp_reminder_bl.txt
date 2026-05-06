@@ -1,0 +1,109 @@
+<?
+// by anis on 16012022
+// modul credit control
+
+include 'userinfo.php';
+
+//========================================== for businesstype_comp ====================================
+if($_GET['lov_businesstype_comp']) {
+	$sql = "
+		SELECT DISTINCT cm_business_type id, cm_business_type text
+		FROM
+			".DB2.".ccontroller_master  
+		WHERE
+			cm_business_type IN ('INVOICE', 'BOC', 'LOAN', 'ACTIVITYADV')
+			AND cm_debtor_creditor = ?
+	";
+	return executeQueryV2($sql, [$_POST['type_comp']]);
+}
+
+//========================================== datatble ==============================================
+if($_GET['dt_listoutstanding']) {
+
+	$type = $_GET['type'];
+	$businesstype = $_GET['businesstype'];
+
+	$common = "
+	FROM ".DB2.".ccontroller_reminder CR
+	LEFT JOIN ".DB2.".ccontroller_master CM ON CM.cm_id = CR.cm_id
+		WHERE 
+		crm_confirm_status = 'Y'
+		AND cm_debtor_creditor = '$type'
+		AND cm_business_type = '$businesstype'
+		AND
+		CONCAT_WS('__',
+			crm_id,
+			crm_debtor_id,
+			crm_debtor_name,
+			crm_amt_outstanding,
+			crm_reminder_bil,
+			crm_reminder_date,
+			crm_handphone_no,
+			crm_reference,
+			crm_extended_field ->> '$.loan_category',
+			crm_email_addr,
+			cm_business_type,
+			CASE
+				WHEN cm_business_type = 'INVOICE' THEN 'OUTSTANDING'
+				WHEN cm_business_type = 'BOC' THEN ''
+				WHEN cm_business_type = 'LOAN' THEN CASE
+													WHEN crm_extended_field ->> '$.loan_category'  = 'C' THEN 'COMPUTER / SMARTPHONE'
+													WHEN crm_extended_field ->> '$.loan_category'  = 'V' THEN 'VEHICLE'
+													WHEN crm_extended_field ->> '$.loan_category'  = 'H' THEN 'HOUSING'
+												END
+				WHEN cm_business_type = 'ACTIVITYADV' THEN 'OUTSTANDING'
+			END,
+			crm_invoice_no
+			) LIKE CONCAT('%', ?, '%')
+		";
+	//============================================================ record count
+	$sql = "SELECT COUNT(*) C $common";
+	$recordsFiltered = executeQueryV2($sql, [$_POST['search']['value']])[0]['C'];
+
+	$sql = "SELECT
+				crm_id SEQID,
+				crm_debtor_id DEBTORID,
+				crm_debtor_name DEBTORNAME,
+				crm_amt_outstanding OUTSTANDINGAMT,
+				crm_reminder_bil REMINDERBILL,
+				crm_reminder_date REMINDERDATE,
+				crm_handphone_no PHONENO,
+				crm_reference REFERENCENO,
+				CASE
+					WHEN cm_business_type = 'INVOICE' THEN 'OUTSTANDING'
+					WHEN  cm_business_type = 'BOC' THEN ''
+					WHEN cm_business_type = 'LOAN' THEN CASE
+														WHEN crm_extended_field ->> '$.loan_category'  = 'C' THEN 'COMPUTER / SMARTPHONE'
+														WHEN crm_extended_field ->> '$.loan_category'  = 'V' THEN 'VEHICLE'
+														WHEN crm_extended_field ->> '$.loan_category'  = 'H' THEN 'HOUSING'
+													END
+					WHEN cm_business_type = 'ACTIVITYADV' THEN 'OUTSTANDING'
+				END CATEGORY,
+				crm_email_addr EMAIL,
+				cm_business_type TYPE2,
+				CASE
+					WHEN cm_business_type = 'INVOICE' THEN ''
+					WHEN cm_business_type = 'BOC' THEN (SELECT ss_loan_id FROM ".DB2.".staff_study SS WHERE SS.stf_staff_id = CR.crm_debtor_id AND ss_loan_id IS NOT NULL) 
+					WHEN cm_business_type = 'LOAN' THEN (SELECT lap_loan_no FROM ".DB2.".loan_application LA WHERE LA.stf_staff_id = CR.crm_debtor_id AND LA.lap_loan_type = CR.crm_extended_field ->> '$.loan_category') 
+					WHEN cm_business_type = 'ACTIVITYADV' THEN ''
+				END LOANO,
+				CASE
+					WHEN cm_business_type = 'INVOICE' THEN crm_invoice_no
+					WHEN cm_business_type = 'BOC' THEN ''
+					WHEN cm_business_type = 'LOAN' THEN ''
+					WHEN cm_business_type = 'ACTIVITYADV' THEN crm_invoice_no
+				END NOINV
+
+		$common
+			ORDER BY {$_POST['orderBy'][0]} {$_POST['orderBy'][1]}
+			LIMIT ".$_POST['start'].", ".$_POST['length']."
+	";
+	$data = executeQueryV2($sql, [$_POST['search']['value']]);
+	//$footer_outstandingamt = executeQueryV2("SELECT SUM(crm_amt_outstanding) S $common", [$staffno, $_POST['search']['value']])[0]['S'];
+
+	return [
+		'draw' => $_POST['draw'],
+        'recordsFiltered' => $recordsFiltered,
+		'data' => $data,
+	];
+}

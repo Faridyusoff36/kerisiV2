@@ -142,6 +142,13 @@ import CcEfApprovedListingView from "@/views/CcEfApprovedListingView.vue";
 import CcEmergencyFundAccrualTabs1983View from "@/views/CcEmergencyFundAccrualTabs1983View.vue";
 import CcEmergencyFundRelease2028View from "@/views/CcEmergencyFundRelease2028View.vue";
 import CcEfReminderReportView from "@/views/CcEfReminderReportView.vue";
+import CcAgeingReportView from "@/views/CcAgeingReportView.vue";
+import CcRefundBrIntegrationView from "@/views/CcRefundBrIntegrationView.vue";
+import CcRefundStaffDetailListingView from "@/views/CcRefundStaffDetailListingView.vue";
+import CcListOfRefundPortalView from "@/views/CcListOfRefundPortalView.vue";
+import CcRefundApplicationAdminView from "@/views/CcRefundApplicationAdminView.vue";
+import CcRequestRefundStaffView from "@/views/CcRequestRefundStaffView.vue";
+import CcReminderStatusView from "@/views/CcReminderStatusView.vue";
 import TenderQuotationView from "@/views/TenderQuotationView.vue";
 import AuditSystemTransactionView from "@/views/AuditSystemTransactionView.vue";
 import VendorPoStatusView from "@/views/VendorPoStatusView.vue";
@@ -238,6 +245,11 @@ const router = createRouter({
   routes: [
     { path: "/admin/login", name: "login", component: LoginView, meta: { guestOnly: true, title: "Login" } },
     { path: "/admin", name: "main-dashboard", component: MainDashboardView, meta: { requiresAuth: true, title: "Main Dashboard" } },
+    // Shortcut → MENUID 2604 (sidebar: Credit Control / Refund / Refund (Staff) / …).
+    {
+      path: "/admin/credit-control/list-of-refund-application-portal",
+      redirect: "/admin/kerisi/m/2604",
+    },
     { path: "/admin/portal/dashboard", name: "dashboard", component: DashboardView, meta: { requiresAuth: true, title: "Dashboard" } },
     { path: "/admin/posts", name: "posts", component: PostsListView, meta: { requiresAuth: true, title: "Posts" } },
     { path: "/admin/posts/new", name: "post-create", component: PostEditorView, meta: { requiresAuth: true, title: "New Post" } },
@@ -1024,6 +1036,185 @@ const router = createRouter({
       meta: { requiresAuth: true, title: "Listing" },
     },
     {
+      path: "/admin/kerisi/m/2286",
+      name: "kerisi-cc-refund-application-admin",
+      component: CcRefundApplicationAdminView,
+      meta: {
+        requiresAuth: true,
+        title: "Refund Application",
+      },
+    },
+    {
+      path: "/admin/kerisi/m/2287",
+      name: "kerisi-cc-list-refund-staff-admin",
+      component: CcListOfRefundPortalView,
+      props: {
+        pageHeading: "Credit Control / Refund / Refund (Staff) / Admin / List of Refund",
+        cardTitle: "List of Refund",
+        datatablePageName: "List of Refund (Staff Admin)",
+        excelFileLabel: "CC_List_of_Refund",
+        excelSheetName: "List of refund",
+        emptyStateTitle: "No refund applications in this list",
+        emptyStateHint:
+          "Try another search. Rows use the same APPLY queue and refund-prefix scope as the portal listing.",
+      },
+      meta: { requiresAuth: true, title: "List of Refund" },
+    },
+    {
+      path: "/admin/kerisi/m/2291",
+      name: "kerisi-cc-request-refund-staff",
+      component: CcRequestRefundStaffView,
+      meta: { requiresAuth: true, title: "Request Refund" },
+    },
+    {
+      path: "/admin/kerisi/m/2289",
+      name: "kerisi-cc-refund-bri-list",
+      component: CcRefundBrIntegrationView,
+      meta: { requiresAuth: true, title: "List Of Refund Bill" },
+    },
+    {
+      path: "/admin/kerisi/m/2290",
+      name: "kerisi-cc-refund-staff-report",
+      component: CcRefundStaffDetailListingView,
+      meta: { requiresAuth: true, title: "Report of Refund Bill" },
+    },
+    {
+      path: "/admin/kerisi/m/2604",
+      name: "kerisi-cc-list-refund-portal",
+      component: CcListOfRefundPortalView,
+      meta: {
+        requiresAuth: true,
+        title: "List Of Refund Application (Portal)",
+      },
+    },
+    {
+      path: "/admin/kerisi/m/2669",
+      name: "kerisi-cc-reminder-success",
+      component: CcReminderStatusView,
+      meta: { requiresAuth: true, title: "Successful Generated Reminder" },
+    },
+    {
+      path: "/admin/kerisi/m/3370",
+      name: "kerisi-cc-ageing-creditor-summary",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Creditor Ageing / Creditor Ageing Summary",
+        cardTitle: "Creditor Ageing Summary",
+        ageingKind: "creditor_summary",
+      },
+      meta: { requiresAuth: true, title: "Creditor Ageing Summary" },
+    },
+    {
+      path: "/admin/kerisi/m/3445",
+      name: "kerisi-cc-ageing-creditor-summary-6y",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Creditor Ageing / Creditor Ageing Summary ( > 6 Years )",
+        cardTitle: "Creditor Ageing Summary ( > 6 Years )",
+        ageingKind: "creditor_summary_ext",
+      },
+      meta: { requiresAuth: true, title: "Creditor Ageing Summary ( > 6 Years )" },
+    },
+    {
+      path: "/admin/kerisi/m/3371",
+      name: "kerisi-cc-ageing-creditor-details",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Creditor Ageing / Creditor Ageing Details",
+        cardTitle: "Creditor Ageing Details",
+        ageingKind: "creditor_details",
+      },
+      meta: { requiresAuth: true, title: "Creditor Ageing Details" },
+    },
+    {
+      path: "/admin/kerisi/m/3443",
+      name: "kerisi-cc-ageing-creditor-details-6y",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Creditor Ageing / Creditor Ageing Details( > 6 Years)",
+        cardTitle: "Creditor Ageing Details( > 6 Years)",
+        ageingKind: "creditor_details_ext",
+      },
+      meta: { requiresAuth: true, title: "Creditor Ageing Details( > 6 Years)" },
+    },
+    {
+      path: "/admin/kerisi/m/3375",
+      name: "kerisi-cc-ageing-creditor-ap",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Creditor Ageing / Creditor AP Listing",
+        cardTitle: "Creditor AP Listing",
+        ageingKind: "creditor_ap_listing",
+      },
+      meta: { requiresAuth: true, title: "Creditor AP Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/3447",
+      name: "kerisi-cc-ageing-debtor-summary-6y",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Debtor Ageing / Debtor Ageing Summary ( > 6 Years)",
+        cardTitle: "Debtor Ageing Summary ( > 6 Years)",
+        ageingKind: "debtor_summary_ext",
+      },
+      meta: { requiresAuth: true, title: "Debtor Ageing Summary ( > 6 Years)" },
+    },
+    {
+      path: "/admin/kerisi/m/3446",
+      name: "kerisi-cc-ageing-debtor-details-6y",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Debtor Ageing / Debtor Ageing Details ( > 6 Years )",
+        cardTitle: "Debtor Ageing Details ( > 6 Years )",
+        ageingKind: "debtor_details_ext",
+      },
+      meta: { requiresAuth: true, title: "Debtor Ageing Details ( > 6 Years )" },
+    },
+    {
+      path: "/admin/kerisi/m/3409",
+      name: "kerisi-cc-ageing-advance-listing",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Advance Ageing / Advance Listing",
+        cardTitle: "Advance Listing",
+        ageingKind: "advance_listing",
+      },
+      meta: { requiresAuth: true, title: "Advance Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/3448",
+      name: "kerisi-cc-ageing-advance-summary-6y",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Advance Ageing / Advance Ageing Summary (> 6 Years)",
+        cardTitle: "Advance Ageing Summary (> 6 Years)",
+        ageingKind: "advance_listing",
+      },
+      meta: { requiresAuth: true, title: "Advance Ageing Summary (> 6 Years)" },
+    },
+    {
+      path: "/admin/kerisi/m/3380",
+      name: "kerisi-cc-subsidiary-gl-individual",
+      component: GeneralLedgerListingView,
+      props: {
+        pageBreadcrumb: "Credit Control / Subsidiary Ledger / Individual Subsidiary Ledger",
+        cardTitle: "Individual Subsidiary Ledger",
+        creditControlSubsidiary: true,
+      },
+      meta: { requiresAuth: true, title: "Individual Subsidiary Ledger" },
+    },
+    {
+      path: "/admin/kerisi/m/3381",
+      name: "kerisi-cc-subsidiary-gl-all",
+      component: GeneralLedgerListingView,
+      props: {
+        pageBreadcrumb: "Credit Control / Subsidiary Ledger / All Subsidiary Ledger",
+        cardTitle: "All Subsidiary Ledger",
+        creditControlSubsidiary: true,
+      },
+      meta: { requiresAuth: true, title: "All Subsidiary Ledger" },
+    },
+    {
       path: "/admin/kerisi/m/2040",
       name: "kerisi-cc-m-2040",
       component: CreditControlLegacyPlaceholderView,
@@ -1292,16 +1483,7 @@ const router = createRouter({
     {
       path: "/admin/kerisi/m/2288",
       name: "kerisi-cc-m-2288",
-      component: CreditControlLegacyPlaceholderView,
-      props: {
-        title: "Payment In Advance Details",
-        breadcrumb: "Credit Control / Refund / Refund (Staff) / Payment In Advance Details",
-        description:
-          "This legacy Credit Control screen is not reproduced in Kerisi20. Use Kerisi Classic for the full workflow.",
-        relatedPath: "/admin/kerisi/m/1809",
-        relatedLabel: "Deposit",
-      },
-      meta: { requiresAuth: true, title: "Payment In Advance Details" },
+      redirect: (to) => ({ path: "/admin/kerisi/m/2289", query: to.query }),
     },
     {
       path: "/admin/kerisi/m/2300",
@@ -1768,16 +1950,7 @@ const router = createRouter({
     {
       path: "/admin/kerisi/m/2485",
       name: "kerisi-cc-m-2485",
-      component: CreditControlLegacyPlaceholderView,
-      props: {
-        title: "Payment In Advance Details (Draft)",
-        breadcrumb: "Credit Control / Refund / Refund (Staff) / Payment In Advance Details (Draft)",
-        description:
-          "This legacy Credit Control screen is not reproduced in Kerisi20. Use Kerisi Classic for the full workflow.",
-        relatedPath: "/admin/kerisi/m/1809",
-        relatedLabel: "Deposit",
-      },
-      meta: { requiresAuth: true, title: "Payment In Advance Details (Draft)" },
+      redirect: (to) => ({ path: "/admin/kerisi/m/2289", query: to.query }),
     },
     {
       path: "/admin/kerisi/m/2522",
