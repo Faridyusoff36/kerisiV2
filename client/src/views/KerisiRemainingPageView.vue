@@ -36,6 +36,7 @@ import {
   cancelApVoucher,
   deleteApVoucher,
   getKerisiPrToCancelDetails,
+  getApPayeeReportByPtjPaymentDetails,
   kerisiPaymentRejectBatchPaymentCancel,
   kerisiPaymentRejectBatchVoucherCancel,
   kerisiWpnCancel,
@@ -866,8 +867,19 @@ function isBudgetL4KitchenMenu(mid: number | null = menuId.value): boolean {
   );
 }
 
+/**
+ * Account Payable / Report list pages that opt into the kitchen-sink datatable layout.
+ * 2766 — Listing of Payee old (legacy AM_ACCPAYABLE_REPORT_LISTINGOFPAYEE).
+ * 2895 — Bill Report (legacy AS_BL_AP_KPT_REPORT).
+ * 2974 — Transaction History.
+ * 3133 — Payee List Report by PTJ (legacy MM_API_AP_PAYEEREPORTBYPTJ).
+ */
+function isApReportKitchenMenu(mid: number | null = menuId.value): boolean {
+  return mid === 2766 || mid === 2895 || mid === 2974 || mid === 3133;
+}
+
 function isKitchenDatatableMenu(mid: number | null = menuId.value): boolean {
-  return isMoneyTransferKitchenMenu(mid) || isApCreditNoteKitchenMenu(mid) || isApDebitNoteKitchenMenu(mid) || isApPaymentKitchenMenu(mid) || isApIntegrationKitchenMenu(mid) || isBudgetL4KitchenMenu(mid) || isApVoucherKitchenMenu(mid);
+  return isMoneyTransferKitchenMenu(mid) || isApCreditNoteKitchenMenu(mid) || isApDebitNoteKitchenMenu(mid) || isApPaymentKitchenMenu(mid) || isApIntegrationKitchenMenu(mid) || isBudgetL4KitchenMenu(mid) || isApVoucherKitchenMenu(mid) || isApReportKitchenMenu(mid);
 }
 
 function optionsForTopFilter(index: number): { value: string; label: string }[] {
@@ -1155,6 +1167,10 @@ const loading = ref(false);
 const showDetailsPr = ref(false);
 const detailRows = ref<Record<string, unknown>[]>([]);
 const detailLoading = ref(false);
+/** Menu 3133 — secondary "List Payment" grid (loaded on demand via Open Details). */
+const showDetailsPayeeByPtj = ref(false);
+const detailRows3133 = ref<Record<string, unknown>[]>([]);
+const detailLoading3133 = ref(false);
 const total   = ref(0);
 const page    = ref(1);
 const limit   = ref(10);
@@ -1162,6 +1178,12 @@ function resetPr3038Details() {
   showDetailsPr.value = false;
   detailRows.value = [];
   detailLoading.value = false;
+}
+
+function resetPayeeByPtj3133Details() {
+  showDetailsPayeeByPtj.value = false;
+  detailRows3133.value = [];
+  detailLoading3133.value = false;
 }
 
 /** Primary key for navigating from List of PR To Be Cancel (3038) → Purchase Requisition Cancel (3039). */
@@ -1303,10 +1325,30 @@ async function openPr3038Details(row: Record<string, unknown>) {
   }
 }
 
+async function openPayeeByPtjDetails(row: Record<string, unknown>) {
+  const paymentNo = String(row.vde_payment_no ?? row.vdePaymentNo ?? "").trim();
+  if (!paymentNo) {
+    toast.error("List Payment", "Missing payment number for this row.");
+    return;
+  }
+  detailLoading3133.value = true;
+  showDetailsPayeeByPtj.value = true;
+  try {
+    const res = await getApPayeeReportByPtjPaymentDetails(paymentNo);
+    detailRows3133.value = Array.isArray(res.data) ? res.data : [];
+  } catch (e) {
+    detailRows3133.value = [];
+    toast.error("List Payment", e instanceof Error ? e.message : "Unable to load payment details.");
+  } finally {
+    detailLoading3133.value = false;
+  }
+}
+
 function shellRows(di: number): Record<string, unknown>[] {
   /** Menu 3041 DT1 (Details PO/Bill) — not wired yet; dedicated API would populate this. Empty = "No records". */
   if (menuId.value === 3041 && di > 0) return [];
   if (menuId.value === 3038 && di > 0) return detailRows.value;
+  if (menuId.value === 3133 && di > 0) return detailRows3133.value;
   if (menuId.value === 1838 && di === 1) return extraDatatableRowsStore.value[0] ?? [];
   if ((menuId.value === 2624 || menuId.value === 2626) && di === 1) {
     return extraDatatableRowsStore.value[0] ?? [];
@@ -1320,13 +1362,15 @@ function shellRows(di: number): Record<string, unknown>[] {
 function shellTableLoading(di: number): boolean {
   if (menuId.value === 3041 && di > 0) return false;
   if (menuId.value === 3038 && di > 0) return detailLoading.value;
+  if (menuId.value === 3133 && di > 0) return detailLoading3133.value;
   return loading.value;
 }
 
 function showDetailSection(di: number): boolean {
   if (menuId.value === 2618 && di === 2) return false;
-  if (menuId.value !== 3038 || di === 0) return true;
-  return showDetailsPr.value;
+  if (menuId.value === 3038 && di > 0) return showDetailsPr.value;
+  if (menuId.value === 3133 && di > 0) return showDetailsPayeeByPtj.value;
+  return true;
 }
 
 const q       = ref("");
@@ -1392,6 +1436,7 @@ async function loadRows() {
   const id = menuId.value;
   if (id === null) return;
   if (id === 3038) resetPr3038Details();
+  if (id === 3133) resetPayeeByPtj3133Details();
   loading.value = true;
 
   const params = new URLSearchParams({
@@ -1763,6 +1808,7 @@ onMounted(() => {
 watch(menuId, () => {
   initFilters();
   resetPr3038Details();
+  resetPayeeByPtj3133Details();
   wpn2082SelectedCbox.value = "";
   paymentRejectBatchSelectedIds.value = [];
   void loadRows();
@@ -1852,7 +1898,7 @@ onUnmounted(() => {
         </article>
 
         <!-- Form sections BEFORE datatable -->
-        <template v-if="formBeforeDataTable && menuId !== 1838 && menuId !== 1955 && menuId !== 2107 && menuId !== 3270 && menuId !== 2618 && menuId !== 3306 && menuId !== 3461 && !isNewVariationOrderPage">
+        <template v-if="formBeforeDataTable && menuId !== 1838 && menuId !== 1955 && menuId !== 2107 && menuId !== 3270 && menuId !== 2618 && menuId !== 3306 && menuId !== 3461 && menuId !== 2974 && !isNewVariationOrderPage">
           <article
             v-for="grp in formSectionGroups"
             :key="grp.title"
@@ -2411,7 +2457,7 @@ onUnmounted(() => {
             <h2 class="text-base font-semibold text-slate-900">
               {{ dt.componentTitle || "Data" }}
             </h2>
-            <div v-if="di === 0 || menuId !== 3038" class="flex items-center gap-2">
+            <div v-if="(di === 0) || (menuId !== 3038 && menuId !== 3133)" class="flex items-center gap-2">
               <!-- Add / PDF / CSV / Excel — visible only for non-kitchen menus (kitchen menus render these in the footer) -->
               <template v-if="!isKitchenDatatableMenu(menuId) || di !== 0">
                 <!-- Add button (only on popup-modal pages or default) -->
@@ -2559,6 +2605,10 @@ onUnmounted(() => {
                   (menuId === 3546) ? 'min-w-[2000px]' :
                   (menuId === 2297) ? 'min-w-[1600px]' :
                   isApVoucherKitchenMenu(menuId) ? 'min-w-[1200px]' : '',
+                  menuId === 2766 ? 'min-w-[2400px]' : '',
+                  menuId === 2895 ? 'min-w-[3400px]' : '',
+                  menuId === 3133 ? 'min-w-[1800px]' : '',
+                  menuId === 2974 ? 'min-w-[2800px]' : '',
                 ]"
               >
                 <thead class="admin-table-thead-sticky">
@@ -2609,6 +2659,7 @@ onUnmounted(() => {
                       <template v-if="isNoCol(dt.dtBi[hi] ?? '')">
                         {{
                           (menuId === 3038 && di > 0) ||
+                          (menuId === 3133 && di > 0) ||
                           (menuId === 1838 && di > 0) ||
                           ((menuId === 1955 || menuId === 2624 || menuId === 2626 || menuId === 2618) && di > 0)
                             ? ri + 1
@@ -3134,6 +3185,53 @@ onUnmounted(() => {
                             :disabled="String(row.posting ?? '').toLowerCase() === 'yes'"
                             @click="toast.info('Voucher Info Creditor', `Detail ${String(row.vde_voucher_detl_id ?? row.vdeVoucherDetlId ?? '')}: inline creditor edit will be available in a future release.`)">
                             <Pencil class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        <!-- ── Payee List Report by PTJ (3133) — List Payee actions ── -->
+                        <div v-else-if="menuId === 3133 && di === 0" class="flex items-center gap-1" @click.stop>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="Print Bill"
+                            @click="toast.info('Print Bill', 'Bill download is not wired in Kerisi20 yet.')"
+                          >
+                            <Download class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="Print Voucher"
+                            @click="toast.info('Print Voucher', `Voucher ${String(row.vma_voucher_no ?? row.vmaVoucherNo ?? '')}: PDF export is not wired in Kerisi20 yet.`)"
+                          >
+                            <FileText class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="Print SAB"
+                            @click="toast.info('Print SAB', 'SAB print is not wired in Kerisi20 yet.')"
+                          >
+                            <FileDown class="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-violet-500 hover:bg-violet-50 hover:text-violet-700"
+                            title="Open Details"
+                            @click="openPayeeByPtjDetails(row)"
+                          >
+                            <Info class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <!-- ── Payee List Report by PTJ (3133) — List Payment action ── -->
+                        <div v-else-if="menuId === 3133 && di === 1" class="flex items-center gap-1" @click.stop>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                            title="Surat Makluman"
+                            @click="toast.info('Surat Makluman', 'PDF download is not wired in Kerisi20 yet.')"
+                          >
+                            <FileText class="h-3.5 w-3.5" />
                           </button>
                         </div>
 

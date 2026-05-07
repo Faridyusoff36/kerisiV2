@@ -4727,9 +4727,162 @@ class KerisiRemainingShellListService
         return $this->shellPreview('ap_bill_days_report');
     }
 
+    /**
+     * Account Payable / Report / Bill Report (MENUID 2895).
+     *
+     * Legacy: AS_BL_AP_KPT_REPORT.dt_kpt_list=1.
+     * UNION across bills_master + temp_advance_bills_master + temp_emergencyfund_bills_master
+     * + temp_refund_bills_master, then LEFT JOINed to voucher_master/details, payment_record,
+     * payment_batch, plus 11 status-scoped joins on wf_application_status to expose the
+     * Bill / Voucher / BFT lifecycle dates (Check, Endorse, Receive, Verify, Approve, Entry, etc.).
+     */
     private function apBillReport(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->shellPreview('ap_bill_report');
+        $conn = $this->conn();
+
+        $main = $this->apBillReportSubQuery($conn, 'bills_details', 'bills_master');
+        $adv = $this->apBillReportSubQuery($conn, 'temp_advance_bills_details', 'temp_advance_bills_master');
+        $ef = $this->apBillReportSubQuery($conn, 'temp_emergencyfund_bills_details', 'temp_emergencyfund_bills_master');
+        $rf = $this->apBillReportSubQuery($conn, 'temp_refund_bills_details', 'temp_refund_bills_master');
+
+        $inner = $main->union($adv)->union($ef)->union($rf);
+
+        $statusJoins = [
+            ['wch', 'tbl.bim_bills_no', 'CHECK'],
+            ['wen', 'tbl.bim_bills_no', 'ENDORSE'],
+            ['wre', 'tbl.bim_bills_no', 'RECEIVE'],
+            ['wve', 'tbl.bim_bills_no', 'VERIFIED'],
+            ['wap', 'tbl.bim_bills_no', 'APPROVE'],
+            ['ven', 'tbl.bim_voucher_no', 'ENTRY'],
+            ['vve', 'tbl.bim_voucher_no', 'VERIFIED'],
+            ['vap', 'tbl.bim_voucher_no', 'APPROVE'],
+            ['ben', 'pre.pre_payment_batch', 'ENTRY'],
+            ['bve', 'pre.pre_payment_batch', 'VERIFIED'],
+            ['bap', 'pre.pre_payment_batch', 'APPROVE'],
+        ];
+
+        $base = $conn->query()
+            ->fromSub($inner, 'tbl')
+            ->leftJoin('voucher_master as vma', function (JoinClause $j): void {
+                $j->on('tbl.bim_voucher_no', '=', 'vma.vma_voucher_no')
+                    ->whereNotIn('vma.vma_vch_status', ['ERROR', 'DRAFT']);
+            })
+            ->leftJoin('voucher_details as vde', function (JoinClause $j): void {
+                $j->on('vma.vma_voucher_id', '=', 'vde.vma_voucher_id')
+                    ->where('vde.vde_trans_type', 'CR');
+            })
+            ->leftJoin('payment_record as pre', function (JoinClause $j): void {
+                $j->on('pre.pre_voucher_no', '=', 'vma.vma_voucher_no')
+                    ->on('pre.pre_payment_no', '=', 'vde.vde_payment_no');
+            })
+            ->leftJoin('payment_batch as pb', 'pre.pre_payment_batch_id', '=', 'pb.pyb_pybatch_id');
+
+        foreach ($statusJoins as [$alias, $idCol, $status]) {
+            $base->leftJoin('wf_application_status as '.$alias, function (JoinClause $j) use ($alias, $idCol, $status): void {
+                $j->on($idCol, '=', $alias.'.was_application_id')
+                    ->where($alias.'.was_status', $status);
+            });
+        }
+
+        $base->distinct()
+            ->selectRaw(
+                "tbl.bim_bills_no AS bim_bills_no,
+                tbl.bim_bills_desc AS bim_bills_desc,
+                tbl.bim_status AS bim_status,
+                DATE_FORMAT(tbl.entry_date, '%d/%m/%Y') AS entry_date,
+                tbl.bid_payto_id AS bid_payto_id,
+                tbl.bid_payto_name AS bid_payto_name,
+                tbl.bim_cust_invoice_no AS bim_cust_invoice_no,
+                tbl.vsa_bank_accno AS vsa_bank_accno,
+                tbl.third_party_id AS third_party_id,
+                pre.pre_payto_id AS pre_payto_id,
+                pre.pre_payto_name AS pre_payto_name,
+                pre.pre_bank_name AS pre_bank_name,
+                pre.acm_acct_code_bank AS acm_acct_code_bank,
+                DATE_FORMAT(wch.createddate, '%d/%m/%Y') AS Bill_Check_Date,
+                DATE_FORMAT(wen.createddate, '%d/%m/%Y') AS Bill_Endorsed_Date,
+                DATE_FORMAT(wre.createddate, '%d/%m/%Y') AS Bill_Received_Date,
+                DATE_FORMAT(wve.createddate, '%d/%m/%Y') AS Bill_Verify_Date,
+                DATE_FORMAT(wap.createddate, '%d/%m/%Y') AS Bill_Approve_Date,
+                tbl.bim_voucher_no AS bim_voucher_no,
+                vma.vma_vch_status AS vma_vch_status,
+                DATE_FORMAT(ven.createddate, '%d/%m/%Y') AS Voucher_Entry_Date,
+                DATE_FORMAT(vve.createddate, '%d/%m/%Y') AS Voucher_Verify_date,
+                DATE_FORMAT(vap.createddate, '%d/%m/%Y') AS Voucher_Approve_date,
+                pre.pre_payment_no AS pre_payment_no,
+                DATE_FORMAT(pre.pre_bankin_date, '%d/%m/%Y') AS pre_bankin_date,
+                pre.pre_payment_batch AS pre_payment_batch,
+                pb.pyb_status AS pyb_status,
+                DATE_FORMAT(ben.createddate, '%d/%m/%Y') AS BFT_Entry_Date,
+                DATE_FORMAT(bve.createddate, '%d/%m/%Y') AS BFT_Verify_Date,
+                DATE_FORMAT(bap.createddate, '%d/%m/%Y') AS BFT_Approve_Date,
+                DATE_FORMAT(pb.pyb_transfer_date, '%d/%m/%Y') AS pyb_transfer_date,
+                FORMAT(pre.pre_total_amt, 2) AS pre_total_amt,
+                CONCAT_WS('__',
+                    IFNULL(tbl.bim_bills_no, ''),
+                    IFNULL(tbl.bim_bills_desc, ''),
+                    IFNULL(tbl.bim_status, ''),
+                    IFNULL(DATE_FORMAT(tbl.entry_date, '%d/%m/%Y'), ''),
+                    IFNULL(tbl.bid_payto_id, ''),
+                    IFNULL(tbl.bid_payto_name, ''),
+                    IFNULL(tbl.vsa_bank_accno, ''),
+                    IFNULL(tbl.third_party_id, ''),
+                    IFNULL(pre.pre_payto_id, ''),
+                    IFNULL(pre.pre_payto_name, ''),
+                    IFNULL(tbl.bim_cust_invoice_no, ''),
+                    IFNULL(pre.pre_bank_name, ''),
+                    IFNULL(pre.acm_acct_code_bank, ''),
+                    IFNULL(tbl.bim_voucher_no, ''),
+                    IFNULL(vma.vma_vch_status, ''),
+                    IFNULL(pre.pre_payment_no, ''),
+                    IFNULL(pre.pre_payment_batch, ''),
+                    IFNULL(pb.pyb_status, '')
+                ) AS _search_concat"
+            );
+
+        $wrapped = $conn->query()
+            ->fromSub($base, 'rep')
+            ->orderBy('bim_bills_no')
+            ->orderBy('bid_payto_name');
+
+        if ($q !== '') {
+            $needle = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $wrapped->whereRaw('LOWER(IFNULL(_search_concat, \'\')) LIKE ?', [$needle]);
+        }
+
+        $pack = $this->paginate($wrapped, $page, $limit);
+        $pack['rows'] = array_map(static function (array $row): array {
+            unset($row['_search_concat']);
+
+            return $row;
+        }, $pack['rows']);
+
+        return array_merge($pack, ['connector' => 'ap_bill_report']);
+    }
+
+    /**
+     * One UNION branch for the AP Bill Report inner subquery.
+     * Mirrors the legacy 4-way UNION across bills + temp_advance/emergency/refund.
+     */
+    private function apBillReportSubQuery(Connection $conn, string $detailsTable, string $masterTable): Builder
+    {
+        return $conn->table($detailsTable.' as bd')
+            ->leftJoin($masterTable.' as bm', 'bd.bim_bills_id', '=', 'bm.bim_bills_id')
+            ->whereNotNull('bm.bim_bills_no')
+            ->distinct()
+            ->selectRaw(
+                'bm.bim_bills_no AS bim_bills_no,
+                bm.bim_bills_desc AS bim_bills_desc,
+                bm.bim_status AS bim_status,
+                bm.createddate AS entry_date,
+                bd.bid_payto_id AS bid_payto_id,
+                bd.bid_payto_type AS bid_payto_type,
+                bd.bid_payto_name AS bid_payto_name,
+                bm.bim_cust_invoice_no AS bim_cust_invoice_no,
+                bd.vsa_bank_accno AS vsa_bank_accno,
+                bd.bid_factoring_name AS third_party_id,
+                bm.bim_voucher_no AS bim_voucher_no'
+            );
     }
 
     private function apVoucherRegistration(Request $r, int $page, int $limit, string $q): array
@@ -5202,14 +5355,266 @@ class KerisiRemainingShellListService
         return $this->purchasingVendorList($r, $page, $limit, $q);
     }
 
+    /**
+     * Account Payable / Report / Payee List Report by PTJ (menu 3133).
+     *
+     * Legacy: MM_API_AP_PAYEEREPORTBYPTJ.dt_listPayee=1
+     * Joins voucher_details → voucher_master → payment_record → payment_batch → bills_master.
+     * Groups by voucher/payment/payee to aggregate vde_amount per payment.
+     *
+     * Smart filter params:
+     *   sf_0 — Payee Type     (exact match on vde_payto_type)
+     *   sf_1 — Bill No.       (LIKE on bim_bills_no)
+     *   sf_2 — Batch No.      (LIKE on pre_payment_batch)
+     *   sf_3 — Date Entry     (LIKE on formatted createddate)
+     *   sf_4 — Acct Code From (>= acm_acct_code)
+     *   sf_5 — Acct Code To   (<= acm_acct_code)
+     */
     private function apPayeeReportByPtj(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->purchasingVendorList($r, $page, $limit, $q);
+        $cx = $this->conn();
+
+        $sfPayeeType = trim((string) $r->input('sf_0', ''));
+        $sfBillNo    = trim((string) $r->input('sf_1', ''));
+        $sfBatchNo   = trim((string) $r->input('sf_2', ''));
+        $sfDate      = trim((string) $r->input('sf_3', ''));
+        $sfAcctFrom  = trim((string) $r->input('sf_4', ''));
+        $sfAcctTo    = trim((string) $r->input('sf_5', ''));
+
+        $inner = $cx->table('voucher_details as vde')
+            ->leftJoin('voucher_master as vma', 'vde.vma_voucher_id', '=', 'vma.vma_voucher_id')
+            ->leftJoin('payment_record as pr', 'pr.pre_voucher_no', '=', 'vma.vma_voucher_no')
+            ->leftJoin('payment_batch as pb', 'pb.pyb_batch_no', '=', 'pr.pre_payment_batch')
+            ->leftJoin('bills_master as bm', 'vde.bim_bills_no', '=', 'bm.bim_bills_no')
+            ->leftJoin('temp_refund_bills_master as trbm', 'trbm.bim_bills_no', '=', 'vde.bim_bills_no')
+            ->where('vde.vde_trans_type', 'CR')
+            ->whereRaw('vde.vde_payment_no = pr.pre_payment_no')
+            ->selectRaw("
+                vma.vma_voucher_id AS vma_voucher_id,
+                vma.vma_voucher_no AS vma_voucher_no,
+                IFNULL(vde.bim_bills_no, '') AS bim_bills_no,
+                vde.acm_acct_code AS acm_acct_code,
+                bm.bim_cust_invoice_no AS bim_cust_invoice_no,
+                bm.grm_receive_no AS grm_receive_no,
+                DATE_FORMAT(bm.createddate, '%d/%m/%Y') AS createddate,
+                CASE WHEN vma.vma_subsystem_code = 'REFUND' THEN trbm.bim_bills_id ELSE bm.bim_bills_id END AS billid,
+                vde.vde_payment_no AS vde_payment_no,
+                vde.vde_payto_name AS vde_payto_name,
+                vma.vma_subsystem_code AS mastersystemcode,
+                CASE WHEN vma.vma_subsystem_code = 'REFUND' THEN trbm.bim_system_id ELSE vma.vma_subsystem_code END AS subsystemcode,
+                vde.vde_payto_type AS vde_payto_type,
+                vde.vde_payto_id AS vde_payto_id,
+                pr.pre_payment_batch AS pre_payment_batch,
+                pb.pyb_transfer_date AS pyb_transfer_date,
+                vde.vde_pybatch_id AS vde_pybatch_id,
+                pb.pyb_pybatch_id AS pyb_pybatch_id,
+                bm.bim_status AS bim_status,
+                SUM(vde.vde_amount) AS vde_amount,
+                SUBSTRING(pr.pre_payment_batch, 1, 3) AS batchcode,
+                DATE_FORMAT(bm.createddate, '%Y/%m/%d') AS sort
+            ")
+            ->groupByRaw("
+                vma.vma_voucher_id, vma.vma_voucher_no, vde.bim_bills_no, vde.acm_acct_code,
+                bm.bim_cust_invoice_no, bm.grm_receive_no, bm.createddate,
+                CASE WHEN vma.vma_subsystem_code = 'REFUND' THEN trbm.bim_bills_id ELSE bm.bim_bills_id END,
+                vde.vde_payment_no, vde.vde_payto_name, vma.vma_subsystem_code,
+                CASE WHEN vma.vma_subsystem_code = 'REFUND' THEN trbm.bim_system_id ELSE vma.vma_subsystem_code END,
+                vde.vde_payto_type, vde.vde_payto_id, pr.pre_payment_batch, pb.pyb_transfer_date,
+                vde.vde_pybatch_id, pb.pyb_pybatch_id, bm.bim_status,
+                SUBSTRING(pr.pre_payment_batch, 1, 3)
+            ");
+
+        if ($sfPayeeType !== '') {
+            $inner->where('vde.vde_payto_type', $sfPayeeType);
+        }
+        if ($sfBillNo !== '') {
+            $like = $this->likeEscape(mb_strtolower($sfBillNo, 'UTF-8'));
+            $inner->whereRaw("LOWER(IFNULL(vde.bim_bills_no, '')) LIKE ?", [$like]);
+        }
+        if ($sfBatchNo !== '') {
+            $like = $this->likeEscape(mb_strtolower($sfBatchNo, 'UTF-8'));
+            $inner->whereRaw("LOWER(IFNULL(pr.pre_payment_batch, '')) LIKE ?", [$like]);
+        }
+        if ($sfDate !== '') {
+            $like = $this->likeEscape(mb_strtolower($sfDate, 'UTF-8'));
+            $inner->whereRaw("LOWER(DATE_FORMAT(bm.createddate, '%d/%m/%Y')) LIKE ?", [$like]);
+        }
+        if ($sfAcctFrom !== '') {
+            $inner->whereRaw("IFNULL(vde.acm_acct_code, '') >= ?", [$sfAcctFrom]);
+        }
+        if ($sfAcctTo !== '') {
+            $inner->whereRaw("IFNULL(vde.acm_acct_code, '') <= ?", [$sfAcctTo]);
+        }
+
+        $base = $cx->query()->fromSub($inner, 'XX');
+
+        if ($q !== '') {
+            $needle = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|',
+                    IFNULL(vde_payto_type,''), IFNULL(vde_payto_id,''), IFNULL(vde_payto_name,''),
+                    IFNULL(bim_bills_no,''), IFNULL(acm_acct_code,''), IFNULL(bim_cust_invoice_no,''),
+                    IFNULL(bim_status,''), IFNULL(vma_voucher_no,''), IFNULL(vde_payment_no,''),
+                    IFNULL(pre_payment_batch,'')
+                )) LIKE ?",
+                [$needle]
+            );
+        }
+
+        $base->orderBy('sort')->orderBy('acm_acct_code');
+
+        try {
+            $pack = $this->paginate($base, $page, $limit);
+        } catch (\Throwable $e) {
+            return ['rows' => [], 'total' => 0, 'connector' => 'ap_payee_report_by_ptj', 'shellError' => $e->getMessage()];
+        }
+
+        $pack['rows'] = array_map(static function (array $row): array {
+            if (isset($row['pyb_transfer_date']) && $row['pyb_transfer_date'] !== null && $row['pyb_transfer_date'] !== '') {
+                try {
+                    $row['pyb_transfer_date'] = \Carbon\Carbon::parse($row['pyb_transfer_date'])->format('d/m/Y');
+                } catch (\Throwable) {
+                    $row['pyb_transfer_date'] = (string) $row['pyb_transfer_date'];
+                }
+            }
+            return $row;
+        }, $pack['rows']);
+
+        return array_merge($pack, ['connector' => 'ap_payee_report_by_ptj']);
     }
 
+    /**
+     * Account Payable / Report / Payee List Report by PTJ — secondary "List Payment" rows.
+     *
+     * Called by KerisiRemainingController::apPayeeReportByPtjPaymentDetails().
+     * Returns payment record rows for a given vde_payment_no, joined to voucher + bank info.
+     */
+    public function apPayeeReportByPtjPaymentRows(string $paymentNo): array
+    {
+        if ($paymentNo === '') {
+            return [];
+        }
+
+        try {
+            return $this->conn()->table('payment_record as pr')
+                ->leftJoin('voucher_master as vma', 'vma.vma_voucher_no', '=', 'pr.pre_voucher_no')
+                ->leftJoin('bank_master as bm', 'bm.bnm_bank_code', '=', 'pr.pre_bank_name')
+                ->leftJoin('lookup_bank_main as lbm', 'lbm.lbm_bank_code', '=', 'pr.pre_bank_name')
+                ->where('pr.pre_payment_no', $paymentNo)
+                ->select([
+                    DB::raw("pr.pre_payment_no AS pre_payment_no"),
+                    DB::raw("COALESCE(pr.pre_payto_name, '') AS vde_payto_name"),
+                    DB::raw("COALESCE(pr.acm_acct_code_bank, '') AS noacc"),
+                    DB::raw("COALESCE(bm.bnm_bank_desc, lbm.lbm_bank_name, pr.pre_bank_name, '') AS bnm_bank_desc"),
+                    DB::raw("COALESCE(pr.pre_total_amt_rm, pr.pre_total_amt, 0) AS AMOUNT"),
+                    DB::raw("COALESCE(vma.vma_voucher_no, pr.pre_voucher_no, '') AS vma_voucher_no"),
+                    DB::raw("COALESCE(vma.vma_vch_description, '') AS vma_vch_description"),
+                    DB::raw("'' AS pom_order_no"),
+                    DB::raw("'' AS reportpdf"),
+                ])
+                ->get()
+                ->map(fn($r) => (array) $r)
+                ->all();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * Account Payable / Report / Listing of Payee old (MENUID 2766).
+     *
+     * Legacy: AM_ACCPAYABLE_REPORT_LISTINGOFPAYEE.dt_listPayee=1.
+     * UNION across bills_master + temp_advance_bills_master + temp_emergencyfund_bills_master
+     * + temp_refund_bills_master, joined to voucher_master/details, payment_record, payment_batch.
+     * Bank description resolved from bank_master via vsa_vendor_bank lookup.
+     */
     private function apPayeeListing(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->purchasingVendorList($r, $page, $limit, $q);
+        $conn = $this->conn();
+
+        $main = $this->apPayeeListingSubQuery($conn, 'bills_details', 'bills_master');
+        $adv = $this->apPayeeListingSubQuery($conn, 'temp_advance_bills_details', 'temp_advance_bills_master');
+        $ef = $this->apPayeeListingSubQuery($conn, 'temp_emergencyfund_bills_details', 'temp_emergencyfund_bills_master');
+        $rf = $this->apPayeeListingSubQuery($conn, 'temp_refund_bills_details', 'temp_refund_bills_master');
+
+        $union = $main->union($adv)->union($ef)->union($rf);
+
+        $base = $conn->query()
+            ->fromSub($union, 'tbl')
+            ->orderBy('bim_bills_no')
+            ->orderBy('bid_payto_name');
+
+        if ($q !== '') {
+            $needle = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->whereRaw('LOWER(IFNULL(_search_concat, \'\')) LIKE ?', [$needle]);
+        }
+
+        $pack = $this->paginate($base, $page, $limit);
+        $pack['rows'] = array_map(static function (array $row): array {
+            unset($row['_search_concat']);
+
+            return $row;
+        }, $pack['rows']);
+
+        return array_merge($pack, ['connector' => 'ap_payee_listing']);
+    }
+
+    /**
+     * Build one branch of the Listing of Payee UNION.
+     * All branches share the same column set so the wrapper SELECT works.
+     */
+    private function apPayeeListingSubQuery(Connection $conn, string $detailsTable, string $masterTable): Builder
+    {
+        return $conn->table($detailsTable.' as bd')
+            ->join($masterTable.' as bm', 'bd.bim_bills_id', '=', 'bm.bim_bills_id')
+            ->join('voucher_master as vma', function (JoinClause $j): void {
+                $j->on('bm.bim_voucher_no', '=', 'vma.vma_voucher_no')
+                    ->whereNotIn('vma.vma_vch_status', ['ERROR', 'DRAFT']);
+            })
+            ->join('voucher_details as vde', function (JoinClause $j): void {
+                $j->on('vma.vma_voucher_id', '=', 'vde.vma_voucher_id')
+                    ->on('bd.bid_payto_id', '=', 'vde.vde_payto_id')
+                    ->on('bd.bid_payto_type', '=', 'vde.vde_payto_type');
+            })
+            ->join('payment_record as pre', function (JoinClause $j): void {
+                $j->on('pre.pre_voucher_no', '=', 'vma.vma_voucher_no')
+                    ->on('pre.pre_payment_no', '=', 'vde.vde_payment_no')
+                    ->on('pre.pre_payto_id', '=', 'vde.vde_payto_id')
+                    ->on('pre.pre_payee_type', '=', 'vde.vde_payto_type');
+            })
+            ->join('payment_batch as pb', 'pre.pre_payment_batch', '=', 'pb.pyb_batch_no')
+            ->whereNotNull('bm.bim_bills_no')
+            ->distinct()
+            ->selectRaw(
+                "bm.bim_bills_no AS bim_bills_no,
+                bm.bim_bills_desc AS bim_bills_desc,
+                bm.bim_status AS bim_status,
+                DATE_FORMAT(bm.createddate, '%d/%m/%Y') AS entry_date,
+                bd.bid_payto_id AS bid_payto_id,
+                bd.bid_payto_name AS bid_payto_name,
+                (SELECT bnm_bank_desc FROM bank_master WHERE bnm_bank_code = bd.vsa_vendor_bank LIMIT 1) AS vsa_vendor_bank,
+                bd.vsa_bank_accno AS vsa_bank_accno,
+                bd.bid_factoring_name AS third_party_id,
+                bm.bim_voucher_no AS bim_voucher_no,
+                vma.vma_vch_status AS vma_vch_status,
+                DATE_FORMAT(vma.createddate, '%d/%m/%Y') AS v_entry_date,
+                DATE_FORMAT(vde.vde_transfer_date, '%d/%m/%Y') AS vde_transfer_date,
+                pre.pre_payment_no AS pre_payment_no,
+                DATE_FORMAT(pre.createddate, '%d/%m/%Y') AS eft_date,
+                pre.pre_payment_batch AS pre_payment_batch,
+                pb.pyb_status AS pyb_status,
+                DATE_FORMAT(pb.createddate, '%d/%m/%Y') AS bft_date,
+                pre.pre_total_amt AS pre_total_amt,
+                pre.pre_status AS pre_status,
+                CONCAT_WS('__',
+                    IFNULL(vma.vma_voucher_no, ''),
+                    IFNULL(bm.bim_bills_no, ''),
+                    IFNULL(vde.vde_payment_no, ''),
+                    IFNULL(vde.vde_payto_name, ''),
+                    IFNULL(vde.vde_payto_type, ''),
+                    IFNULL(pre.pre_payment_batch, '')
+                ) AS _search_concat"
+            );
     }
 
     private function apJournalBillCancel(Request $r, int $page, int $limit, string $q): array
@@ -5550,9 +5955,193 @@ class KerisiRemainingShellListService
         return $this->shellPreview('ap_historical_sender');
     }
 
+    /**
+     * Account Payable / Report / Transaction History (menu 2974).
+     *
+     * Top-filter params:
+     *   tf_0 — Date From  (DATE format YYYY-MM-DD)
+     *   tf_1 — Date To    (DATE format YYYY-MM-DD)
+     *   tf_2 — Operator   (=, >, <, >=, <=, <>)
+     *   tf_3 — Amount     (decimal string, commas stripped)
+     *   tf_4 — Vendor Status (vcs_bumi_status from TARAF_VENDOR lookup)
+     *   tf_5 — OU Name   (oun_code from organization_unit)
+     *   tf_6 — Vendor Name (vcs_vendor_code from vend_customer_supplier)
+     */
     private function apTransactionHistory(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->apBillRegistrationList($r, $page, $limit, $q);
+        $cx = $this->conn();
+
+        $dateFrom     = trim((string) $r->input('tf_0', ''));
+        $dateTo       = trim((string) $r->input('tf_1', ''));
+        $operator     = trim((string) $r->input('tf_2', ''));
+        $amount       = trim((string) $r->input('tf_3', ''));
+        $vendorStatus = trim((string) $r->input('tf_4', ''));
+        $ouName       = trim((string) $r->input('tf_5', ''));
+        $vendorCode   = trim((string) $r->input('tf_6', ''));
+
+        // Sub-query: one row per requisition — includes oun_code from requisition_details
+        $rdSub = $cx->table('requisition_details')
+            ->selectRaw(
+                'rqm_requisition_id,
+                 MIN(oun_code)         AS oun_code,
+                 MIN(fty_fund_type)    AS fty_fund_type,
+                 MIN(at_activity_code) AS at_activity_code,
+                 MIN(ccr_costcentre)   AS ccr_costcentre,
+                 MIN(acm_acct_code)    AS acm_acct_code'
+            )
+            ->groupBy('rqm_requisition_id');
+
+        $base = $cx->table('bills_details as bd')
+            ->leftJoin('bills_master as bm', 'bd.bim_bills_id', '=', 'bm.bim_bills_id')
+            ->leftJoin('purchase_order_master as pm', 'bm.pom_order_no', '=', 'pm.pom_order_no')
+            ->leftJoin('requisition_master as rm', 'pm.pom_requisition_no', '=', 'rm.rqm_requisition_no')
+            ->leftJoinSub($rdSub, 'rd', fn (JoinClause $j) => $j->on('rm.rqm_requisition_id', '=', 'rd.rqm_requisition_id'))
+            // oun_code comes from requisition_details; join organization_unit for the description
+            ->leftJoin('organization_unit as ou', 'rd.oun_code', '=', 'ou.oun_code')
+            ->leftJoin('vend_customer_supplier as vcs', 'bd.bid_payto_id', '=', 'vcs.vcs_vendor_code')
+            ->leftJoin('voucher_master as vm', 'bm.bim_voucher_no', '=', 'vm.vma_voucher_no')
+            ->leftJoin('account_main as am', 'rd.acm_acct_code', '=', 'am.acm_acct_code')
+            ->whereNotNull('bm.bim_bills_no');
+
+        if ($dateFrom !== '') {
+            $base->whereRaw('DATE(bm.createddate) >= ?', [$dateFrom]);
+        }
+        if ($dateTo !== '') {
+            $base->whereRaw('DATE(bm.createddate) <= ?', [$dateTo]);
+        }
+
+        $allowedOps = ['=', '>', '<', '>=', '<=', '<>'];
+        if ($operator !== '' && $amount !== '' && in_array($operator, $allowedOps, true)) {
+            $base->whereRaw("bd.bid_amt {$operator} ?", [(float) str_replace(',', '', $amount)]);
+        }
+
+        if ($vendorStatus !== '') {
+            $base->where('vcs.vcs_bumi_status', $vendorStatus);
+        }
+        if ($ouName !== '') {
+            $base->where('rd.oun_code', $ouName);
+        }
+        if ($vendorCode !== '') {
+            $base->where('vcs.vcs_vendor_code', $vendorCode);
+        }
+
+        $base
+            ->distinct()
+            ->selectRaw(
+                "ou.oun_desc AS nama_ptj,
+                 vcs.vcs_vendor_name AS vcs_vendor_name,
+                 bm.bim_bills_desc AS bim_bills_desc,
+                 rm.rqm_requisition_no AS rqm_requisition_no,
+                 pm.pom_order_no AS pom_order_no,
+                 bm.bim_bills_no AS bim_bills_no,
+                 bd.bid_status AS bid_status,
+                 vm.vma_voucher_no AS vma_voucher_no,
+                 (SELECT vd.vde_payment_no FROM voucher_details vd
+                  WHERE vd.vma_voucher_id = vm.vma_voucher_id LIMIT 1) AS vde_payment_no,
+                 FORMAT(bd.bid_amt, 2) AS bid_amt,
+                 rm.rqm_amount AS rqm_amount,
+                 rm.rqm_requisition_title AS rqm_requisition_title,
+                 rd.fty_fund_type AS fty_fund_type,
+                 rd.at_activity_code AS at_activity_code,
+                 rd.oun_code AS oun_code,
+                 rd.ccr_costcentre AS ccr_costcentre,
+                 rd.acm_acct_code AS acm_acct_code,
+                 vcs.vcs_bumi_status AS status,
+                 vcs.vcs_vendor_code AS vcs_vendor_code,
+                 am.acm_acct_desc AS acm_acct_desc,
+                 rm.rqm_agg_no AS rqm_agg_no,
+                 pm.pom_aggrement_no AS tender_qua_no,
+                 CONCAT_WS('__',
+                     IFNULL(bm.bim_bills_no, ''),
+                     IFNULL(bm.bim_bills_desc, ''),
+                     IFNULL(vcs.vcs_vendor_name, ''),
+                     IFNULL(vcs.vcs_vendor_code, ''),
+                     IFNULL(rm.rqm_requisition_no, ''),
+                     IFNULL(pm.pom_order_no, ''),
+                     IFNULL(bd.bid_status, ''),
+                     IFNULL(vm.vma_voucher_no, '')
+                 ) AS _search_concat"
+            )
+            ->orderBy('bm.bim_bills_no');
+
+        // Wrap in sub-query so COUNT(*) for pagination is correct with DISTINCT
+        $wrapped = $cx->query()->fromSub($base, 'th');
+
+        if ($q !== '') {
+            $needle = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $wrapped->whereRaw('LOWER(IFNULL(_search_concat, \'\')) LIKE ?', [$needle]);
+        }
+
+        $pack = $this->paginate($wrapped, $page, $limit);
+        $pack['rows'] = array_map(static function (array $row): array {
+            unset($row['_search_concat']);
+
+            return $row;
+        }, $pack['rows']);
+
+        return array_merge($pack, [
+            'connector'          => 'ap_transaction_history',
+            'top_filter_options' => $this->apTransactionHistoryTopFilterOptions(),
+        ]);
+    }
+
+    /**
+     * @return array<string, list<array{value: string, label: string}>>
+     */
+    private function apTransactionHistoryTopFilterOptions(): array
+    {
+        $cx = $this->conn();
+
+        $operatorOpts = [
+            ['value' => '=',  'label' => '= (Equal)'],
+            ['value' => '>',  'label' => '> (More Than)'],
+            ['value' => '<',  'label' => '< (Less Than)'],
+            ['value' => '>=', 'label' => '>= (More Than Equal)'],
+            ['value' => '<=', 'label' => '<= (Less Than Equal)'],
+            ['value' => '<>', 'label' => '<> (Not Equal)'],
+        ];
+
+        $vendorStatusOpts = $cx->table('lookup_details')
+            ->where('lma_code_name', 'TARAF_VENDOR')
+            ->whereNotNull('lde_value')
+            ->where('lde_value', '!=', '')
+            ->selectRaw('TRIM(lde_value) AS val, UPPER(TRIM(IFNULL(lde_description, \'\'))) AS lbl')
+            ->orderBy('lde_value')
+            ->get()
+            ->map(fn ($row) => ['value' => (string) $row->val, 'label' => (string) $row->lbl])
+            ->values()
+            ->all();
+
+        // OU Name: distinct oun_code from requisition_details joined to organization_unit
+        $ouOpts = $cx->table('requisition_details as rd')
+            ->join('organization_unit as ou', 'rd.oun_code', '=', 'ou.oun_code')
+            ->whereNotNull('rd.oun_code')
+            ->where('rd.oun_code', '!=', '')
+            ->selectRaw("DISTINCT TRIM(rd.oun_code) AS val, CONCAT_WS(' - ', TRIM(rd.oun_code), TRIM(IFNULL(ou.oun_desc, ''))) AS lbl")
+            ->orderByRaw('val ASC')
+            ->get()
+            ->map(fn ($row) => ['value' => (string) $row->val, 'label' => (string) $row->lbl])
+            ->values()
+            ->all();
+
+        // Vendor Name: active vendors (vcs_vendor_status = 1)
+        $vendorOpts = $cx->table('vend_customer_supplier')
+            ->where('vcs_vendor_status', '1')
+            ->whereNotNull('vcs_vendor_code')
+            ->where('vcs_vendor_code', '!=', '')
+            ->selectRaw("TRIM(vcs_vendor_code) AS val, CONCAT_WS(' - ', TRIM(vcs_vendor_code), TRIM(IFNULL(vcs_vendor_name, ''))) AS lbl")
+            ->orderBy('vcs_vendor_code')
+            ->get()
+            ->map(fn ($row) => ['value' => (string) $row->val, 'label' => (string) $row->lbl])
+            ->values()
+            ->all();
+
+        return [
+            'tf_2' => $operatorOpts,
+            'tf_4' => $vendorStatusOpts,
+            'tf_5' => $ouOpts,
+            'tf_6' => $vendorOpts,
+        ];
     }
 
     private function apCreditNoteForm(Request $r, int $page, int $limit, string $q): array

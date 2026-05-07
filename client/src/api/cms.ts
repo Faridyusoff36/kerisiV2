@@ -3406,6 +3406,13 @@ export async function getKerisiPrToCancelDetails(query: string) {
   return apiRequest<{ data: Record<string, unknown>[] }>(`/api/kerisi/remaining/pr-to-cancel/details${qs}`);
 }
 
+/** Account Payable / Payee List Report by PTJ (3133) — secondary "List Payment" grid */
+export async function getApPayeeReportByPtjPaymentDetails(paymentNo: string) {
+  return apiRequest<{ data: Record<string, unknown>[] }>(
+    `/api/kerisi/remaining/ap/payee-report-by-ptj/payment-details?payment_no=${encodeURIComponent(paymentNo)}`,
+  );
+}
+
 /** Purchasing / Setup / Item Main (menu 1820) — mysql_secondary cascading lists */
 export type PurchasingItemMainGroupOpt = { value: string; label: string };
 

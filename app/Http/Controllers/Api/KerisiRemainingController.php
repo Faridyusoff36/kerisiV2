@@ -138,6 +138,24 @@ class KerisiRemainingController extends Controller
     }
 
     /**
+     * Account Payable / Payee List Report by PTJ (menu 3133) — secondary "List Payment" grid.
+     *
+     * Query: ?payment_no=PRE_PAYMENT_NO
+     */
+    public function apPayeeReportByPtjPaymentDetails(Request $request): JsonResponse
+    {
+        $paymentNo = trim((string) $request->input('payment_no', ''));
+
+        if ($paymentNo === '') {
+            return $this->sendError(422, 'VALIDATION_ERROR', 'payment_no is required');
+        }
+
+        $rows = app(KerisiRemainingShellListService::class)->apPayeeReportByPtjPaymentRows($paymentNo);
+
+        return $this->sendOk($rows);
+    }
+
+    /**
      * Purchasing / Work Progress Note Cancel — submit cancel (legacy `processcancelwpn_entry`).
      * workflowSubmit was commented in legacy; this updates master + detail rows only.
      */
