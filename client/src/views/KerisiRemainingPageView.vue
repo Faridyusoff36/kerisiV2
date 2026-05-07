@@ -33,6 +33,8 @@ import {
 } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import {
+  cancelApVoucher,
+  deleteApVoucher,
   getKerisiPrToCancelDetails,
   kerisiPaymentRejectBatchPaymentCancel,
   kerisiPaymentRejectBatchVoucherCancel,
@@ -40,6 +42,8 @@ import {
   listKerisiMoneyTransferVirementNumbers,
   listKerisiRemainingData,
 } from "@/api/cms";
+import { apiRequest } from "@/api/client";
+import { useAuthStore } from "@/stores/auth";
 import {
   getKerisiMenuTrailByMenuId,
   parseKerisiNumericMenuIdFromPath,
@@ -54,9 +58,10 @@ import { useToast } from "@/composables/useToast";
 import { useDatatableFeatures } from "@/composables/useDatatableFeatures";
 import type { DatatableRefApi } from "@/composables/useDatatableFeatures";
 
-const toast  = useToast();
-const route  = useRoute();
-const router = useRouter();
+const toast      = useToast();
+const route      = useRoute();
+const router     = useRouter();
+const authStore  = useAuthStore();
 
 const menuId = computed(() => parseKerisiNumericMenuIdFromPath(route.path));
 
@@ -535,6 +540,27 @@ const isNewVariationOrderPage = computed(() => {
   return m !== null && newVariationOrderMenuIds.has(m);
 });
 
+/** Generic sticky-column class for AP Voucher kitchen pages that have dtFreezeLeft/Right > 0. */
+function apVoucherStickyClass(dt: KerisiRemainingDatatable, hi: number, section: "head" | "body"): string {
+  if (!isApVoucherKitchenMenu(menuId.value)) return "";
+  const freezeLeft = dt.dtFreezeLeft ?? 0;
+  const freezeRight = dt.dtFreezeRight ?? 0;
+  if (freezeLeft === 0 && freezeRight === 0) return "";
+  const visible = visibleColIndices(dt);
+  const visPos = visible.indexOf(hi);
+  if (visPos === -1) return "";
+  const z = section === "head" ? "z-[4]" : "z-[2]";
+  if (visPos < freezeLeft) {
+    if (visPos === 0) return `sticky left-0 ${z} w-14 min-w-[3.5rem] bg-white`;
+    if (visPos === 1) return `sticky left-14 ${z} min-w-[9rem] bg-white`;
+    return `sticky ${z} bg-white`;
+  }
+  if (visPos >= visible.length - freezeRight) {
+    return `sticky right-0 ${z} min-w-[7rem] bg-white text-center`;
+  }
+  return "";
+}
+
 function hasFreezeLeft(dt: KerisiRemainingDatatable): boolean {
   return (dt.dtFreezeLeft ?? 0) > 0;
 }
@@ -786,8 +812,53 @@ function isApPaymentKitchenMenu(mid: number | null = menuId.value): boolean {
   return mid === 1897 || mid === 2633 || mid === 2717 || mid === 3345 || mid === 3538;
 }
 
+function isApVoucherKitchenMenu(mid: number | null = menuId.value): boolean {
+  return (
+    mid === 1823 || // Voucher Registration (bills pending vouchering)
+    mid === 2297 || // Voucher Listing
+    mid === 2298 || // Voucher Cancel
+    mid === 2337 || // Voucher Replace
+    mid === 2412 || // Journal Voucher Cancel Listing
+    mid === 3534 || // Download Voucher By Reference
+    mid === 3535 || // Voucher Process
+    mid === 3546    // Voucher Information Creditor
+    // 3461 Direct Voucher is a creation form, not a listing page
+  );
+}
+
+/** Return camelCase key for a Direct Voucher form field from its title. */
+function vcrFieldKey(title: string): string {
+  return title
+    .replace(/\s*\*.*/, "")
+    .trim()
+    .replace(/[^a-zA-Z0-9]+(.?)/g, (_, c: string) => (c ? c.toUpperCase() : ""))
+    .replace(/^[A-Z]/, (c: string) => c.toLowerCase());
+}
+
+/** Fields for the Direct Voucher "Voucher Details" form (componentId 9260). */
+const vcrVoucherDetailsFields = computed(() =>
+  (spec.value?.formSections ?? []).filter((f) => f.componentId === 9260),
+);
+
+/** Budget Level-4 pages from BUDGET_MENU_LEVEL4.json that use the kitchen datatable layout. */
+function isBudgetL4KitchenMenu(mid: number | null = menuId.value): boolean {
+  return (
+    mid === 2426 || // Warant Initial
+    mid === 2429 || // Warant Increment
+    mid === 2430 || // Warant Decrement
+    mid === 2433 || // Warant Virement
+    mid === 2758 || // Allocation, Expenditure & Balance by Budget Code
+    mid === 3297 || // ABM 5
+    mid === 3298 || // ABM 4
+    mid === 3299 || // ABM 7
+    mid === 3300 || // ABM Justifikasi
+    mid === 3308 || // Lampiran ABM 7
+    mid === 3394    // Budget Summary By Account Code (WBR072)
+  );
+}
+
 function isKitchenDatatableMenu(mid: number | null = menuId.value): boolean {
-  return isMoneyTransferKitchenMenu(mid) || isApCreditNoteKitchenMenu(mid) || isApDebitNoteKitchenMenu(mid) || isApPaymentKitchenMenu(mid);
+  return isMoneyTransferKitchenMenu(mid) || isApCreditNoteKitchenMenu(mid) || isApDebitNoteKitchenMenu(mid) || isApPaymentKitchenMenu(mid) || isBudgetL4KitchenMenu(mid) || isApVoucherKitchenMenu(mid);
 }
 
 function optionsForTopFilter(index: number): { value: string; label: string }[] {
@@ -816,7 +887,9 @@ function initFilters() {
   extraDatatableRowsStore.value = [];
   secondaryGridTotal.value = 0;
   kerisiFormOptions.value = {};
-  kerisiFormValues.value = {};
+  kerisiFormValues.value = menuId.value === 3461
+    ? { description: "PEMBAYARAN KE ATAS", status: "DRAFT", amount: "0.00" }
+    : {};
 
   q.value = "";
   page.value = 1;
@@ -903,6 +976,74 @@ function apDebitNoteUrl(row: Record<string, unknown>, mode: "edit" | "view"): st
 
 function goApDebitNote(row: Record<string, unknown>, mode: "edit" | "view"): void {
   void router.push(apDebitNoteUrl(row, mode));
+}
+
+// ── AP Voucher actions ────────────────────────────────────────────────────
+
+/** Navigate to Voucher Information Creditor (3546) filtered by voucher_no. */
+function goApVoucherView(row: Record<string, unknown>): void {
+  // Different list endpoints alias the voucher number column differently:
+  //   • Voucher Listing / Cancel / Process → vma_voucher_no → vmaVoucherNo
+  //   • Voucher Replace (2337) aliases as VoucherNo → voucherNo
+  //   • Some legacy rows expose VoucherNo / Voucher No
+  const vno = String(
+    row.vma_voucher_no
+    ?? row.vmaVoucherNo
+    ?? row.voucherNo
+    ?? row.VoucherNo
+    ?? row["Voucher No"]
+    ?? ""
+  ).trim();
+  if (vno) {
+    void router.push({ path: "/admin/kerisi/m/3546", query: { voucher_no: vno } });
+  } else {
+    toast.error("Voucher", "Voucher number not found in this row.");
+  }
+}
+
+/** Delete a DRAFT voucher with confirmation. */
+async function confirmDeleteApVoucher(row: Record<string, unknown>): Promise<void> {
+  const vno = String(row.vma_voucher_no ?? row.vmaVoucherNo ?? "");
+  const id  = String(row.vma_voucher_id ?? row.vmaVoucherId ?? "");
+  if (!window.confirm(`Delete voucher ${vno}? This action cannot be undone.`)) return;
+  try {
+    await deleteApVoucher(id);
+    toast.success("Voucher", `Voucher ${vno} deleted.`);
+    void loadRows();
+  } catch (e: unknown) {
+    toast.error("Voucher", e instanceof Error ? e.message : "Delete failed.");
+  }
+}
+
+// cancel-voucher modal state
+const voucherCancelModalOpen   = ref(false);
+const voucherCancelTargetRow   = ref<Record<string, unknown>>({});
+const voucherCancelReason      = ref("");
+const voucherCancelSubmitting  = ref(false);
+
+function openVoucherCancelModal(row: Record<string, unknown>): void {
+  voucherCancelTargetRow.value  = row;
+  voucherCancelReason.value     = "";
+  voucherCancelSubmitting.value = false;
+  voucherCancelModalOpen.value  = true;
+}
+
+async function submitVoucherCancel(): Promise<void> {
+  const reason = voucherCancelReason.value.trim();
+  if (!reason) { toast.error("Voucher Cancel", "Please enter a cancel reason."); return; }
+  const id  = String(voucherCancelTargetRow.value.vma_voucher_id ?? voucherCancelTargetRow.value.vmaVoucherId ?? "");
+  const vno = String(voucherCancelTargetRow.value.vma_voucher_no ?? voucherCancelTargetRow.value.vmaVoucherNo ?? "");
+  voucherCancelSubmitting.value = true;
+  try {
+    await cancelApVoucher(id, reason);
+    toast.success("Voucher Cancel", `Voucher ${vno} cancelled.`);
+    voucherCancelModalOpen.value = false;
+    void loadRows();
+  } catch (e: unknown) {
+    toast.error("Voucher Cancel", e instanceof Error ? e.message : "Cancel failed.");
+  } finally {
+    voucherCancelSubmitting.value = false;
+  }
 }
 
 function otherPaymentGroupId(row: Record<string, unknown>): string {
@@ -1183,6 +1324,59 @@ const q       = ref("");
 /** Legacy cbox = wpm_progress_id + '_' + wpm_progress_no for WPN Cancel POST */
 const wpn2082SelectedCbox = ref<string>("");
 const paymentRejectBatchSelectedIds = ref<string[]>([]);
+
+// ── Voucher Process (3535) — selection + form state ─────────────────────────
+const voucherProcessSelectedIds = ref<string[]>([]);
+const voucherProcessForm = ref({ status: "", remark: "" });
+const voucherProcessSubmitting = ref(false);
+
+const voucherProcessTotalAmount = computed(() => {
+  const sel = new Set(voucherProcessSelectedIds.value);
+  return rows.value
+    .filter((r) => sel.has(String((r as Record<string, unknown>).vma_voucher_id ?? (r as Record<string, unknown>).vmaVoucherId ?? "")))
+    .reduce((acc, r) => {
+      const amt = parseFloat(String((r as Record<string, unknown>).vma_total_amt ?? (r as Record<string, unknown>).vmaTotalAmt ?? "0"));
+      return acc + (isNaN(amt) ? 0 : amt);
+    }, 0);
+});
+
+function fmtMyr(n: number): string {
+  return n.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+async function submitVoucherProcess(): Promise<void> {
+  if (voucherProcessSelectedIds.value.length === 0) {
+    toast.error("Voucher Process", "Please select at least one voucher.");
+    return;
+  }
+  if (!voucherProcessForm.value.status) {
+    toast.error("Voucher Process", "Status is required.");
+    return;
+  }
+  if (!voucherProcessForm.value.remark.trim()) {
+    toast.error("Voucher Process", "Remark is required.");
+    return;
+  }
+  voucherProcessSubmitting.value = true;
+  try {
+    await apiRequest("/api/kerisi/ap/voucher-process/submit", {
+      method: "POST",
+      body: JSON.stringify({
+        voucher_ids: voucherProcessSelectedIds.value.map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0),
+        status: voucherProcessForm.value.status,
+        remark: voucherProcessForm.value.remark.trim(),
+      }),
+    });
+    toast.success("Voucher Process", `Status set to ${voucherProcessForm.value.status} for ${voucherProcessSelectedIds.value.length} voucher(s).`);
+    voucherProcessSelectedIds.value = [];
+    voucherProcessForm.value = { status: "", remark: "" };
+    void loadRows();
+  } catch (e) {
+    toast.error("Voucher Process", e instanceof Error ? e.message : "Submit failed.");
+  } finally {
+    voucherProcessSubmitting.value = false;
+  }
+}
 let searchDebounce: ReturnType<typeof setTimeout> | null = null;
 
 async function loadRows() {
@@ -1325,6 +1519,13 @@ function onLimitChange() {
 // ── top filter apply ──────────────────────────────────────────────────────
 /** Item Main Listing (1829): legacy cascaded autosuggest — refetch options when parent dropdown changes. */
 function onTopFilterFieldChange(fieldIndex: number) {
+  // Download Voucher Supplier By Batch (2817) — clear hidden fields when "Filter By" changes
+  if (menuId.value === 2817 && fieldIndex === 0) {
+    topFilterValues.value.tf_1 = "";
+    topFilterValues.value.tf_2 = "";
+    topFilterValues.value.tf_3 = "";
+    return;
+  }
   if (menuId.value !== 1829) return;
   if (fieldIndex === 0) {
     topFilterValues.value.tf_1 = "";
@@ -1334,6 +1535,34 @@ function onTopFilterFieldChange(fieldIndex: number) {
   }
   page.value = 1;
   void loadRows();
+}
+
+/**
+ * Map a top-filter field's declared fieldType to the right HTML input type.
+ * Legacy "custom" fields rely on field-title heuristics (anything containing
+ * "Date" → date input; otherwise plain text).
+ */
+function topFilterInputType(f: { fieldType: string; title: string }): string {
+  if (f.fieldType === "date") return "date";
+  if (f.fieldType === "custom") {
+    return /date/i.test(f.title) ? "date" : "text";
+  }
+  return "text";
+}
+
+/**
+ * Download Voucher Supplier By Batch (2817):
+ * Voucher No From/To and Batch No are hidden in legacy cssClass "d-none"
+ * — reveal only the relevant pair based on "Filter By" selection.
+ */
+function isTopFilterFieldVisible(fieldIndex: number): boolean {
+  if (menuId.value !== 2817) return true;
+  const filterBy = topFilterValues.value.tf_0 ?? "";
+  if (fieldIndex === 0) return true;            // Filter By — always visible
+  if (fieldIndex === 1) return filterBy === "voucher";   // Voucher No From
+  if (fieldIndex === 2) return filterBy === "voucher";   // Voucher No To
+  if (fieldIndex === 3) return filterBy === "batching";  // Batch No
+  return true;
 }
 
 function applyTopFilter() {
@@ -1554,7 +1783,7 @@ onUnmounted(() => {
             <h2 class="text-base font-semibold text-slate-900">{{ menuId === 3538 ? "Payment Batch" : "Filter" }}</h2>
           </div>
           <div class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-            <div v-for="(f, fi) in spec?.topFilterFields ?? []" :key="'tf-' + fi">
+            <div v-for="(f, fi) in spec?.topFilterFields ?? []" :key="'tf-' + fi" v-show="isTopFilterFieldVisible(fi)">
               <label class="mb-1 block text-xs font-medium text-slate-600">{{ f.title }}</label>
               <select
                 v-if="f.fieldType === 'dropdown' || f.lookupQuery"
@@ -1574,7 +1803,7 @@ onUnmounted(() => {
               <input
                 v-else
                 v-model="topFilterValues[`tf_${fi}`]"
-                :type="f.fieldType === 'date' ? 'date' : 'text'"
+                :type="topFilterInputType(f)"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
                 :placeholder="f.title"
               />
@@ -1599,7 +1828,7 @@ onUnmounted(() => {
         </article>
 
         <!-- Form sections BEFORE datatable -->
-        <template v-if="formBeforeDataTable && menuId !== 1838 && menuId !== 1955 && menuId !== 2107 && menuId !== 3270 && menuId !== 2618 && menuId !== 3306 && !isNewVariationOrderPage">
+        <template v-if="formBeforeDataTable && menuId !== 1838 && menuId !== 1955 && menuId !== 2107 && menuId !== 3270 && menuId !== 2618 && menuId !== 3306 && menuId !== 3461 && !isNewVariationOrderPage">
           <article
             v-for="grp in formSectionGroups"
             :key="grp.title"
@@ -1677,6 +1906,118 @@ onUnmounted(() => {
             </div>
           </article>
         </template>
+        <!-- ═══════════════════════════════════════════════════════════
+             DIRECT VOUCHER (menuId 3461) — Voucher Details Form
+             ═══════════════════════════════════════════════════════════ -->
+        <template v-else-if="formBeforeDataTable && menuId === 3461">
+          <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-4 py-3">
+              <h2 class="text-base font-semibold text-slate-900">Voucher Details</h2>
+            </div>
+            <div class="grid gap-y-3 p-4">
+              <template v-for="(f, fi) in vcrVoucherDetailsFields" :key="'vcr-' + fi">
+                <!-- Hidden fields -->
+                <template v-if="f.cssClass.includes('d-none')" />
+
+                <!-- Amount + Status side-by-side row -->
+                <div v-else-if="f.title === 'Amount'" class="grid grid-cols-2 gap-6">
+                  <div class="grid items-center gap-2 md:grid-cols-[9rem_0.5rem_1fr]">
+                    <label class="text-xs font-semibold text-slate-700">Amount</label>
+                    <span class="text-slate-500">:</span>
+                    <div class="flex">
+                      <span class="inline-flex h-8 items-center rounded-l border border-r-0 border-slate-300 bg-slate-100 px-2 text-xs text-slate-600">MYR</span>
+                      <input
+                        :value="kerisiFormValues.amount || '0.00'"
+                        disabled
+                        class="h-8 flex-1 rounded-r border border-slate-300 bg-slate-50 px-2 text-right text-xs text-slate-500"
+                      />
+                    </div>
+                  </div>
+                  <div class="grid items-center gap-2 md:grid-cols-[6rem_0.5rem_1fr]">
+                    <label class="text-xs font-semibold text-slate-700">Status</label>
+                    <span class="text-slate-500">:</span>
+                    <input
+                      :value="kerisiFormValues.status || 'DRAFT'"
+                      disabled
+                      class="h-8 rounded border border-slate-200 bg-slate-100 px-2 text-xs text-slate-500"
+                    />
+                  </div>
+                </div>
+
+                <!-- Skip Status — rendered inline with Amount above -->
+                <template v-else-if="f.title === 'Status'" />
+
+                <!-- Regular field row -->
+                <div
+                  v-else
+                  :class="['grid gap-2 md:grid-cols-[13rem_0.5rem_1fr]', f.fieldType === 'textarea' ? 'items-start' : 'items-center']"
+                >
+                  <label :class="['text-xs font-semibold text-slate-700', f.fieldType === 'textarea' ? 'pt-2' : '']">
+                    {{ f.title.replace(/\s*\*.*/, '') }}
+                    <span v-if="f.title.includes('*')" class="text-red-600">*</span>
+                  </label>
+                  <span :class="['text-slate-500', f.fieldType === 'textarea' ? 'pt-2' : '']">:</span>
+
+                  <!-- Textarea -->
+                  <textarea
+                    v-if="f.fieldType === 'textarea'"
+                    v-model="kerisiFormValues[vcrFieldKey(f.title)]"
+                    rows="3"
+                    :placeholder="f.defaultValue || ''"
+                    class="rounded border border-slate-300 px-2 py-1.5 text-xs uppercase focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  />
+
+                  <!-- Disabled text input -->
+                  <input
+                    v-else-if="f.isDisabled || f.additionalAttribute.includes('disabled')"
+                    :value="kerisiFormValues[vcrFieldKey(f.title)] || f.defaultValue || ''"
+                    disabled
+                    class="h-8 rounded border border-slate-200 bg-slate-100 px-2 text-xs text-slate-500"
+                  />
+
+                  <!-- Dropdown (no live lookup data yet — empty options) -->
+                  <select
+                    v-else-if="f.fieldType === 'dropdown'"
+                    v-model="kerisiFormValues[vcrFieldKey(f.title)]"
+                    class="h-8 rounded border border-slate-300 bg-white px-2 text-xs focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  >
+                    <option value="">— Select —</option>
+                  </select>
+
+                  <!-- Plain text input -->
+                  <input
+                    v-else
+                    v-model="kerisiFormValues[vcrFieldKey(f.title)]"
+                    class="h-8 rounded border border-slate-300 px-2 text-xs focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  />
+                </div>
+              </template>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex items-center justify-center gap-3 border-t border-slate-100 px-4 py-3">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-4 py-2 text-xs font-medium text-white hover:bg-sky-700"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Manual
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Upload File
+              </button>
+            </div>
+          </article>
+        </template>
+
         <template v-else-if="formBeforeDataTable && isNewVariationOrderPage">
           <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-100 px-4 py-3">
@@ -2046,65 +2387,69 @@ onUnmounted(() => {
             <h2 class="text-base font-semibold text-slate-900">
               {{ dt.componentTitle || "Data" }}
             </h2>
-            <div v-if="(!isKitchenDatatableMenu(menuId) || di !== 0) && (di === 0 || menuId !== 3038)" class="flex items-center gap-2">
-              <!-- Add button (only on popup-modal pages or default) -->
-              <button
-                v-if="
-                  isTenderQuotationPage ||
-                  menuId === 1955 ||
-                  menuId === 3306 ||
-                  menuId === 2846 ||
-                  menuId === 3320 ||
-                  menuId === 1939 ||
-                  menuId === 1941 ||
-                  menuId === 3100 ||
-                  menuId === 3106
-                    ? false
-                    : menuId === 2618
-                      ? di < 2
-                      : hasPopupForm || di === 0
-                "
-                type="button"
-                class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
-                @click="onAddPrimaryClick(di)"
-              >
-                <Plus class="h-3.5 w-3.5" />
-                Add
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
-                @click="handleDownloadPDF"
-              >
-                <FileDown class="h-3.5 w-3.5" />
-                PDF
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
-                @click="handleDownloadCSV"
-              >
-                <Download class="h-3.5 w-3.5" />
-                CSV
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
-                @click="handleDownloadExcel"
-              >
-                <FileSpreadsheet class="h-3.5 w-3.5" />
-                Excel
-              </button>
-                            <div ref="overflowRoot" class="relative">
-                  <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" @click.stop="overflowOpen = !overflowOpen">
-                    <MoreVertical class="h-4 w-4" />
-                  </button>
-                  <div v-if="overflowOpen" class="absolute right-0 z-30 mt-1 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg" @click.stop>
-                    <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleSaveTemplate()">Save template</button>
-                    <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleLoadTemplate()">Load template</button>
-                    <button v-if="isGrouped" type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleUngroupList()">Ungroup list</button>
-                    <button v-else type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleGroupList()">Group list</button>
-                  </div>
+            <div v-if="di === 0 || menuId !== 3038" class="flex items-center gap-2">
+              <!-- Add / PDF / CSV / Excel — visible only for non-kitchen menus (kitchen menus render these in the footer) -->
+              <template v-if="!isKitchenDatatableMenu(menuId) || di !== 0">
+                <!-- Add button (only on popup-modal pages or default) -->
+                <button
+                  v-if="
+                    isTenderQuotationPage ||
+                    menuId === 1955 ||
+                    menuId === 3306 ||
+                    menuId === 2846 ||
+                    menuId === 3320 ||
+                    menuId === 1939 ||
+                    menuId === 1941 ||
+                    menuId === 3100 ||
+                    menuId === 3106
+                      ? false
+                      : menuId === 2618
+                        ? di < 2
+                        : hasPopupForm || di === 0
+                  "
+                  type="button"
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
+                  @click="onAddPrimaryClick(di)"
+                >
+                  <Plus class="h-3.5 w-3.5" />
+                  Add
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+                  @click="handleDownloadPDF"
+                >
+                  <FileDown class="h-3.5 w-3.5" />
+                  PDF
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+                  @click="handleDownloadCSV"
+                >
+                  <Download class="h-3.5 w-3.5" />
+                  CSV
+                </button>
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+                  @click="handleDownloadExcel"
+                >
+                  <FileSpreadsheet class="h-3.5 w-3.5" />
+                  Excel
+                </button>
+              </template>
+              <!-- Three-dot menu — always in card header top-right -->
+              <div ref="overflowRoot" class="relative">
+                <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" @click.stop="overflowOpen = !overflowOpen">
+                  <MoreVertical class="h-4 w-4" />
+                </button>
+                <div v-if="overflowOpen" class="absolute right-0 z-30 mt-1 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg" @click.stop>
+                  <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleSaveTemplate()">Save template</button>
+                  <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleLoadTemplate()">Load template</button>
+                  <button v-if="isGrouped" type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleUngroupList()">Ungroup list</button>
+                  <button v-else type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleGroupList()">Group list</button>
+                </div>
               </div>
             </div>
           </div>
@@ -2185,6 +2530,9 @@ onUnmounted(() => {
                   isApCreditNoteKitchenMenu(menuId) ? 'min-w-[1800px]' : '',
                   isApDebitNoteKitchenMenu(menuId) ? 'min-w-[1800px]' : '',
                   isApPaymentKitchenMenu(menuId) ? 'min-w-[1300px]' : '',
+                  (menuId === 3546) ? 'min-w-[2000px]' :
+                  (menuId === 2297) ? 'min-w-[1600px]' :
+                  isApVoucherKitchenMenu(menuId) ? 'min-w-[1200px]' : '',
                 ]"
               >
                 <thead class="admin-table-thead-sticky">
@@ -2195,6 +2543,7 @@ onUnmounted(() => {
                       :class="[
                         menuId === 3306 && isActionCol(dt.dtBi[hi] ?? '') ? '!normal-case text-center align-middle' : '',
                         billRegistrationStickyClass(dt, hi, 'head'),
+                        apVoucherStickyClass(dt, hi, 'head'),
                       ]"
                     >
                       <input
@@ -2229,7 +2578,7 @@ onUnmounted(() => {
                     <td
                       v-for="hi in visibleColIndices(dt)"
                       :key="'c-' + ri + '-' + hi"
-                      :class="[tableNumericColClass(dt, hi), billRegistrationStickyClass(dt, hi, 'body')]"
+                      :class="[tableNumericColClass(dt, hi), billRegistrationStickyClass(dt, hi, 'body'), apVoucherStickyClass(dt, hi, 'body')]"
                     >
                       <template v-if="isNoCol(dt.dtBi[hi] ?? '')">
                         {{
@@ -2682,6 +3031,86 @@ onUnmounted(() => {
                             <Eye v-else class="h-3.5 w-3.5" />
                           </button>
                         </div>
+
+                        <!-- ── AP Voucher Listing (2297) ── -->
+                        <div v-else-if="menuId === 2297 && di === 0" class="flex items-center justify-center gap-0.5" @click.stop>
+                          <button type="button" class="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-30" title="Download Voucher" disabled>
+                            <Download class="h-3.5 w-3.5" />
+                          </button>
+                          <button type="button" class="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:opacity-30" title="Download Voucher (Supplier)" disabled>
+                            <FileDown class="h-3.5 w-3.5" />
+                          </button>
+                          <button type="button" class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800" title="View" @click="goApVoucherView(row)">
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
+                          <button type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                            title="Edit"
+                            :disabled="String(row.vma_vch_status ?? row.vmaVchStatus ?? '').toUpperCase() !== 'DRAFT'"
+                            @click="toast.info('Voucher', `Voucher ${String(row.vma_voucher_no ?? row.vmaVoucherNo ?? '')}: edit form is not yet available — use Direct Voucher to create.`)">
+                            <Pencil class="h-3.5 w-3.5" />
+                          </button>
+                          <button type="button"
+                            class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30"
+                            :title="['APPROVE','ENTRY','VERIFIED'].includes(String(row.vma_vch_status ?? row.vmaVchStatus ?? '').toUpperCase()) ? 'Cancel Voucher' : 'Delete Voucher'"
+                            :disabled="!['DRAFT','APPROVE','ENTRY','VERIFIED'].includes(String(row.vma_vch_status ?? row.vmaVchStatus ?? '').toUpperCase())"
+                            @click="['DRAFT'].includes(String(row.vma_vch_status ?? row.vmaVchStatus ?? '').toUpperCase()) ? confirmDeleteApVoucher(row) : openVoucherCancelModal(row)">
+                            <Trash2 class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        <!-- ── AP Voucher Cancel (2298) ── -->
+                        <div v-else-if="menuId === 2298 && di === 0" class="flex items-center justify-center gap-1" @click.stop>
+                          <button type="button" class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800" title="View Voucher"
+                            @click="goApVoucherView(row)">
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
+                          <button type="button" class="rounded p-1 text-amber-500 hover:bg-amber-50 hover:text-amber-700" title="Cancel Voucher"
+                            @click="openVoucherCancelModal(row)">
+                            <ChevronsDown class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        <!-- ── Voucher Replace (2337) / Journal Voucher Cancel (2412) ── -->
+                        <div v-else-if="(menuId === 2337 || menuId === 2412) && di === 0" class="flex items-center justify-center gap-1" @click.stop>
+                          <button v-if="menuId === 2412" type="button" class="rounded p-1 text-slate-400 disabled:opacity-30" title="Download PDF" disabled>
+                            <FileText class="h-3.5 w-3.5" />
+                          </button>
+                          <button type="button" class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800" title="View Voucher"
+                            @click="goApVoucherView(row)">
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        <!-- ── Voucher Process (3535) — Action col ── -->
+                        <div v-else-if="menuId === 3535 && !toStr(dt.dtBi[hi] ?? '').toLowerCase().includes('<input') && di === 0"
+                          class="flex items-center justify-center gap-1" @click.stop>
+                          <button type="button" class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800" title="View Voucher"
+                            @click="goApVoucherView(row)">
+                            <Eye class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <!-- ── Voucher Process (3535) — Checkbox col ── -->
+                        <div v-else-if="menuId === 3535 && toStr(dt.dtBi[hi] ?? '').toLowerCase().includes('<input')"
+                          class="flex items-center justify-center" @click.stop>
+                          <input type="checkbox"
+                            v-model="voucherProcessSelectedIds"
+                            class="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+                            :value="String(row.vma_voucher_id ?? row.vmaVoucherId ?? '')"
+                            :aria-label="`Select voucher ${String(row.vma_voucher_no ?? row.vmaVoucherNo ?? '')}`" />
+                        </div>
+
+                        <!-- ── Voucher Information Creditor (3546) ── -->
+                        <div v-else-if="menuId === 3546 && di === 0" class="flex items-center justify-center gap-1" @click.stop>
+                          <button type="button"
+                            class="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-30"
+                            title="Edit Creditor Info"
+                            :disabled="String(row.posting ?? '').toLowerCase() === 'yes'"
+                            @click="toast.info('Voucher Info Creditor', `Detail ${String(row.vde_voucher_detl_id ?? row.vdeVoucherDetlId ?? '')}: inline creditor edit will be available in a future release.`)">
+                            <Pencil class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
                         <div v-else class="flex items-center gap-1" @click.stop>
                           <button
                             type="button"
@@ -3056,7 +3485,7 @@ onUnmounted(() => {
         </template>
 
         <!-- Form sections AFTER datatable -->
-        <template v-if="!formBeforeDataTable && menuId !== 2845 && menuId !== 2107 && menuId !== 3270 && menuId !== 3538">
+        <template v-if="!formBeforeDataTable && menuId !== 2845 && menuId !== 2107 && menuId !== 3270 && menuId !== 3538 && menuId !== 3535">
           <article
             v-for="grp in formSectionGroups"
             :key="grp.title"
@@ -3075,6 +3504,96 @@ onUnmounted(() => {
                   value=""
                 />
               </div>
+            </div>
+          </article>
+        </template>
+
+        <!-- ── Voucher Process (3535) — Processed By form ─────────────────── -->
+        <template v-if="!formBeforeDataTable && menuId === 3535">
+          <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-4 py-3">
+              <h2 class="text-base font-semibold text-slate-900">Processed By</h2>
+            </div>
+            <div class="grid gap-4 p-4 sm:grid-cols-2">
+              <!-- Name (disabled) -->
+              <div>
+                <label class="mb-1 block text-xs font-medium text-slate-600">Name</label>
+                <input
+                  disabled
+                  :value="authStore.user?.name ?? ''"
+                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500"
+                />
+              </div>
+              <!-- Position (disabled) -->
+              <div>
+                <label class="mb-1 block text-xs font-medium text-slate-600">Position</label>
+                <input
+                  disabled
+                  value=""
+                  placeholder="—"
+                  class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500"
+                />
+              </div>
+              <!-- Total Amount (disabled, computed from selection) -->
+              <div class="sm:col-span-2">
+                <label class="mb-1 block text-xs font-medium text-slate-600">Total Amount</label>
+                <div class="flex overflow-hidden rounded-lg border border-slate-200">
+                  <span class="bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600">MYR</span>
+                  <input
+                    disabled
+                    :value="fmtMyr(voucherProcessTotalAmount)"
+                    class="w-full bg-slate-50 px-3 py-2 text-right text-sm tabular-nums text-slate-700"
+                  />
+                </div>
+                <p class="mt-1 text-xs text-slate-500">
+                  {{ voucherProcessSelectedIds.length }} voucher(s) selected.
+                </p>
+              </div>
+              <!-- Status (editable, required) -->
+              <div>
+                <label class="mb-1 block text-xs font-medium text-slate-600">
+                  Status <span class="text-red-500">*</span>
+                </label>
+                <select
+                  v-model="voucherProcessForm.status"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                >
+                  <option value="" disabled>— Select status —</option>
+                  <option value="APPROVE">Approve</option>
+                  <option value="REJECT">Reject</option>
+                  <option value="RETURN">Return</option>
+                </select>
+              </div>
+              <div class="hidden sm:block"></div>
+              <!-- Remark (editable, required) -->
+              <div class="sm:col-span-2">
+                <label class="mb-1 block text-xs font-medium text-slate-600">
+                  Remark <span class="text-red-500">*</span>
+                </label>
+                <textarea
+                  v-model="voucherProcessForm.remark"
+                  rows="3"
+                  placeholder="Enter remark…"
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                ></textarea>
+              </div>
+            </div>
+            <div class="flex justify-end gap-2 border-t border-slate-100 bg-slate-50 px-4 py-3">
+              <button
+                type="button"
+                class="rounded-lg border border-slate-300 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50"
+                @click="voucherProcessSelectedIds = []; voucherProcessForm.status = ''; voucherProcessForm.remark = '';"
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                :disabled="voucherProcessSubmitting"
+                @click="submitVoucherProcess"
+              >
+                {{ voucherProcessSubmitting ? "Submitting…" : "Submit" }}
+              </button>
             </div>
           </article>
         </template>
@@ -3346,6 +3865,61 @@ onUnmounted(() => {
               @click="menuId === 2618 ? saveAdvertisementPopup() : (showPopupModal = false)"
             >
               Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- AP Voucher Cancel Modal (2297 Delete/Cancel + 2298 Cancel) -->
+    <Teleport to="body">
+      <div
+        v-if="voucherCancelModalOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+        @click.self="voucherCancelModalOpen = false"
+      >
+        <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white shadow-xl">
+          <div class="flex items-center justify-between rounded-t-xl border-b border-slate-100 bg-indigo-700 px-5 py-4">
+            <h3 class="text-base font-semibold text-white">Cancel Voucher</h3>
+            <button type="button" class="text-white/70 hover:text-white" @click="voucherCancelModalOpen = false">
+              <X class="h-4 w-4" />
+            </button>
+          </div>
+          <div class="space-y-4 p-5">
+            <div>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Voucher No</label>
+              <input
+                type="text"
+                class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                :value="String(voucherCancelTargetRow.vma_voucher_no ?? voucherCancelTargetRow.vmaVoucherNo ?? '')"
+                disabled
+              />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-slate-600">Reason <span class="text-red-500">*</span></label>
+              <textarea
+                v-model="voucherCancelReason"
+                rows="3"
+                placeholder="Enter cancel reason…"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              />
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 border-t border-slate-100 px-5 py-4">
+            <button
+              type="button"
+              class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+              @click="voucherCancelModalOpen = false"
+            >
+              Close
+            </button>
+            <button
+              type="button"
+              class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              :disabled="voucherCancelSubmitting"
+              @click="submitVoucherCancel"
+            >
+              {{ voucherCancelSubmitting ? 'Cancelling…' : 'Cancel Voucher' }}
             </button>
           </div>
         </div>

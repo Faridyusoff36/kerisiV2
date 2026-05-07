@@ -1022,6 +1022,41 @@ export async function getPettyCashClaimProcessFlow(id: number) {
   );
 }
 
+// ─── AP Direct Voucher autosuggest (menuId 3461) ───────────────────────────
+
+export type ApDvSuggestion = { id: string; desc: string; text: string };
+
+export async function suggestApDvPayee(q = "") {
+  return apiRequest<{ data: ApDvSuggestion[] }>(
+    `/api/ap/direct-voucher/payee/suggest?q=${encodeURIComponent(q)}`,
+  );
+}
+export async function suggestApDvFundType(q = "") {
+  return apiRequest<{ data: ApDvSuggestion[] }>(
+    `/api/ap/direct-voucher/fund-type/suggest?q=${encodeURIComponent(q)}`,
+  );
+}
+export async function suggestApDvActivityCode(q = "", fundType = "") {
+  return apiRequest<{ data: ApDvSuggestion[] }>(
+    `/api/ap/direct-voucher/activity-code/suggest?q=${encodeURIComponent(q)}&fund_type=${encodeURIComponent(fundType)}`,
+  );
+}
+export async function suggestApDvPtj(q = "") {
+  return apiRequest<{ data: ApDvSuggestion[] }>(
+    `/api/ap/direct-voucher/ptj/suggest?q=${encodeURIComponent(q)}`,
+  );
+}
+export async function suggestApDvCostCenter(q = "") {
+  return apiRequest<{ data: ApDvSuggestion[] }>(
+    `/api/ap/direct-voucher/cost-center/suggest?q=${encodeURIComponent(q)}`,
+  );
+}
+export async function suggestApDvAccountCode(q = "", fundType = "") {
+  return apiRequest<{ data: ApDvSuggestion[] }>(
+    `/api/ap/direct-voucher/account-code/suggest?q=${encodeURIComponent(q)}&fund_type=${encodeURIComponent(fundType)}`,
+  );
+}
+
 // List Petty Cash by PTJ (PAGEID 1963 / MENUID 2399).
 export async function listPettyCashByPtj(params = "") {
   return apiRequest<{ data: PettyCashByPtjRow[]; meta: Record<string, unknown> }>(
@@ -3347,6 +3382,22 @@ export async function kerisiPaymentRejectBatchVoucherCancel(payload: { selectedI
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+/** AP Voucher — delete a DRAFT voucher */
+export async function deleteApVoucher(id: string | number) {
+  return apiRequest<{ data: { success: boolean; message: string } }>(
+    `/api/kerisi/ap/voucher/${id}`,
+    { method: "DELETE" },
+  );
+}
+
+/** AP Voucher — cancel an APPROVE/ENTRY/VERIFIED voucher */
+export async function cancelApVoucher(id: string | number, cancelReason: string) {
+  return apiRequest<{ data: { vmaVchStatus: string; message: string } }>(
+    `/api/kerisi/ap/voucher/${id}/cancel`,
+    { method: "POST", body: JSON.stringify({ cancelReason }) },
+  );
 }
 
 /** Purchasing / List of PR To Be Cancel (3038) — Details PR grid linked to PR no / id */

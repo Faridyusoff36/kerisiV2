@@ -988,4 +988,265 @@ class KerisiRemainingController extends Controller
 
         return $this->sendOk(['dnaStatusDn' => 'CANCEL', 'message' => 'Debit note cancelled.']);
     }
+
+    // ── AP Voucher actions ──────────────────────────────────────────────────
+
+    public function apVoucherDelete(Request $request, string $id): JsonResponse
+    {
+        $conn = $this->secondaryConn();
+        $voucher = $conn->table('voucher_master')
+            ->where('vma_voucher_id', $id)
+            ->first();
+
+        if (! $voucher) {
+            return $this->sendError(404, 'NOT_FOUND', 'Voucher not found');
+        }
+        if (strtoupper((string) ($voucher->vma_vch_status ?? '')) !== 'DRAFT') {
+            return $this->sendError(422, 'VALIDATION_ERROR', 'Only DRAFT vouchers can be deleted');
+        }
+
+        $conn->table('voucher_details')->where('vma_voucher_id', $id)->delete();
+        $conn->table('voucher_master')->where('vma_voucher_id', $id)->delete();
+
+        return $this->sendOk(['success' => true, 'message' => 'Voucher deleted.']);
+    }
+
+    public function apVoucherCancel(Request $request, string $id): JsonResponse
+    {
+        $reason = trim((string) ($request->input('cancelReason') ?? ''));
+        if ($reason === '') {
+            return $this->sendError(422, 'VALIDATION_ERROR', 'cancelReason is required');
+        }
+
+        $conn = $this->secondaryConn();
+        $voucher = $conn->table('voucher_master')
+            ->where('vma_voucher_id', $id)
+            ->first();
+
+        if (! $voucher) {
+            return $this->sendError(404, 'NOT_FOUND', 'Voucher not found');
+        }
+
+        $allowedStatuses = ['APPROVE', 'ENTRY', 'VERIFIED'];
+        if (! in_array(strtoupper((string) ($voucher->vma_vch_status ?? '')), $allowedStatuses, true)) {
+            return $this->sendError(422, 'VALIDATION_ERROR', 'Voucher status does not allow cancellation');
+        }
+
+        $conn->table('voucher_master')->where('vma_voucher_id', $id)->update([
+            'vma_vch_status'  => 'CANCEL',
+            'vma_cancel_reason' => $reason,
+            'vma_cancel_by'   => $request->user()?->email ?? $request->user()?->name ?? 'system',
+            'vma_cancel_date' => now()->format('Y-m-d H:i:s'),
+        ]);
+
+        return $this->sendOk(['vmaVchStatus' => 'CANCEL', 'message' => 'Voucher cancelled.']);
+    }
+
+    // ── AP Voucher Information Creditor (MENUID 3546) ─────────────────────────
+
+    /** Autocomplete voucher numbers from voucher_master. */
+    public function apVoucherSuggestVoucher(Request $request): JsonResponse
+    {
+        $q     = trim((string) $request->input('q', ''));
+        $limit = min(30, max(1, (int) $request->input('limit', 20)));
+
+        $query = $this->secondaryConn()
+            ->table('voucher_master')
+            ->select(['vma_voucher_no', 'vma_vch_status', 'vma_payto_name'])
+            ->orderByDesc('vma_voucher_no')
+            ->limit($limit);
+
+        if ($q !== '') {
+            $query->whereRaw('LOWER(IFNULL(vma_voucher_no,\'\')) LIKE ?', [$this->likeEsc($q)]);
+        }
+
+        return $this->sendOk(
+            $query->get()->map(fn ($r) => [
+                'id'    => (string) ($r->vma_voucher_no ?? ''),
+                'text'  => (string) ($r->vma_voucher_no ?? ''),
+                'desc'  => (string) ($r->vma_vch_status ?? ''),
+                'payee' => (string) ($r->vma_payto_name ?? ''),
+            ])->values()->all()
+        );
+    }
+
+    /**
+     * Return voucher master + debit + credit detail rows for 3546.
+     * Debit  = voucher_details where vde_trans_type = 'DT'
+     * Credit = voucher_details where vde_trans_type = 'CR'
+     */
+    public function apVoucherInfoCreditorDetail(Request $request): JsonResponse
+    {
+        $voucherNo = trim((string) $request->input('voucher_no', ''));
+        if ($voucherNo === '') {
+            return $this->sendError(422, 'VALIDATION_ERROR', 'voucher_no is required');
+        }
+
+        $conn   = $this->secondaryConn();
+        $master = $conn->table('voucher_master as vm')
+            ->where('vm.vma_voucher_no', $voucherNo)
+            ->select([
+                'vm.vma_voucher_id',
+                'vm.vma_voucher_no',
+                'vm.vma_vch_status',
+                'vm.vma_currency_code',
+                'vm.vma_total_amt',
+                'vm.vma_ent_amt',
+                'vm.vma_payto_type',
+                'vm.vma_payto_id',
+                'vm.vma_payto_name',
+                'vm.vma_exchange_type_code',
+                'vm.vma_conversion_rate',
+                'vm.vma_vch_description',
+                'vm.vma_subsystem_code',
+            ])
+            ->first();
+
+        if (! $master) {
+            return $this->sendError(404, 'NOT_FOUND', 'Voucher not found');
+        }
+
+        $detailCols = [
+            'vd.vde_voucher_detl_id',
+            'vd.bim_bills_no',
+            'vd.vde_payto_type',
+            'vd.vde_payto_id',
+            'vd.vde_payto_name',
+            'vd.vde_bank_name',
+            'vd.vde_bank_acctno',
+            'vd.fty_fund_type',
+            'ft.fty_fund_desc',
+            'vd.at_activity_code',
+            'at.at_activity_description_bm as at_activity_desc',
+            'vd.oun_code',
+            'ou.oun_desc',
+            'vd.ccr_costcentre',
+            'cc.ccr_costcentre_desc',
+            'vd.acm_acct_code',
+            'am.acm_acct_desc',
+            'vd.vde_amount',
+            'vd.vde_factoring_type',
+            'vd.vde_factoring_id',
+            'vd.vde_factoring_name',
+            'vd.vde_fact_bank_name',
+            'vd.vde_fact_bank_acctno',
+            'vd.vde_status',
+            'vd.vde_payment_no',
+        ];
+
+        $buildRows = function (string $transType) use ($conn, $master, $detailCols) {
+            return $conn->table('voucher_details as vd')
+                ->leftJoin('fund_type as ft',          'ft.fty_fund_type',      '=', 'vd.fty_fund_type')
+                ->leftJoin('activity_type as at',       'at.at_activity_code',   '=', 'vd.at_activity_code')
+                ->leftJoin('organization_unit as ou',   'ou.oun_code',           '=', 'vd.oun_code')
+                ->leftJoin('costcentre as cc',          'cc.ccr_costcentre',     '=', 'vd.ccr_costcentre')
+                ->leftJoin('account_main as am',        'am.acm_acct_code',      '=', 'vd.acm_acct_code')
+                ->where('vd.vma_voucher_id', $master->vma_voucher_id)
+                ->where('vd.vde_trans_type', $transType)
+                ->select($detailCols)
+                ->get();
+        };
+
+        $debit  = $buildRows('DT');
+        $credit = $buildRows('CR');
+
+        // Derive credit account label from first CR row
+        $creditAcctLabel = null;
+        foreach ($credit as $cr) {
+            if ($cr->acm_acct_code) {
+                $creditAcctLabel = trim(($cr->acm_acct_code ?? '') . ' - ' . ($cr->acm_acct_desc ?? ''), ' -');
+                break;
+            }
+        }
+
+        return $this->sendOk([
+            'master' => array_merge((array) $master, ['credit_account_code' => $creditAcctLabel]),
+            'debit'  => $debit,
+            'credit' => $credit,
+        ]);
+    }
+
+    /** Update creditor/bank/factoring info for a single voucher_details row. */
+    public function apVoucherUpdateCreditorInfo(Request $request, int $detlId): JsonResponse
+    {
+        $conn = $this->secondaryConn();
+        $row  = $conn->table('voucher_details')->where('vde_voucher_detl_id', $detlId)->first();
+        if (! $row) {
+            return $this->sendError(404, 'NOT_FOUND', 'Voucher detail not found');
+        }
+
+        $conn->table('voucher_details')->where('vde_voucher_detl_id', $detlId)->update([
+            'vde_payto_type'       => $request->input('vde_payto_type'),
+            'vde_payto_id'         => $request->input('vde_payto_id'),
+            'vde_payto_name'       => $request->input('vde_payto_name'),
+            'vde_bank_name'        => $request->input('vde_bank_name'),
+            'vde_bank_acctno'      => $request->input('vde_bank_acctno'),
+            'vde_factoring_type'   => $request->input('vde_factoring_type'),
+            'vde_factoring_id'     => $request->input('vde_factoring_id'),
+            'vde_factoring_name'   => $request->input('vde_factoring_name'),
+            'vde_fact_bank_name'   => $request->input('vde_fact_bank_name'),
+            'vde_fact_bank_acctno' => $request->input('vde_fact_bank_acctno'),
+            'updateddate'          => now()->format('Y-m-d H:i:s'),
+            'updatedby'            => $request->user()?->email ?? 'system',
+        ]);
+
+        return $this->sendOk(['success' => true]);
+    }
+
+    // ── AP Voucher Process (MENUID 3535) — submit Process action ──────────────
+
+    /**
+     * Update one or more voucher_master rows with a new status + remark.
+     * Status options match the legacy workflow: APPROVE / REJECT / RETURN.
+     */
+    public function apVoucherProcessSubmit(Request $request): JsonResponse
+    {
+        $voucherIds = $request->input('voucher_ids', []);
+        if (! is_array($voucherIds)) {
+            $voucherIds = array_filter(array_map('trim', explode(',', (string) $voucherIds)));
+        }
+        $voucherIds = array_values(array_filter(array_map('intval', $voucherIds), fn ($v) => $v > 0));
+
+        $status = strtoupper(trim((string) $request->input('status', '')));
+        $remark = trim((string) $request->input('remark', ''));
+
+        if (empty($voucherIds)) {
+            return $this->sendError(422, 'VALIDATION_ERROR', 'Please select at least one voucher.');
+        }
+        if ($status === '') {
+            return $this->sendError(422, 'VALIDATION_ERROR', 'Status is required.');
+        }
+        if (! in_array($status, ['APPROVE', 'REJECT', 'RETURN'], true)) {
+            return $this->sendError(422, 'VALIDATION_ERROR', 'Status must be APPROVE, REJECT or RETURN.');
+        }
+        if ($remark === '') {
+            return $this->sendError(422, 'VALIDATION_ERROR', 'Remark is required.');
+        }
+
+        $conn  = $this->secondaryConn();
+        $by    = $request->user()?->email ?? $request->user()?->name ?? 'system';
+        $now   = now()->format('Y-m-d H:i:s');
+
+        $update = [
+            'vma_vch_status' => $status,
+            'updateddate'    => $now,
+            'updatedby'      => $by,
+        ];
+        if ($status === 'APPROVE') {
+            $update['vma_approve_by']   = $by;
+            $update['vma_approve_date'] = $now;
+        }
+        // Remark stored in vma_cancel_reason (legacy reuses this column for processing notes)
+        $update['vma_cancel_reason'] = $remark;
+
+        $affected = $conn->table('voucher_master')
+            ->whereIn('vma_voucher_id', $voucherIds)
+            ->update($update);
+
+        return $this->sendOk([
+            'success'       => true,
+            'updated_count' => $affected,
+            'status'        => $status,
+        ]);
+    }
 }

@@ -37,6 +37,7 @@ import KerisiMenuPlaceholderView from "@/views/KerisiMenuPlaceholderView.vue";
 import KerisiArPageView from "@/views/KerisiArPageView.vue";
 import KerisiPayrollPageView from "@/views/KerisiPayrollPageView.vue";
 import KerisiRemainingPageView from "@/views/KerisiRemainingPageView.vue";
+import ApVoucherInfoCreditorView from "@/views/ApVoucherInfoCreditorView.vue";
 import PurchasingItemMainView from "@/views/PurchasingItemMainView.vue";
 import PurchasingJobscopeListView from "@/views/PurchasingJobscopeListView.vue";
 import PurchasingPurchaseRequisitionView from "@/views/PurchasingPurchaseRequisitionView.vue";
@@ -7891,7 +7892,7 @@ const router = createRouter({
     { path: "/admin/kerisi/m/3535", name: "kerisi-rem-3535", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Voucher Process" } },
     { path: "/admin/kerisi/m/3538", name: "kerisi-rem-3538", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Payment Reject Batch" } },
     { path: "/admin/kerisi/m/3543", name: "kerisi-rem-3543", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Debit Note Form" } },
-    { path: "/admin/kerisi/m/3546", name: "kerisi-rem-3546", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Voucher Information Creditor" } },
+    { path: "/admin/kerisi/m/3546", name: "kerisi-rem-3546", component: ApVoucherInfoCreditorView, meta: { requiresAuth: true, title: "Voucher Information Creditor" } },
     { path: "/admin/kerisi/m/3548", name: "kerisi-rem-3548", component: ApDebitNoteFormView, meta: { requiresAuth: true, title: "Debit Note Form" } },
     { path: "/admin/kerisi/m/3549", name: "kerisi-rem-3549", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Debit Note Cancellation" } },
     { path: "/admin/kerisi/m/3550", name: "kerisi-rem-3550", component: ApDebitNoteFormView, meta: { requiresAuth: true, title: "Debit Note Cancellation Form" } },
