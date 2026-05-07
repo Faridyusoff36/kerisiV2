@@ -4711,12 +4711,26 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
           {
             menuId: 2127,
             label: "Reconciliation Daily",
-            to: "/admin/kerisi/m/2127"
+            to: "/admin/kerisi/m/2127",
+            children: [
+              {
+                menuId: 2128,
+                label: "Bank Reconciliation",
+                to: "/admin/kerisi/m/2128"
+              }
+            ]
           },
           {
             menuId: 2242,
             label: "Reconciliation Monthly",
-            to: "/admin/kerisi/m/2242"
+            to: "/admin/kerisi/m/2242",
+            children: [
+              {
+                menuId: 2249,
+                label: "Bank Reconciliation",
+                to: "/admin/kerisi/m/2249"
+              }
+            ]
           },
           {
             menuId: 3256,
@@ -5476,7 +5490,19 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
           {
             menuId: 1410,
             label: "Table",
-            to: "/admin/kerisi/m/1410"
+            to: "/admin/kerisi/m/1410",
+            children: [
+              {
+                menuId: 1411,
+                label: "EPF Contribution",
+                to: "/admin/kerisi/m/1411"
+              },
+              {
+                menuId: 1412,
+                label: "SOCSO",
+                to: "/admin/kerisi/m/1412"
+              }
+            ]
           },
           {
             menuId: 2153,
