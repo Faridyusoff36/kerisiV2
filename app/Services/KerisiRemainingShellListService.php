@@ -5148,7 +5148,53 @@ class KerisiRemainingShellListService
 
     private function apRefund(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->refundApplication($r, $page, $limit, $q);
+        return array_merge(
+            $this->refundApplication($r, $page, $limit, $q),
+            ['top_filter_options' => $this->apRefundTopFilterOptions()],
+        );
+    }
+
+    /**
+     * Top-filter dropdown options for Account Payable / Integration / Refund (menu 1928).
+     *
+     * tf_0 — Type of Refund: pulled from lookup_details where lma_code_name = 'CUSTOMER_TYPE'
+     *         (matches legacy NF_BL_AP_REFUND topFilter lookupQuery).
+     * tf_1 — Bill Type: static INDIVIDU/BERKELOMPOK pair from the legacy lookupQuery.
+     *
+     * @return array<string, list<int, array{value: string, label: string}>>
+     */
+    private function apRefundTopFilterOptions(): array
+    {
+        try {
+            $customerTypes = $this->conn()->table('lookup_details')
+                ->where('lma_code_name', 'CUSTOMER_TYPE')
+                ->whereRaw("TRIM(IFNULL(lde_value, '')) <> ''")
+                ->orderByRaw('IFNULL(lde_description2, lde_description)')
+                ->select(['lde_value', 'lde_description', 'lde_description2'])
+                ->get();
+        } catch (\Throwable) {
+            $customerTypes = collect();
+        }
+
+        $tf0 = $customerTypes->map(function ($row): array {
+            $value = (string) ($row->lde_value ?? '');
+            $label = trim((string) ($row->lde_description2 ?? $row->lde_description ?? $row->lde_value ?? ''));
+
+            return [
+                'value' => $value,
+                'label' => $label !== '' ? $label : $value,
+            ];
+        })->values()->all();
+
+        $tf1 = [
+            ['value' => 'I', 'label' => 'INDIVIDU'],
+            ['value' => 'B', 'label' => 'BERKELOMPOK'],
+        ];
+
+        return [
+            'tf_0' => $tf0,
+            'tf_1' => $tf1,
+        ];
     }
 
     private function apPayeeReport(Request $r, int $page, int $limit, string $q): array

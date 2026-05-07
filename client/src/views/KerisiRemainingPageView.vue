@@ -812,6 +812,15 @@ function isApPaymentKitchenMenu(mid: number | null = menuId.value): boolean {
   return mid === 1897 || mid === 2633 || mid === 2717 || mid === 3345 || mid === 3538;
 }
 
+/**
+ * Account Payable / Integration list pages that opt into the kitchen-sink datatable layout
+ * (top toolbar with Display/Search, footer pagination + PDF/CSV/Excel buttons).
+ * 1187 — Loan Disbursement, 1928 — Refund.
+ */
+function isApIntegrationKitchenMenu(mid: number | null = menuId.value): boolean {
+  return mid === 1187 || mid === 1928;
+}
+
 function isApVoucherKitchenMenu(mid: number | null = menuId.value): boolean {
   return (
     mid === 1823 || // Voucher Registration (bills pending vouchering)
@@ -858,7 +867,7 @@ function isBudgetL4KitchenMenu(mid: number | null = menuId.value): boolean {
 }
 
 function isKitchenDatatableMenu(mid: number | null = menuId.value): boolean {
-  return isMoneyTransferKitchenMenu(mid) || isApCreditNoteKitchenMenu(mid) || isApDebitNoteKitchenMenu(mid) || isApPaymentKitchenMenu(mid) || isBudgetL4KitchenMenu(mid) || isApVoucherKitchenMenu(mid);
+  return isMoneyTransferKitchenMenu(mid) || isApCreditNoteKitchenMenu(mid) || isApDebitNoteKitchenMenu(mid) || isApPaymentKitchenMenu(mid) || isApIntegrationKitchenMenu(mid) || isBudgetL4KitchenMenu(mid) || isApVoucherKitchenMenu(mid);
 }
 
 function optionsForTopFilter(index: number): { value: string; label: string }[] {
@@ -1519,6 +1528,11 @@ function onLimitChange() {
 // ── top filter apply ──────────────────────────────────────────────────────
 /** Item Main Listing (1829): legacy cascaded autosuggest — refetch options when parent dropdown changes. */
 function onTopFilterFieldChange(fieldIndex: number) {
+  // AP / Integration / Refund (1928) — clear Bill Type when Type of Refund changes away from Student
+  if (menuId.value === 1928 && fieldIndex === 0) {
+    topFilterValues.value.tf_1 = "";
+    return;
+  }
   // Download Voucher Supplier By Batch (2817) — clear hidden fields when "Filter By" changes
   if (menuId.value === 2817 && fieldIndex === 0) {
     topFilterValues.value.tf_1 = "";
@@ -1556,6 +1570,16 @@ function topFilterInputType(f: { fieldType: string; title: string }): string {
  * — reveal only the relevant pair based on "Filter By" selection.
  */
 function isTopFilterFieldVisible(fieldIndex: number): boolean {
+  // AP / Integration / Refund (1928):
+  // Bill Type (tf_1) is only relevant when Type of Refund = Student (lde_value 'A').
+  if (menuId.value === 1928) {
+    if (fieldIndex === 0) return true;                                    // Type of Refund — always visible
+    if (fieldIndex === 1) return (topFilterValues.value.tf_0 ?? "") === "A"; // Bill Type — Student only
+    return true;
+  }
+  // Download Voucher Supplier By Batch (2817):
+  // Voucher No From/To and Batch No are hidden in legacy cssClass "d-none"
+  // — reveal only the relevant pair based on "Filter By" selection.
   if (menuId.value !== 2817) return true;
   const filterBy = topFilterValues.value.tf_0 ?? "";
   if (fieldIndex === 0) return true;            // Filter By — always visible
@@ -2530,6 +2554,8 @@ onUnmounted(() => {
                   isApCreditNoteKitchenMenu(menuId) ? 'min-w-[1800px]' : '',
                   isApDebitNoteKitchenMenu(menuId) ? 'min-w-[1800px]' : '',
                   isApPaymentKitchenMenu(menuId) ? 'min-w-[1300px]' : '',
+                  menuId === 1187 ? 'min-w-[1400px]' : '',
+                  menuId === 1928 ? 'min-w-[900px]' : '',
                   (menuId === 3546) ? 'min-w-[2000px]' :
                   (menuId === 2297) ? 'min-w-[1600px]' :
                   isApVoucherKitchenMenu(menuId) ? 'min-w-[1200px]' : '',
