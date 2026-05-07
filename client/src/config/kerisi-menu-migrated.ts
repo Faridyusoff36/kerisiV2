@@ -1899,50 +1899,6 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
     ]
   },
   {
-    menuId: 3168,
-    label: "Pre - Purchase Requisition List · Pre - Purchase Requisition Details …",
-    to: "/admin/kerisi/m/3168",
-    hiddenByDefault: true,
-    children: [
-      {
-        menuId: 3169,
-        label: "Pre - Purchase Requisition List",
-        to: "/admin/kerisi/m/3169",
-        hiddenByDefault: true
-      },
-      {
-        menuId: 3171,
-        label: "Pre - Purchase Requisition Details",
-        to: "/admin/kerisi/m/3171",
-        hiddenByDefault: true
-      },
-      {
-        menuId: 3215,
-        label: "PRE - PR To Be Cancel List",
-        to: "/admin/kerisi/m/3215",
-        hiddenByDefault: true
-      },
-      {
-        menuId: 3216,
-        label: "PRE - PR To Be Cancel Detail",
-        to: "/admin/kerisi/m/3216",
-        hiddenByDefault: true
-      },
-      {
-        menuId: 3220,
-        label: "PRE - PR To Be Cancel Partial List",
-        to: "/admin/kerisi/m/3220",
-        hiddenByDefault: true
-      },
-      {
-        menuId: 3221,
-        label: "PRE - PR To Be Cancel Partial Detail",
-        to: "/admin/kerisi/m/3221",
-        hiddenByDefault: true
-      }
-    ]
-  },
-  {
     menuId: 3236,
     label: "Budget Checking (WBR068A) · Budget Summary By Date (WBR068) …",
     to: "/admin/kerisi/m/3236",
@@ -2778,6 +2734,49 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
             to: "/admin/kerisi/m/1771"
           },
           {
+            menuId: 3168,
+            label: "Pre - Purchase Requisition",
+            to: "/admin/kerisi/m/3168",
+            children: [
+              {
+                menuId: 3169,
+                label: "Pre - Purchase Requisition List",
+                to: "/admin/kerisi/m/3169",
+                hiddenByDefault: true
+              },
+              {
+                menuId: 3171,
+                label: "Pre - Purchase Requisition Details",
+                to: "/admin/kerisi/m/3171",
+                hiddenByDefault: true
+              },
+              {
+                menuId: 3215,
+                label: "PRE - PR To Be Cancel List",
+                to: "/admin/kerisi/m/3215",
+                hiddenByDefault: true
+              },
+              {
+                menuId: 3216,
+                label: "PRE - PR To Be Cancel Detail",
+                to: "/admin/kerisi/m/3216",
+                hiddenByDefault: true
+              },
+              {
+                menuId: 3220,
+                label: "PRE - PR To Be Cancel Partial List",
+                to: "/admin/kerisi/m/3220",
+                hiddenByDefault: true
+              },
+              {
+                menuId: 3221,
+                label: "PRE - PR To Be Cancel Partial Detail",
+                to: "/admin/kerisi/m/3221",
+                hiddenByDefault: true
+              }
+            ]
+          },
+          {
             menuId: 1773,
             label: "Purchase Requisition List",
             to: "/admin/kerisi/m/1773"
@@ -2859,7 +2858,24 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
           {
             menuId: 3341,
             label: "Closing",
-            to: "/admin/kerisi/m/3341"
+            to: "/admin/kerisi/m/3341",
+            children: [
+              {
+                menuId: 2510,
+                label: "Process Closing",
+                to: "/admin/kerisi/m/2510"
+              },
+              {
+                menuId: 3161,
+                label: "PO Confirmation Process",
+                to: "/admin/kerisi/m/3161"
+              },
+              {
+                menuId: 3178,
+                label: "PO Confirmation Process List",
+                to: "/admin/kerisi/m/3178"
+              }
+            ]
           }
         ]
       },
@@ -9297,7 +9313,6 @@ export const KERISI_DEFAULT_HIDDEN_ITEM_IDS: readonly string[] = [
   "kerisi-3081",
   "kerisi-3095",
   "kerisi-3153",
-  "kerisi-3168",
   "kerisi-3236",
   "kerisi-3392",
   "kerisi-3396"
@@ -9537,12 +9552,6 @@ export const KERISI_DEFAULT_HIDDEN_CHILD_IDS: readonly string[] = [
   "kerisi-3155",
   "kerisi-3157",
   "kerisi-3156",
-  "kerisi-3169",
-  "kerisi-3171",
-  "kerisi-3215",
-  "kerisi-3216",
-  "kerisi-3220",
-  "kerisi-3221",
   "kerisi-3227",
   "kerisi-3382",
   "kerisi-3389",
