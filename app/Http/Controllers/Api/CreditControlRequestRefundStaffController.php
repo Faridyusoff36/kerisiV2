@@ -14,8 +14,15 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Credit Control / Refund (Staff) / Request Refund.
  *
+ * Kerisi 2.0 menu: **2291** (`/admin/kerisi/m/2291`). Kerisi 1.0: **MENUID 2465**,
+ * **PAGEID 2018**, onload `SNA_JS_CREDITCONTROL_REQUESTREFUNDSTAFF`, API
+ * `SNA_API_CREDITCONTROL_REQUESTREFUNDSTAFF` (`dt_listapply`).
+ *
  * Legacy: {@see SNA_API_CREDITCONTROL_REQUESTREFUNDSTAFF} — `dt_listapply` datatable
  * (APPLY + staff pay-to `B`; no `refund_prefix_setup` join; does not filter `tra_process`).
+ * List filter matches legacy CONCAT_WS haystack on tra_application_no … createddate;
+ * reference column uses CONCAT_WS(' - ', tra_ref_no, tra_ref_no_note).
+ * Default ORDER BY tra_application_no DESC.
  */
 class CreditControlRequestRefundStaffController extends Controller
 {
@@ -42,43 +49,37 @@ class CreditControlRequestRefundStaffController extends Controller
         $page = max(1, (int) $request->input('page', 1));
         $limit = max(1, min(100, (int) $request->input('limit', 10)));
         $q = trim((string) $request->input('q', ''));
-        $sortBy = (string) $request->input('sort_by', 'request_date');
+        $sortBy = (string) $request->input('sort_by', 'application_no');
         $sortDir = strtolower((string) $request->input('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
-        $orderCol = self::SORTABLE[$sortBy] ?? 'tra.createddate';
+        $orderCol = self::SORTABLE[$sortBy] ?? 'tra.tra_application_no';
 
         $base = $this->scopedBaseQuery();
 
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $conn = 'mysql_secondary';
-            $createdByExpr = Schema::connection($conn)->hasColumn('temp_refund_application', 'createdby')
-                ? "IFNULL(tra.createdby,'')" : "''";
 
+            /** Legacy dt_listapply haystack: same CONCAT_WS fields as Kerisi BL (no tra_id / createdby). */
             $base->whereRaw(
                 "LOWER(CONCAT_WS('__',
-                    IFNULL(tra.tra_id,''),
-                    IFNULL(tra.tra_application_no,''),
-                    IFNULL(tra.vcs_vendor_code,''),
-                    IFNULL(tra.tra_vendor_name,''),
-                    IFNULL(tra.tra_ref_no,''),
-                    IFNULL(tra.tra_ref_no_note,''),
-                    IFNULL(tra.fty_fund_type,''),
-                    IFNULL(tra.at_activity_code,''),
-                    IFNULL(tra.oun_code,''),
-                    IFNULL(tra.ccr_costcentre,''),
-                    IFNULL(tra.acm_acct_code,''),
-                    IFNULL(tra.tra_amt_refund,''),
-                    IFNULL(tra.tra_status,''),
-                    IFNULL(DATE_FORMAT(tra.createddate, '%d/%m/%Y'),''),
-                    {$createdByExpr}
+                    tra.tra_application_no,
+                    tra.vcs_vendor_code,
+                    tra.tra_vendor_name,
+                    tra.tra_ref_no,
+                    tra.tra_ref_no_note,
+                    tra.fty_fund_type,
+                    tra.at_activity_code,
+                    tra.oun_code,
+                    tra.ccr_costcentre,
+                    tra.acm_acct_code,
+                    tra.tra_amt_refund,
+                    tra.tra_status,
+                    tra.createddate
                 )) LIKE ?",
                 [$like]
             );
         }
 
         $total = (clone $base)->count();
-
-        $refExpr = "TRIM(CONCAT(IFNULL(tra.tra_ref_no,''), IF(tra.tra_ref_no IS NOT NULL AND tra.tra_ref_no_note IS NOT NULL AND tra.tra_ref_no_note != '', ' - ', ''), IFNULL(tra.tra_ref_no_note,'')))";
 
         $select = [
             'tra.tra_id',
@@ -93,7 +94,7 @@ class CreditControlRequestRefundStaffController extends Controller
             'tra.tra_amt_refund',
             'tra.tra_status',
             'tra.createddate',
-            DB::raw("{$refExpr} AS reference_concat"),
+            DB::raw("CONCAT_WS(' - ', tra.tra_ref_no, tra.tra_ref_no_note) AS reference_concat"),
         ];
         if (Schema::connection('mysql_secondary')->hasColumn('temp_refund_application', 'createdby')) {
             $select[] = 'tra.createdby';

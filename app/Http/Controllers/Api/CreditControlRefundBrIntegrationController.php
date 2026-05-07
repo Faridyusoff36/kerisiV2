@@ -5,11 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\ApiResponse;
 use App\Models\TempRefundBillsMaster;
+use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Kerisi Classic — Page 1871 / Menu 2289 (`SNA_API_CC_REFUNDSTAFF_BRINTEGRATION`).
+ * Approved + non-approved REFUND_STAFF bill masters; grid search matches legacy `CONCAT_WS` haystack.
+ */
 class CreditControlRefundBrIntegrationController extends Controller
 {
     use ApiResponse;
@@ -28,8 +33,19 @@ class CreditControlRefundBrIntegrationController extends Controller
             'createddate' => 'createddate',
             'bim_bill_amt' => 'bim_bill_amt',
             'bim_status' => 'bim_status',
+            'bim_cust_invoice_date' => 'bim_cust_invoice_date',
         ];
-        $orderCol = $sortMap[$sortBy] ?? 'bim_bills_no';
+        /** Legacy Kerisi Classic (Page 1871): non-approved default `createddate` desc; approved default `bim_bills_no` asc. */
+        if (! $request->filled('sort_by')) {
+            if ($approved) {
+                $sortBy = 'bim_bills_no';
+                $sortDir = 'asc';
+            } else {
+                $sortBy = 'createddate';
+                $sortDir = 'desc';
+            }
+        }
+        $orderCol = $sortMap[$sortBy] ?? ($approved ? 'bim_bills_no' : 'createddate');
 
         $sf = $request->input('smart_filter', []) ?? [];
         if (! is_array($sf)) {
@@ -43,23 +59,24 @@ class CreditControlRefundBrIntegrationController extends Controller
             $base->where('bim_status', '!=', 'APPROVE');
         }
 
+        /** Same haystack shape as Classic `CONCAT_WS` for REFUND_STAFF BRI grids. */
+        $concatHaystack = "CONCAT_WS('__',
+            IFNULL(CAST(bim_bills_id AS CHAR), ''),
+            IFNULL(bim_bills_no, ''),
+            IFNULL(IF(bim_bills_type = 'I', 'INDIVIDU', 'BERKELOMPOK'), ''),
+            IFNULL(bim_bills_desc, ''),
+            IFNULL(CAST(bim_bill_amt AS CHAR), ''),
+            IFNULL(bim_cust_invoice_no, ''),
+            IFNULL(CAST(bim_cust_invoice_date AS CHAR), ''),
+            IFNULL(bim_payto_id, ''),
+            IFNULL(bim_payto_name, ''),
+            IFNULL(bim_status, ''),
+            IFNULL(CAST(createddate AS CHAR), '')
+        )";
+
         if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('__',
-                    IFNULL(bim_bills_id,''),
-                    IFNULL(bim_bills_no,''),
-                    IFNULL(bim_bills_type,''),
-                    IFNULL(bim_bills_desc,''),
-                    IFNULL(bim_bill_amt,''),
-                    IFNULL(bim_cust_invoice_no,''),
-                    IFNULL(bim_payto_id,''),
-                    IFNULL(bim_payto_name,''),
-                    IFNULL(bim_status,''),
-                    IFNULL(DATE_FORMAT(createddate, '%d/%m/%Y'),'')
-                )) LIKE ?",
-                [$like]
-            );
+            $like = $this->likeEscape($q);
+            $base->whereRaw($concatHaystack.' LIKE ?', [$like]);
         }
 
         $bn = trim((string) ($sf['bim_bills_no'] ?? ''));
@@ -84,6 +101,18 @@ class CreditControlRefundBrIntegrationController extends Controller
             try {
                 $d = Carbon::createFromFormat('d/m/Y', $created)->format('Y-m-d');
                 $base->whereRaw('DATE(createddate) = ?', [$d]);
+            } catch (\Throwable) {
+            }
+        }
+        $invNo = trim((string) ($sf['bim_cust_invoice_no'] ?? ''));
+        if ($invNo !== '') {
+            $base->where('bim_cust_invoice_no', 'like', '%'.$invNo.'%');
+        }
+        $invDt = trim((string) ($sf['bim_cust_invoice_date'] ?? ''));
+        if ($invDt !== '') {
+            try {
+                $d = Carbon::createFromFormat('d/m/Y', $invDt)->format('Y-m-d');
+                $base->whereRaw('DATE(bim_cust_invoice_date) = ?', [$d]);
             } catch (\Throwable) {
             }
         }
@@ -112,6 +141,8 @@ class CreditControlRefundBrIntegrationController extends Controller
         $data = $rows->values()->map(function ($r, int $i) use ($page, $limit) {
             $id = (int) $r->bim_bills_id;
 
+            $custInvDate = $r->bim_cust_invoice_date ?? null;
+
             return [
                 'index' => ($page - 1) * $limit + $i + 1,
                 'bimBillsId' => $id,
@@ -121,6 +152,8 @@ class CreditControlRefundBrIntegrationController extends Controller
                 'bimPaytoName' => $r->bim_payto_name,
                 'bimBillsDesc' => $r->bim_bills_desc,
                 'bimBillAmt' => $r->bim_bill_amt !== null ? (float) $r->bim_bill_amt : null,
+                'bimCustInvoiceNo' => $r->bim_cust_invoice_no ?? null,
+                'bimCustInvoiceDate' => $custInvDate instanceof CarbonInterface ? $custInvDate->format('Y-m-d') : null,
                 'bimStatus' => $r->bim_status,
                 'createddate' => $r->createddate,
                 'viewUrl' => '/admin/kerisi/m/2289?bimBillsId='.$id.'&mode=view',
@@ -137,6 +170,7 @@ class CreditControlRefundBrIntegrationController extends Controller
         ]);
     }
 
+    /** Classic uses `LIKE CONCAT('%', :q, '%')` (case-preserving collation / raw match). */
     private function likeEscape(string $needle): string
     {
         return '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $needle).'%';

@@ -1,20 +1,22 @@
 <script setup lang="ts">
 /**
- * Credit Control / Refund (Staff) / Request Refund — MENUID 2291.
+ * Credit Control / Refund (Staff) / Request Refund — MENUID **2291** (2.0).
+ *
+ * Kerisi 1.0 mapping: **MENUID 2465**, **PAGEID 2018** — `SNA_JS_CREDITCONTROL_REQUESTREFUNDSTAFF` /
+ * `SNA_API_CREDITCONTROL_REQUESTREFUNDSTAFF`, query `temp_refund_application` with
+ * `tra_status = 'APPLY'` and `tra_payto_type = 'B'`, global filter on the legacy CONCAT_WS haystack,
+ * `reference` = CONCAT_WS(' - ', tra_ref_no, tra_ref_no_note), ORDER BY tra_application_no DESC.
+ *
+ * KerisiAI `CREDIT CONTROL_LEVEL 4.json`: the **dt_listapply** datatable is filed under **MENUID 2465**
+ * in that export (not present in kerisi-menu-migrated); behaviour is implemented here per menu **2291**.
+ * Rows labelled **MENUID 2291 / PAGE 1873** in the same JSON (`API_LIST_OF_REFUND_CC`) correspond to **MENUID 2604**
+ * in this SPA (`CcListOfRefundPortalView`).
  *
  * Legacy onload: `SNA_JS_CREDITCONTROL_REQUESTREFUNDSTAFF`.
  * Legacy API: `SNA_API_CREDITCONTROL_REQUESTREFUNDSTAFF` — `dt_listapply`.
  */
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import {
-  Download,
-  ExternalLink,
-  FileDown,
-  FileSpreadsheet,
-  MoreVertical,
-  Search,
-  X,
-} from "lucide-vue-next";
+import { ChevronDown, ChevronUp, ExternalLink, MoreVertical, Search, X } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import { listCreditControlRequestRefundStaff } from "@/api/cms";
 import { useDatatableFeatures } from "@/composables/useDatatableFeatures";
@@ -45,12 +47,18 @@ type SortKey =
   | "status"
   | "request_by"
   | "request_date";
-const sortBy = ref<SortKey>("request_date");
+/** Default aligns with legacy: ORDER BY tra_application_no DESC. */
+const sortBy = ref<SortKey>("application_no");
 const sortDir = ref<"asc" | "desc">("desc");
 
 const totalPages = computed(() =>
   total.value ? Math.max(1, Math.ceil(total.value / limit.value)) : 1,
 );
+
+const showingFrom = computed(() =>
+  total.value === 0 ? 0 : (page.value - 1) * limit.value + 1,
+);
+const showingTo = computed(() => Math.min(page.value * limit.value, total.value));
 
 const exportColumns = [
   "No",
@@ -78,10 +86,15 @@ function toggleSort(col: SortKey) {
   if (sortBy.value === col) sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
   else {
     sortBy.value = col;
-    sortDir.value = col === "request_date" ? "desc" : "asc";
+    sortDir.value = col === "request_date" || col === "application_no" ? "desc" : "asc";
   }
   page.value = 1;
   void loadRows();
+}
+
+function sortChevron(col: SortKey) {
+  if (sortBy.value !== col) return null;
+  return sortDir.value === "asc" ? "up" : "down";
 }
 
 async function loadRows() {
@@ -153,8 +166,6 @@ const {
   handleGroupList,
   templateFileInputRef,
   onTemplateFileChange,
-  handleDownloadPDF,
-  handleDownloadCSV,
 } = useDatatableFeatures({
   pageName: "Request Refund (Staff)",
   apiDataPath: "/credit-control/request-refund-staff",
@@ -180,34 +191,6 @@ watch(limit, () => {
   page.value = 1;
   void loadRows();
 });
-
-async function exportExcel() {
-  try {
-    if (rows.value.length === 0) {
-      toast.info("No data", "There is nothing to export.");
-      return;
-    }
-    const ExcelJS = await import("exceljs");
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Request Refund");
-    ws.addRow(exportColumns);
-    rows.value.forEach((r) => {
-      const e = rowExport(r);
-      ws.addRow(exportColumns.map((h) => e[h as keyof typeof e]));
-    });
-    const buf = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `CC_Request_Refund_Staff_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Excel downloaded");
-  } catch (e) {
-    toast.error("Export failed", e instanceof Error ? e.message : "Excel export failed.");
-  }
-}
 
 onMounted(() => {
   document.addEventListener("click", onClickOutside);
@@ -243,16 +226,18 @@ onUnmounted(() => {
         @change="onTemplateFileChange"
       />
 
-      <h1 class="page-title">Credit Control / Refund / Refund (Staff) / Request Refund</h1>
+      <h1 class="page-title">Credit Control / Refund (Staff) / Request Refund</h1>
 
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
+        <!-- Kerisi 1.0-style panel: (1) title + overflow (2) Display | Search (3) exports (4) grid -->
         <div class="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
           <h2 class="text-base font-semibold text-slate-900">Request Refund</h2>
-          <div ref="overflowRoot" class="relative">
+          <div ref="overflowRoot" class="relative shrink-0">
             <button
               type="button"
               class="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
               @click.stop="overflowOpen = !overflowOpen"
+              aria-label="More actions"
             >
               <MoreVertical class="h-4 w-4" />
             </button>
@@ -295,81 +280,66 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="space-y-4 p-4">
-          <div class="flex flex-wrap items-end justify-between gap-4">
-            <div class="flex flex-wrap items-center gap-2">
-              <label class="text-xs font-medium text-slate-600">Display</label>
-              <select v-model.number="limit" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
-                <option v-for="n in [5, 10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
-              </select>
-            </div>
-            <div class="relative min-w-[200px] flex-1 sm:max-w-md">
-              <label class="mb-1 block text-xs font-medium text-slate-600">Search</label>
-              <div class="relative">
-                <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                <input
-                  v-model="q"
-                  type="search"
-                  placeholder="Application no., staff, reference, fund, PTJ, account…"
-                  class="w-full rounded-lg border border-slate-300 py-1.5 pl-8 pr-8 text-sm"
-                  autocomplete="off"
-                  @keyup.enter="page = 1; void loadRows()"
-                />
-                <button
-                  v-if="q"
-                  type="button"
-                  class="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:bg-slate-100"
-                  @click="q = ''; page = 1; void loadRows()"
-                >
-                  <X class="h-3.5 w-3.5" />
-                </button>
-              </div>
+        <div class="flex flex-col gap-3 border-b border-slate-100 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex flex-wrap items-center gap-2">
+            <label class="text-xs font-medium text-slate-600">Display</label>
+            <select v-model.number="limit" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+              <option v-for="n in [5, 10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
+            </select>
+          </div>
+          <div class="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 sm:max-w-xl lg:max-w-2xl">
+            <label class="shrink-0 text-xs font-medium text-slate-600">Search</label>
+            <div class="relative min-w-0 flex-1 sm:min-w-[12rem]">
+              <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input
+                v-model="q"
+                type="search"
+                placeholder="Application no., staff, reference, fund, PTJ, account…"
+                class="w-full rounded-lg border border-slate-300 py-1.5 pl-8 pr-8 text-sm"
+                autocomplete="off"
+                aria-label="Search refund requests"
+                @keyup.enter="page = 1; void loadRows()"
+              />
+              <button
+                v-if="q"
+                type="button"
+                class="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:bg-slate-100"
+                @click="q = ''; page = 1; void loadRows()"
+              >
+                <X class="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
+        </div>
 
-          <p class="text-xs text-slate-500">
-            Lists rows where
-            <strong>tra_status = APPLY</strong>
-            and
-            <strong>tra_payto_type = B</strong>
-            in
-            <code class="rounded bg-slate-100 px-1">temp_refund_application</code>
-            (legacy
-            <code class="rounded bg-slate-100 px-1">dt_listapply</code>). Use
-            <strong>Open</strong>
-            to go to Refund Application (2286) with the search box filled from the link (
-            <code class="rounded bg-slate-100 px-1">?q=</code>
-            application number, or numeric
-            <code class="rounded bg-slate-100 px-1">tra_id</code>
-            when the application number is empty).
-          </p>
-
-          <div class="flex flex-wrap items-center justify-end gap-2">
-            <button
-              type="button"
-              class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-              @click="handleDownloadPDF"
-            >
-              <FileDown class="h-3.5 w-3.5" />
-              PDF
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-              @click="handleDownloadCSV"
-            >
-              <Download class="h-3.5 w-3.5" />
-              CSV
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-              @click="exportExcel"
-            >
-              <FileSpreadsheet class="h-3.5 w-3.5" />
-              Excel
-            </button>
-          </div>
+        <div class="space-y-3 px-4 pb-4 pt-3">
+          <details class="text-xs text-slate-500">
+            <summary class="cursor-pointer select-none font-medium text-slate-600">Screen notes (legacy parity)</summary>
+            <p class="mt-2 leading-relaxed">
+              This grid matches legacy
+              <code class="rounded bg-slate-100 px-1">dt_listapply</code>
+              —
+              <code class="rounded bg-slate-100 px-1">temp_refund_application</code>
+              rows with
+              <strong>tra_status = APPLY</strong>
+              and
+              <strong>tra_payto_type = B</strong>
+              .
+              Search uses the same
+              <code class="rounded bg-slate-100 px-1">CONCAT_WS</code>
+              haystack as Kerisi Classic; it does
+              <strong>not</strong>
+              filter by
+              <code class="rounded bg-slate-100 px-1">tra_id</code>
+              .
+              <strong>Open</strong>
+              goes to Refund Application (2286) with search prefilled (
+              <code class="rounded bg-slate-100 px-1">?q=</code>
+              application no. or numeric
+              <code class="rounded bg-slate-100 px-1">tra_id</code>
+              ).
+            </p>
+          </details>
 
           <div class="max-h-[min(28rem,70vh)] overflow-y-auto overflow-x-auto rounded-lg border border-slate-200">
             <table class="min-w-[1040px] divide-y divide-slate-200 text-left text-xs sm:min-w-full">
@@ -377,64 +347,108 @@ onUnmounted(() => {
                 <tr>
                   <th class="whitespace-nowrap px-2 py-2 font-medium">No</th>
                   <th class="whitespace-nowrap px-2 py-2 font-medium">
-                    <button type="button" class="hover:text-slate-900" @click="toggleSort('application_no')">
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-0.5 hover:text-slate-900"
+                      @click="toggleSort('application_no')"
+                    >
                       Application No
+                      <ChevronDown
+                        v-if="sortChevron('application_no') === 'down'"
+                        class="h-3 w-3 shrink-0 text-slate-500"
+                      />
+                      <ChevronUp
+                        v-else-if="sortChevron('application_no') === 'up'"
+                        class="h-3 w-3 shrink-0 text-slate-500"
+                      />
                     </button>
                   </th>
                   <th class="whitespace-nowrap px-2 py-2 text-right font-medium">
-                    <button type="button" class="hover:text-slate-900" @click="toggleSort('amount')">
+                    <button
+                      type="button"
+                      class="inline-flex w-full items-center justify-end gap-0.5 hover:text-slate-900"
+                      @click="toggleSort('amount')"
+                    >
                       Amount (RM)
+                      <ChevronDown v-if="sortChevron('amount') === 'down'" class="h-3 w-3 shrink-0 text-slate-500" />
+                      <ChevronUp v-else-if="sortChevron('amount') === 'up'" class="h-3 w-3 shrink-0 text-slate-500" />
                     </button>
                   </th>
                   <th class="whitespace-nowrap px-2 py-2 font-medium">
-                    <button type="button" class="hover:text-slate-900" @click="toggleSort('staff_id')">
+                    <button type="button" class="inline-flex items-center gap-0.5 hover:text-slate-900" @click="toggleSort('staff_id')">
                       Staff ID
+                      <ChevronDown v-if="sortChevron('staff_id') === 'down'" class="h-3 w-3 shrink-0 text-slate-500" />
+                      <ChevronUp v-else-if="sortChevron('staff_id') === 'up'" class="h-3 w-3 shrink-0 text-slate-500" />
                     </button>
                   </th>
                   <th class="whitespace-nowrap px-2 py-2 font-medium">
-                    <button type="button" class="hover:text-slate-900" @click="toggleSort('staff_name')">
+                    <button type="button" class="inline-flex items-center gap-0.5 hover:text-slate-900" @click="toggleSort('staff_name')">
                       Staff Name
+                      <ChevronDown v-if="sortChevron('staff_name') === 'down'" class="h-3 w-3 shrink-0 text-slate-500" />
+                      <ChevronUp v-else-if="sortChevron('staff_name') === 'up'" class="h-3 w-3 shrink-0 text-slate-500" />
                     </button>
                   </th>
                   <th class="whitespace-nowrap px-2 py-2 font-medium">
-                    <button type="button" class="hover:text-slate-900" @click="toggleSort('reference')">
+                    <button type="button" class="inline-flex items-center gap-0.5 hover:text-slate-900" @click="toggleSort('reference')">
                       Reference
+                      <ChevronDown v-if="sortChevron('reference') === 'down'" class="h-3 w-3 shrink-0 text-slate-500" />
+                      <ChevronUp v-else-if="sortChevron('reference') === 'up'" class="h-3 w-3 shrink-0 text-slate-500" />
                     </button>
                   </th>
                   <th class="whitespace-nowrap px-2 py-2 font-medium">
-                    <button type="button" class="hover:text-slate-900" @click="toggleSort('fund_type')">
+                    <button type="button" class="inline-flex items-center gap-0.5 hover:text-slate-900" @click="toggleSort('fund_type')">
                       Fund Type
+                      <ChevronDown v-if="sortChevron('fund_type') === 'down'" class="h-3 w-3 shrink-0 text-slate-500" />
+                      <ChevronUp v-else-if="sortChevron('fund_type') === 'up'" class="h-3 w-3 shrink-0 text-slate-500" />
                     </button>
                   </th>
                   <th class="whitespace-nowrap px-2 py-2 font-medium">
-                    <button type="button" class="hover:text-slate-900" @click="toggleSort('activity_code')">
-                      Activity
+                    <button type="button" class="inline-flex items-center gap-0.5 hover:text-slate-900" @click="toggleSort('activity_code')">
+                      Activity Code
+                      <ChevronDown v-if="sortChevron('activity_code') === 'down'" class="h-3 w-3 shrink-0 text-slate-500" />
+                      <ChevronUp v-else-if="sortChevron('activity_code') === 'up'" class="h-3 w-3 shrink-0 text-slate-500" />
                     </button>
                   </th>
                   <th class="whitespace-nowrap px-2 py-2 font-medium">
-                    <button type="button" class="hover:text-slate-900" @click="toggleSort('ptj')">PTJ</button>
-                  </th>
-                  <th class="whitespace-nowrap px-2 py-2 font-medium">
-                    <button type="button" class="hover:text-slate-900" @click="toggleSort('cost_center')">
-                      Cost Ctr
+                    <button type="button" class="inline-flex items-center gap-0.5 hover:text-slate-900" @click="toggleSort('ptj')">
+                      PTJ
+                      <ChevronDown v-if="sortChevron('ptj') === 'down'" class="h-3 w-3 shrink-0 text-slate-500" />
+                      <ChevronUp v-else-if="sortChevron('ptj') === 'up'" class="h-3 w-3 shrink-0 text-slate-500" />
                     </button>
                   </th>
                   <th class="whitespace-nowrap px-2 py-2 font-medium">
-                    <button type="button" class="hover:text-slate-900" @click="toggleSort('account_code')">
-                      Account
+                    <button type="button" class="inline-flex items-center gap-0.5 hover:text-slate-900" @click="toggleSort('cost_center')">
+                      Cost Center
+                      <ChevronDown v-if="sortChevron('cost_center') === 'down'" class="h-3 w-3 shrink-0 text-slate-500" />
+                      <ChevronUp v-else-if="sortChevron('cost_center') === 'up'" class="h-3 w-3 shrink-0 text-slate-500" />
                     </button>
                   </th>
                   <th class="whitespace-nowrap px-2 py-2 font-medium">
-                    <button type="button" class="hover:text-slate-900" @click="toggleSort('status')">Status</button>
+                    <button type="button" class="inline-flex items-center gap-0.5 hover:text-slate-900" @click="toggleSort('account_code')">
+                      Account Code
+                      <ChevronDown v-if="sortChevron('account_code') === 'down'" class="h-3 w-3 shrink-0 text-slate-500" />
+                      <ChevronUp v-else-if="sortChevron('account_code') === 'up'" class="h-3 w-3 shrink-0 text-slate-500" />
+                    </button>
                   </th>
                   <th class="whitespace-nowrap px-2 py-2 font-medium">
-                    <button type="button" class="hover:text-slate-900" @click="toggleSort('request_by')">
+                    <button type="button" class="inline-flex items-center gap-0.5 hover:text-slate-900" @click="toggleSort('status')">
+                      Status
+                      <ChevronDown v-if="sortChevron('status') === 'down'" class="h-3 w-3 shrink-0 text-slate-500" />
+                      <ChevronUp v-else-if="sortChevron('status') === 'up'" class="h-3 w-3 shrink-0 text-slate-500" />
+                    </button>
+                  </th>
+                  <th class="whitespace-nowrap px-2 py-2 font-medium">
+                    <button type="button" class="inline-flex items-center gap-0.5 hover:text-slate-900" @click="toggleSort('request_by')">
                       Request By
+                      <ChevronDown v-if="sortChevron('request_by') === 'down'" class="h-3 w-3 shrink-0 text-slate-500" />
+                      <ChevronUp v-else-if="sortChevron('request_by') === 'up'" class="h-3 w-3 shrink-0 text-slate-500" />
                     </button>
                   </th>
                   <th class="whitespace-nowrap px-2 py-2 font-medium">
-                    <button type="button" class="hover:text-slate-900" @click="toggleSort('request_date')">
+                    <button type="button" class="inline-flex items-center gap-0.5 hover:text-slate-900" @click="toggleSort('request_date')">
                       Request Date
+                      <ChevronDown v-if="sortChevron('request_date') === 'down'" class="h-3 w-3 shrink-0 text-slate-500" />
+                      <ChevronUp v-else-if="sortChevron('request_date') === 'up'" class="h-3 w-3 shrink-0 text-slate-500" />
                     </button>
                   </th>
                   <th class="whitespace-nowrap px-2 py-2 font-medium">Action</th>
@@ -448,7 +462,7 @@ onUnmounted(() => {
                 </tr>
                 <tr v-else-if="rows.length === 0">
                   <td colspan="15" class="px-3 py-10 text-center text-slate-500">
-                    <p class="font-medium text-slate-700">No refund requests</p>
+                    <p class="font-medium text-slate-700">No records</p>
                     <p class="mt-1 text-xs">Try another search, or confirm APPLY + pay-to B rows exist in the database.</p>
                   </td>
                 </tr>
@@ -486,7 +500,7 @@ onUnmounted(() => {
           </div>
 
           <div v-if="total > 0" class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
-            <span>Records: {{ total }}</span>
+            <span>Showing {{ showingFrom }}–{{ showingTo }} of {{ total }}</span>
             <div class="flex items-center gap-2">
               <button
                 type="button"

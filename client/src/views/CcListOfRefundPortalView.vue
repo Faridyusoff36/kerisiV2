@@ -8,17 +8,7 @@
  * - Legacy onload hook: `SNA_JS_LIST_OF_REFUND_CC_STAFF` (`refresh`).
  */
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import {
-  CheckSquare,
-  Download,
-  ExternalLink,
-  FileDown,
-  FileSpreadsheet,
-  MoreVertical,
-  Search,
-  Square,
-  X,
-} from "lucide-vue-next";
+import { CheckSquare, ExternalLink, MoreVertical, Search, Square, X } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import {
   checkCreditControlRefundPortalSubmit,
@@ -84,6 +74,11 @@ const selectedIds = ref<Set<number>>(new Set());
 const totalPages = computed(() =>
   total.value ? Math.max(1, Math.ceil(total.value / limit.value)) : 1,
 );
+
+const showingFrom = computed(() =>
+  total.value === 0 ? 0 : (page.value - 1) * limit.value + 1,
+);
+const showingTo = computed(() => Math.min(page.value * limit.value, total.value));
 
 const pageIds = computed(() => rows.value.map((r) => r.traId));
 const allOnPageSelected = computed(
@@ -295,8 +290,6 @@ const {
   handleGroupList,
   templateFileInputRef,
   onTemplateFileChange,
-  handleDownloadPDF,
-  handleDownloadCSV,
 } = useDatatableFeatures({
   pageName: props.datatablePageName,
   apiDataPath: "/credit-control/list-of-refund-portal",
@@ -322,34 +315,6 @@ watch(limit, () => {
   page.value = 1;
   void loadRows();
 });
-
-async function exportExcel() {
-  try {
-    if (rows.value.length === 0) {
-      toast.info("No data", "There is nothing to export.");
-      return;
-    }
-    const ExcelJS = await import("exceljs");
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet(props.excelSheetName);
-    ws.addRow(exportColumns);
-    rows.value.forEach((r) => {
-      const e = rowExport(r);
-      ws.addRow(exportColumns.map((h) => e[h as keyof typeof e]));
-    });
-    const buf = await wb.xlsx.writeBuffer();
-    const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${props.excelFileLabel}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Excel downloaded");
-  } catch (e) {
-    toast.error("Export failed", e instanceof Error ? e.message : "Excel export failed.");
-  }
-}
 
 onMounted(() => {
   document.addEventListener("click", onClickOutside);
@@ -435,87 +400,66 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <div class="space-y-4 p-4">
-          <div class="flex flex-wrap items-end justify-between gap-4">
-            <div class="flex flex-wrap items-center gap-2">
-              <label class="text-xs font-medium text-slate-600">Display</label>
-              <select v-model.number="limit" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
-                <option v-for="n in [5, 10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
-              </select>
+        <div
+          class="flex flex-col gap-3 border-b border-slate-100 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div class="flex flex-wrap items-center gap-2">
+            <label class="text-xs font-medium text-slate-600">Display</label>
+            <select v-model.number="limit" class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+              <option v-for="n in [5, 10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
+            </select>
+            <button
+              type="button"
+              class="rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+              :disabled="selectedIds.size === 0 || submitting || rejecting"
+              @click="submitSelected"
+            >
+              {{ submitting ? "Submitting…" : "Submit selected" }}
+            </button>
+            <button
+              type="button"
+              class="rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+              :disabled="selectedIds.size === 0 || submitting || rejecting"
+              @click="rejectSelected"
+            >
+              {{ rejecting ? "Rejecting…" : "Reject selected" }}
+            </button>
+            <span v-if="selectedIds.size > 0" class="text-xs text-slate-600">{{ selectedIds.size }} selected</span>
+          </div>
+          <div class="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 sm:max-w-xl lg:max-w-2xl">
+            <label class="shrink-0 text-xs font-medium text-slate-600">Search</label>
+            <div class="relative min-w-0 flex-1 sm:min-w-[12rem]">
+              <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <input
+                v-model="q"
+                type="search"
+                placeholder="Application no., ID, name, account, reference…"
+                class="w-full rounded-lg border border-slate-300 py-1.5 pl-8 pr-8 text-sm"
+                autocomplete="off"
+                aria-label="Search refund list"
+                @keyup.enter="page = 1; void loadRows()"
+              />
               <button
+                v-if="q"
                 type="button"
-                class="rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
-                :disabled="selectedIds.size === 0 || submitting || rejecting"
-                @click="submitSelected"
+                class="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:bg-slate-100"
+                @click="q = ''; page = 1; void loadRows()"
               >
-                {{ submitting ? "Submitting…" : "Submit selected" }}
+                <X class="h-3.5 w-3.5" />
               </button>
-              <button
-                type="button"
-                class="rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50"
-                :disabled="selectedIds.size === 0 || submitting || rejecting"
-                @click="rejectSelected"
-              >
-                {{ rejecting ? "Rejecting…" : "Reject selected" }}
-              </button>
-              <span v-if="selectedIds.size > 0" class="text-xs text-slate-600">{{ selectedIds.size }} selected</span>
-            </div>
-            <div class="relative min-w-[200px] flex-1 sm:max-w-sm">
-              <label class="mb-1 block text-xs font-medium text-slate-600">Search</label>
-              <div class="relative">
-                <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                <input
-                  v-model="q"
-                  type="search"
-                  placeholder="Application no., ID, name, account, reference…"
-                  class="w-full rounded-lg border border-slate-300 py-1.5 pl-8 pr-8 text-sm"
-                  autocomplete="off"
-                  @keyup.enter="page = 1; void loadRows()"
-                />
-                <button
-                  v-if="q"
-                  type="button"
-                  class="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:bg-slate-100"
-                  @click="q = ''; page = 1; void loadRows()"
-                >
-                  <X class="h-3.5 w-3.5" />
-                </button>
-              </div>
             </div>
           </div>
+        </div>
 
-          <p class="text-xs text-slate-500">
-            Submissions must include rows from
-            <strong>one</strong>
-            application number only (legacy rule). Requires signed-in Credit Control staff.
-          </p>
-
-          <div class="flex flex-wrap items-center justify-end gap-2">
-            <button
-              type="button"
-              class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-              @click="handleDownloadPDF"
-            >
-              <FileDown class="h-3.5 w-3.5" />
-              PDF
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-              @click="handleDownloadCSV"
-            >
-              <Download class="h-3.5 w-3.5" />
-              CSV
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50"
-              @click="exportExcel"
-            >
-              <FileSpreadsheet class="h-3.5 w-3.5" />
-              Excel
-            </button>
-          </div>
+        <div class="space-y-3 px-4 pb-4 pt-3">
+          <details class="text-xs text-slate-500">
+            <summary class="cursor-pointer select-none font-medium text-slate-600">Submission rules</summary>
+            <p class="mt-2 leading-relaxed">
+              Submissions must include rows from
+              <strong>one</strong>
+              application number only (legacy rule). Requires signed-in Credit Control staff.
+            </p>
+          </details>
 
           <div class="max-h-[min(28rem,70vh)] overflow-y-auto overflow-x-auto rounded-lg border border-slate-200">
             <table class="min-w-[900px] divide-y divide-slate-200 text-left text-xs sm:min-w-full">
@@ -646,7 +590,7 @@ onUnmounted(() => {
           </div>
 
           <div v-if="total > 0" class="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600">
-            <span>Records: {{ total }}</span>
+            <span>Showing {{ showingFrom }}–{{ showingTo }} of {{ total }}</span>
             <div class="flex items-center gap-2">
               <button
                 type="button"

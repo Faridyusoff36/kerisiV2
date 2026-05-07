@@ -190,6 +190,305 @@ export type FundTypeInput = {
   ftyRemark?: string | null;
 };
 
+export type AssetDisposeMethodRow = {
+  index: number;
+  adtId: number;
+  adtCode: string;
+  adtName: string;
+  adtStatus: "ACTIVE" | "INACTIVE";
+  adtStatusValue: number;
+};
+
+export type AssetDisposeMethodInput = {
+  adtCode: string;
+  adtName: string;
+  adtStatus: number;
+};
+
+export type AssetBuildingLocationRow = {
+  index: number;
+  bdlId: number;
+  bdlCode: string;
+  bdlDesc: string;
+  bdlStatus: "ACTIVE" | "INACTIVE";
+  bdlStatusValue: string;
+  createdby?: string | null;
+  createddate?: string | null;
+};
+
+export type AssetBuildingLocationDetail = {
+  bdlId: number;
+  bdlCode: string;
+  bdlDesc: string;
+  bdlStatus: number;
+  createdby?: string | null;
+  createddate?: string | null;
+};
+
+export type AssetBuildingLocationInput = {
+  bdlCode: string;
+  bdlDesc: string;
+  bdlStatus: number;
+};
+
+export type AssetRoomLocationRow = {
+  index: number;
+  rmmId: number;
+  rmmCode: string;
+  rmmName: string;
+  rmmLevelCode: string;
+  rmmLevel: string;
+  locationLabel: string;
+  buildingLabel: string;
+  ptjLabel: string;
+  rmmStatus: string;
+};
+
+export type AssetDamageListingRow = {
+  index: number;
+  drmId: number;
+  drmReportNo: string;
+  drmQtyAsset: number;
+  drmDescription: string;
+  drmStatus: string;
+  drmTotalAmt: string;
+  createddate: string;
+  createdby: string;
+};
+
+export type AssetDamageApplicationHeader = {
+  drmId: number;
+  drmReportNo: string;
+  drmDescription: string;
+  drmStatus: string;
+};
+
+export type AssetDamageApplicationLine = {
+  index: number;
+  drdReportDetailsId: number;
+  assetNo: string;
+  assetDesc: string;
+  category: string;
+  subcategory: string;
+  brandModel: string;
+  serialChasis: string;
+  plateNo: string;
+  ptj: string;
+  fundType: string;
+  accountCode: string;
+  building: string;
+  room: string;
+  lastUser: string;
+  damageDetails: string;
+  damageDate: string;
+  recommendation: string;
+  estimatedCost: string;
+  installCost: string;
+};
+
+export type AssetDamageProcessFlowStep = {
+  processName: string;
+  createdByName: string;
+  ounDesc: string;
+  emailAddr: string;
+  telNoWork: string;
+  statusDesc: string;
+  remark: string;
+  createdDate: string;
+  createdTime: string;
+};
+
+export type AssetMaintenanceListRow = {
+  index: number;
+  id: number;
+  referenceNo?: string;
+  assetCode: string;
+  description?: string;
+  maintenanceKind?: string;
+  status: string;
+  totalCost?: string;
+  vendorCode?: string;
+  completeDate?: string;
+  createddate?: string;
+  scheduleMethod?: string;
+  periodType?: string;
+  startDate?: string;
+  notes?: string;
+};
+
+export type AssetKewPaGrnRow = {
+  index: number;
+  grmReceiveId: number;
+  grmReceiveNo: string;
+  grmReceiveDate: string;
+  grmStatus: string;
+  vendorCode: string;
+  orgCode: string;
+  poNo: string;
+  totalRm: string;
+  bimBillsNo: string;
+  createddate: string;
+};
+
+export type DisposalSecretariatRow = {
+  index: number;
+  astId: number;
+  iscType: string;
+  iscTypeDisplay: string;
+  stfStaffId: string;
+  stfStaffIdSuperior: string;
+  stfStaffIdHod: string;
+  staffLabel: string;
+  superiorLabel: string;
+  hodLabel: string;
+  astStatus: "ACTIVE" | "INACTIVE";
+  astStatusValue: number;
+  createdDate?: string | null;
+};
+
+export type DisposalSecretariatInput = {
+  iscType: string;
+  stfStaffId: string;
+  stfStaffIdSuperior: string;
+  stfStaffIdHod: string;
+  astStatus: number;
+};
+
+export type AssetDepreciationGroupRow = {
+  index: number;
+  ldeId: number;
+  ldeValue: string;
+  ldeDescription: string;
+  deprRate: string;
+  estimatedLife: string;
+  statusDesc: string;
+  ldeStatus: string;
+};
+
+export type AssetDepreciationGroupDetail = {
+  ldeId: number;
+  ldeValue: string;
+  ldeDescription: string;
+  deprRate: string;
+  estimatedLife: string;
+  statusDesc: string;
+  ldeStatus: string;
+};
+
+export type AssetDepreciationGroupInput = {
+  ldeValue: string;
+  ldeDescription: string;
+  deprRate?: string | null;
+  estimatedLife?: string | null;
+  statusDesc?: string | null;
+  ldeStatus: string;
+};
+
+export type AssetDepreciationTanahRow = {
+  index: number;
+  adtDeprId: number;
+  itmItemCode: string;
+  itmItemLabel: string;
+  adtEstimatedLife: string;
+  adtStatus: string;
+  statusLabel: string;
+  createddate?: string | null;
+  createdby?: string | null;
+};
+
+export type AssetDepreciationTanahDetail = {
+  adtDeprId: number;
+  itmItemCode: string;
+  adtEstimatedLife: string;
+  adtStatus: string;
+  statusDesc: string;
+  aimAssetDesc: string;
+  createddate?: string | null;
+  createdby?: string | null;
+};
+
+export type AssetDepreciationTanahInput = {
+  itmItemCode: string;
+  adtEstimatedLife?: string | null;
+  adtStatus: string;
+  statusDesc?: string | null;
+  aimAssetDesc?: string | null;
+};
+
+export type AssetDepreciationSchedulerRow = {
+  index: number;
+  id: number;
+  org: string;
+  day: string;
+  adscIsopen: string;
+  isOpen: string;
+  createdDate?: string | null;
+  updateDate?: string | null;
+  updateBy?: string | null;
+};
+
+export type AssetAccountSetupRow = {
+  index: number;
+  adsDeprId: number;
+  adsType: string;
+  itmCategoryDisplay: string;
+  itmSubcategoryDisplay: string;
+  adsDeprCode: string;
+  adsDeprCodeDisplay: string;
+  acmAcctCodeDisplay: string;
+  accumDisplay: string;
+  disposalDisplay: string;
+  writeoffDisplay: string;
+  deprGroupDisplay: string;
+  adsEstimatedLife: string;
+  adsDepreciationPercent: string;
+  adsResidualValue: string;
+  minAmt?: string | number | null;
+  maxAmt?: string | number | null;
+  adsStatusDisplay: string;
+  notes: string;
+};
+
+export type AssetAccountSetupDetail = Omit<AssetAccountSetupRow, "index">;
+
+export type AssetVerificationOfficerRow = {
+  index: number;
+  id: number;
+  staffLabel: string;
+  staffId: string;
+  roleLabel: string;
+  locationLabel: string;
+  locationCode: string;
+  buildingLabel: string;
+  buildingCode: string;
+  levelLabel: string;
+  levelCode: string;
+  statusLabel: string;
+  avsStatus: number;
+};
+
+export type AssetVerificationOfficerDetail = {
+  id: number;
+  stfStaffId: string;
+  bdlCode: string;
+  bdmCode: string;
+  rmmLevelCode: string;
+  avsStatus: number;
+};
+
+export type AssetVerificationOfficerInput = {
+  stfStaffId: string;
+  bdlCode: string;
+  bdmCode: string;
+  rmmLevelCode?: string | null;
+  avsStatus: number;
+};
+
+export type AssetOrganizationCascadeRoleRow = {
+  index: number;
+  roleCode: string;
+};
+
 export type ActivityGroupRow = {
   activityGroupCode: string;
   activityGroupDesc: string;
@@ -2139,6 +2438,40 @@ export type InvoiceBalanceOptions = {
   customerType: CcOption[];
 };
 
+/** Legacy SNA_API_CC_SUBSLEDGER_ALL — rep_aging_debtor line listing + running balance. */
+export type SubsidiaryLedgerCodeOption = { code: string; label: string };
+
+export type SubsidiaryLedgerAllRow = {
+  index: number;
+  pdePostingDetlId: number;
+  customerTypeLabel: string | null;
+  pdePaytoId: string | null;
+  pdePaytoName: string | null;
+  pdeDocumentNo: string | null;
+  docDescription: string | null;
+  fundType: string | null;
+  activityCode: string | null;
+  ounCode: string | null;
+  costCentre: string | null;
+  soCode: string | null;
+  acctCode: string | null;
+  acctDesc: string | null;
+  reference1: string | null;
+  reference2: string | null;
+  reference3: string | null;
+  transDate: string | null;
+  debit: number;
+  credit: number;
+  balance: number;
+};
+
+export type SubsidiaryLedgerAllOptions = {
+  customerTypes: SubsidiaryLedgerCodeOption[];
+  fundTypes: SubsidiaryLedgerCodeOption[];
+  costCentres: SubsidiaryLedgerCodeOption[];
+  accountCodes: SubsidiaryLedgerCodeOption[];
+};
+
 // Detail of Deposit — PAGEID 2688 / MENUID 3397.
 // Backend: DepositFormController (BL NAD_API_CC_DEPOSIT_DETAILS).
 export type DepositFormMaster = {
@@ -2830,16 +3163,20 @@ export type GlListingFooter = {
 /** Credit Control — ageing bucket reports (`CreditControlAgeingReportController`). */
 export type CreditControlAgeingRow = Record<string, string | number | null>;
 
-/** MENUID 2289 — temp_refund_bills_master (BRI, non-approved). */
+/** MENUID 2289 Page 1871 — Bill Registration Integration (REFUND_STAFF). */
 export type CcRefundBrIntegrationRow = {
   index: number;
   bimBillsId: number;
   bimBillsNo: string | null;
+  /** Legacy `INDIVIDU` / `BERKELOMPOK` from `bim_bills_type`. */
   bimBillsType: string | null;
   bimPaytoId: string | null;
   bimPaytoName: string | null;
   bimBillsDesc: string | null;
   bimBillAmt: number | null;
+  bimCustInvoiceNo: string | null;
+  /** ISO date; Classic column "Refund Date". */
+  bimCustInvoiceDate: string | null;
   bimStatus: string | null;
   createddate: string | null;
   viewUrl: string;
@@ -2869,10 +3206,13 @@ export type CcListOfRefundPortalRow = {
   /** Resolved URL for viewing/download (absolute or site-relative). */
   supportingDocumentUrl?: string | null;
   dpmDepositNo: string | null;
+  /** Bank name resolved from deposit/staff-account chain or legacy JSON ({@see temp_refund_application}). */
+  staffBankName?: string | null;
+  staffAccountNo?: string | null;
   reportUrl: string;
 };
 
-/** MENUID 2286 — admin refund applications (same row shape as MENUID 2604). */
+/** MENUID 2286 — admin payment-in-advance list (Classic `dt_listpayinadvstaff`; extends portal row shape). */
 export type CcRefundApplicationAdminRow = CcListOfRefundPortalRow;
 
 /** MENUID 2291 — Request Refund (`SNA_API_CREDITCONTROL_REQUESTREFUNDSTAFF` / `dt_listapply`). */
@@ -2910,7 +3250,9 @@ export type CreditControlRefundStaffDetailRow = {
   bim_status?: string | null;
   createddate?: string | null;
   bid_payto_id?: string | null;
+  bid_payto_type?: string | null;
   bid_payto_name?: string | null;
+  vsa_vendor_bank?: string | null;
   vsa_bank_accno?: string | null;
   fty_fund_type?: string | null;
   at_activity_code?: string | null;
@@ -2926,6 +3268,7 @@ export type CreditControlRefundStaffDetailRow = {
   paymode?: string | null;
   eftdate?: string | null;
   eftno?: string | null;
+  tra_application_no?: string | null;
 };
 
 export type CreditControlReminderLookupOption = { id: string; label: string };
@@ -3848,6 +4191,76 @@ export type AssetInventoryFooter = {
   totalRecord: number;
   totalInitialCost: number;
   totalInstallCost: number;
+};
+
+/** Asset Verification (PAGEID 2123 / MENUID 2574). */
+export type AssetVerificationRow = {
+  index: number;
+  assetId: number;
+  assetCode: string | null;
+  assetDescription: string | null;
+  model: string | null;
+  brand: string | null;
+  serialNo: string | null;
+  currentBuilding: string | null;
+  currentRoom: string | null;
+  actualBuilding: string | null;
+  actualRoom: string | null;
+  assetStatus: string | null;
+  verificationStatus: string | null;
+  verifyDate: string | null;
+  verificationLocked: boolean;
+};
+
+export type AssetVerificationDetail = {
+  assetCode: string | null;
+  assetDescription: string | null;
+  model: string | null;
+  brandName: string | null;
+  serialNo: string | null;
+  currentBuilding: string | null;
+  currentRoom: string | null;
+  realCurBuilding: string | null;
+  realCurRoom: string | null;
+  realCurBuildingDesc: string | null;
+  realCurRoomDesc: string | null;
+  assetStatus: string | null;
+  verifyDate: string | null;
+};
+
+/** Asset Cancellation asset pick list (PAGEID 2139 / 2591; verify PAGEID 2221 / 2697). */
+export type AssetCancellationAssetRow = {
+  index: number;
+  assetId: number;
+  assetCode: string | null;
+  assetDesc: string | null;
+  assetType: string | null;
+  itemCode: string | null;
+  fund: string | null;
+  activity: string | null;
+  ptjPayment: string | null;
+  costcentrePayment: string | null;
+  projectNo: string | null;
+  accountCode: string | null;
+  installCost: number | null;
+  status: string | null;
+  selectable?: boolean;
+};
+
+/** Asset Cancellation journal listing (PAGEID 2267 / MENUID 2756). */
+export type AssetCancellationJournalRow = {
+  index: number;
+  journalId: number;
+  createdDate: string | null;
+  journalNo: string | null;
+  description: string | null;
+  itemDescription: string | null;
+  amount: number | null;
+  status: string | null;
+  createdBy: string | null;
+  approveBy: string | null;
+  assetId: number;
+  isDraft: boolean;
 };
 
 // Project Monitoring > List of Project (MENUID 1544). Datatable backed by

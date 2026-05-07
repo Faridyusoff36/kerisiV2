@@ -14,6 +14,37 @@ import type {
   AccountBankUpdatedVoucherRow,
   AuditLog,
   AssetInventoryRow,
+  AssetVerificationRow,
+  AssetVerificationDetail,
+  AssetCancellationAssetRow,
+  AssetCancellationJournalRow,
+  AssetAccountSetupDetail,
+  AssetAccountSetupRow,
+  AssetBuildingLocationDetail,
+  AssetBuildingLocationInput,
+  AssetBuildingLocationRow,
+  AssetDamageApplicationHeader,
+  AssetDamageApplicationLine,
+  AssetDamageListingRow,
+  AssetDamageProcessFlowStep,
+  AssetDepreciationGroupDetail,
+  AssetDepreciationGroupInput,
+  AssetDepreciationGroupRow,
+  AssetDepreciationSchedulerRow,
+  AssetDepreciationTanahDetail,
+  AssetDepreciationTanahInput,
+  AssetDepreciationTanahRow,
+  AssetDisposeMethodInput,
+  AssetDisposeMethodRow,
+  AssetKewPaGrnRow,
+  AssetMaintenanceListRow,
+  AssetOrganizationCascadeRoleRow,
+  AssetRoomLocationRow,
+  AssetVerificationOfficerDetail,
+  AssetVerificationOfficerInput,
+  AssetVerificationOfficerRow,
+  DisposalSecretariatInput,
+  DisposalSecretariatRow,
   CapitalProjectProfilePatch,
   ProjectListRow,
   ProjectMonitoringBalance,
@@ -267,6 +298,8 @@ import type {
   StudentJournalApprovalDetail,
   StudentJournalApprovalFooter,
   StudentJournalApprovalRow,
+  SubsidiaryLedgerAllOptions,
+  SubsidiaryLedgerAllRow,
   StatusPoPrOptions,
   StatusPoPrRow,
   PurchasingVendorRow,
@@ -549,6 +582,226 @@ export async function createFundType(input: FundTypeInput) {
 
 export async function updateFundType(id: number, input: FundTypeInput) {
   return apiRequest<{ data: { success: boolean } }>(`/api/fund-types/${id}`, { method: "PUT", body: JSON.stringify(input) });
+}
+
+export async function listAssetDisposeMethods(params = "") {
+  return apiRequest<{ data: AssetDisposeMethodRow[]; meta: Record<string, unknown> }>(`/api/asset/dispose-methods${params}`);
+}
+
+export async function getAssetDisposeMethod(id: number) {
+  return apiRequest<{ data: { adtId: number; adtCode: string; adtName: string; adtStatus: number } }>(`/api/asset/dispose-methods/${id}`);
+}
+
+export async function createAssetDisposeMethod(input: AssetDisposeMethodInput) {
+  return apiRequest<{ data: { id: number; adtId: number } }>("/api/asset/dispose-methods", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateAssetDisposeMethod(id: number, input: AssetDisposeMethodInput) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/asset/dispose-methods/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function listAssetBuildingLocations(params = "") {
+  return apiRequest<{ data: AssetBuildingLocationRow[]; meta: Record<string, unknown> }>(`/api/asset/building-locations${params}`);
+}
+
+export async function getAssetBuildingLocation(id: number) {
+  return apiRequest<{ data: AssetBuildingLocationDetail }>(`/api/asset/building-locations/${id}`);
+}
+
+export async function createAssetBuildingLocation(input: AssetBuildingLocationInput) {
+  return apiRequest<{ data: { id: number; bdlId: number } }>("/api/asset/building-locations", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateAssetBuildingLocation(id: number, input: AssetBuildingLocationInput) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/asset/building-locations/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteAssetBuildingLocation(id: number) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/asset/building-locations/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function listAssetRoomLocations(params = "") {
+  return apiRequest<{ data: AssetRoomLocationRow[]; meta: Record<string, unknown> }>(`/api/asset/room-location-listing${params}`);
+}
+
+export async function listAssetDamageRegister(params = "") {
+  return apiRequest<{ data: AssetDamageListingRow[]; meta: Record<string, unknown> }>(`/api/asset/damage-listing${params}`);
+}
+
+export async function getAssetDamageApplication(drmId: number) {
+  return apiRequest<{
+    data: {
+      header: AssetDamageApplicationHeader;
+      lines: AssetDamageApplicationLine[];
+      processFlow: AssetDamageProcessFlowStep[];
+    };
+  }>(`/api/asset/damage-application/${drmId}`);
+}
+
+export async function listAssetMaintenanceRegister(params = "") {
+  return apiRequest<{ data: AssetMaintenanceListRow[]; meta: Record<string, unknown> }>(`/api/asset/maintenance-listing${params}`);
+}
+
+export async function listAssetGoodsReceiveKewpa(params = "") {
+  return apiRequest<{ data: AssetKewPaGrnRow[]; meta: Record<string, unknown> }>(`/api/asset/goods-receive-kewpa${params}`);
+}
+
+export async function getDisposalSecretariatOptions(params = "") {
+  return apiRequest<{
+    data: { itemSubcats: { value: string; label: string }[]; staff: { value: string; label: string }[] };
+  }>(`/api/asset/disposal-secretariat/options${params}`);
+}
+
+export async function listDisposalSecretariats(params = "") {
+  return apiRequest<{ data: DisposalSecretariatRow[]; meta: Record<string, unknown> }>(`/api/asset/disposal-secretariat${params}`);
+}
+
+export async function getDisposalSecretariat(id: number) {
+  return apiRequest<{
+    data: {
+      astId: number;
+      iscType: string;
+      stfStaffId: string;
+      stfStaffIdSuperior: string;
+      stfStaffIdHod: string;
+      astStatus: number;
+    };
+  }>(`/api/asset/disposal-secretariat/${id}`);
+}
+
+export async function createDisposalSecretariat(input: DisposalSecretariatInput) {
+  return apiRequest<{ data: { id: number; astId: number } }>("/api/asset/disposal-secretariat", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateDisposalSecretariat(id: number, input: DisposalSecretariatInput) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/asset/disposal-secretariat/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteDisposalSecretariat(id: number) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/asset/disposal-secretariat/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function listAssetDepreciationGroups(params = "") {
+  return apiRequest<{ data: AssetDepreciationGroupRow[]; meta: Record<string, unknown> }>(`/api/asset/depreciation-groups${params}`);
+}
+
+export async function getAssetDepreciationGroup(id: number) {
+  return apiRequest<{ data: AssetDepreciationGroupDetail }>(`/api/asset/depreciation-groups/${id}`);
+}
+
+export async function createAssetDepreciationGroup(input: AssetDepreciationGroupInput) {
+  return apiRequest<{ data: { ldeId: number } }>("/api/asset/depreciation-groups", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateAssetDepreciationGroup(id: number, input: AssetDepreciationGroupInput) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/asset/depreciation-groups/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteAssetDepreciationGroup(id: number) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/asset/depreciation-groups/${id}`, { method: "DELETE" });
+}
+
+export async function listAssetDepreciationTanah(params = "") {
+  return apiRequest<{ data: AssetDepreciationTanahRow[]; meta: Record<string, unknown> }>(`/api/asset/depreciation-tanah${params}`);
+}
+
+export async function getAssetDepreciationTanah(id: number) {
+  return apiRequest<{ data: AssetDepreciationTanahDetail }>(`/api/asset/depreciation-tanah/${id}`);
+}
+
+export async function createAssetDepreciationTanah(input: AssetDepreciationTanahInput) {
+  return apiRequest<{ data: { adtDeprId: number } }>("/api/asset/depreciation-tanah", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateAssetDepreciationTanah(id: number, input: AssetDepreciationTanahInput) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/asset/depreciation-tanah/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteAssetDepreciationTanah(id: number) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/asset/depreciation-tanah/${id}`, { method: "DELETE" });
+}
+
+export async function listAssetDepreciationScheduler(params = "") {
+  return apiRequest<{ data: AssetDepreciationSchedulerRow[]; meta: Record<string, unknown> }>(`/api/asset/depreciation-scheduler${params}`);
+}
+
+export async function updateAssetDepreciationScheduler(id: number, input: { adscDay: string; adscIsopen: string }) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/asset/depreciation-scheduler/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function listAssetAccountSetup(params = "") {
+  return apiRequest<{ data: AssetAccountSetupRow[]; meta: Record<string, unknown> }>(`/api/asset/account-setup${params}`);
+}
+
+export async function getAssetAccountSetup(id: number) {
+  return apiRequest<{ data: AssetAccountSetupDetail }>(`/api/asset/account-setup/${id}`);
+}
+
+export async function listAssetVerificationOfficers(params = "") {
+  return apiRequest<{ data: AssetVerificationOfficerRow[]; meta: Record<string, unknown> }>(`/api/asset/verification-officers${params}`);
+}
+
+export async function getAssetVerificationOfficer(id: number) {
+  return apiRequest<{ data: AssetVerificationOfficerDetail }>(`/api/asset/verification-officers/${id}`);
+}
+
+export async function createAssetVerificationOfficer(input: AssetVerificationOfficerInput) {
+  return apiRequest<{ data: { id: number } }>("/api/asset/verification-officers", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function updateAssetVerificationOfficer(id: number, input: AssetVerificationOfficerInput) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/asset/verification-officers/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function deleteAssetVerificationOfficer(id: number) {
+  return apiRequest<{ data: { success: boolean } }>(`/api/asset/verification-officers/${id}`, { method: "DELETE" });
+}
+
+export async function listAssetOrganizationCascadeRoles(params = "") {
+  return apiRequest<{ data: AssetOrganizationCascadeRoleRow[]; meta: Record<string, unknown> }>(`/api/asset/organization-cascade-roles${params}`);
 }
 
 export async function getFundTypeOptions() {
@@ -1887,6 +2140,19 @@ export async function searchInvoiceBalanceCustomer(
   );
 }
 
+/** Subsidiary Ledger All / Subsidiary Statement — legacy SNA_API_CC_SUBSLEDGER_ALL. */
+export async function getSubsidiaryLedgerAllOptions() {
+  return apiRequest<{ data: SubsidiaryLedgerAllOptions }>(
+    "/api/credit-control/subsidiary-ledger-all/options",
+  );
+}
+
+export async function listSubsidiaryLedgerAll(query = "") {
+  return apiRequest<{ data: SubsidiaryLedgerAllRow[]; meta: Record<string, unknown> }>(
+    `/api/credit-control/subsidiary-ledger-all${query}`,
+  );
+}
+
 export async function searchInvoiceBalanceInvoice(
   query = "",
   customerType = "",
@@ -2491,10 +2757,26 @@ export async function rejectCreditControlRefundPortalBatch(body: { tra_ids: numb
   );
 }
 
-/** MENUID 2286 — admin refund applications (legacy `SNA_API_CC_REFUNDSTAFF` / `dt_listapply`). */
+/** MENUID 2286 — list payment in advance / refund application (Classic {@code dt_listpayinadvstaff}). */
 export async function listCreditControlRefundApplication(params = "") {
   return apiRequest<{ data: CcRefundApplicationAdminRow[]; meta: Record<string, unknown> }>(
     `/api/credit-control/refund-application${params}`,
+  );
+}
+
+/** Top-filter account lookup (deposit × account_main), Classic `dt_listapply` parity. */
+export type CcRefundDepositAccountOption = { id: string; text: string };
+
+export async function listRefundApplicationDepositAccounts(params = "") {
+  return apiRequest<{ data: CcRefundDepositAccountOption[] }>(
+    `/api/credit-control/refund-application/deposit-account-options${params}`,
+  );
+}
+
+/** Staff ID options (Apply queue vend codes) for MENUID 2286 TopFilter. */
+export async function listRefundApplicationPayToVendors(params = "") {
+  return apiRequest<{ data: CcRefundDepositAccountOption[] }>(
+    `/api/credit-control/refund-application/pay-to-vendor-options${params}`,
   );
 }
 
@@ -2502,7 +2784,12 @@ export type CcRefundApplicationSubmitBody = {
   tra_ids: number[];
   fty_fund_type?: string;
   acm_acct_code?: string;
+  /** When true, backend matches {@code tra.acm_acct_code} exactly (dropdown selection). */
+  acm_acct_exact?: boolean;
   bill_reg_integration_type?: string;
+  /** Staff / vendor {@code tra.vcs_vendor_code} when narrowing the APPLY list. */
+  vcs_vendor_code?: string;
+  vcs_vendor_exact?: boolean;
 };
 
 export async function checkCreditControlRefundApplicationSubmit(body: CcRefundApplicationSubmitBody) {
@@ -2765,6 +3052,45 @@ export async function downloadSponsorLetter(letterId: string) {
 export async function listAssetInventory(params = "") {
   return apiRequest<{ data: AssetInventoryRow[]; meta: Record<string, unknown> }>(
     `/api/asset/list-of-asset${params}`,
+  );
+}
+
+export async function listAssetVerification(params = "") {
+  return apiRequest<{ data: AssetVerificationRow[]; meta: Record<string, unknown> }>(
+    `/api/asset/verification${params}`,
+  );
+}
+
+export async function getAssetVerification(assetId: number) {
+  return apiRequest<{ data: AssetVerificationDetail }>(`/api/asset/verification/${assetId}`);
+}
+
+export async function updateAssetVerification(
+  assetId: number,
+  body: {
+    realCurBuilding?: string | null;
+    realCurRoom?: string | null;
+    realCurBuildingDesc?: string | null;
+    realCurRoomDesc?: string | null;
+    assetStatus?: string | null;
+  },
+) {
+  await ensureCsrfCookie();
+  return apiRequest<{ data: { success: boolean } }>(`/api/asset/verification/${assetId}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function listAssetCancellationAssets(params = "") {
+  return apiRequest<{ data: AssetCancellationAssetRow[]; meta: Record<string, unknown> }>(
+    `/api/asset/cancellation/assets${params}`,
+  );
+}
+
+export async function listAssetCancellationJournals(params = "") {
+  return apiRequest<{ data: AssetCancellationJournalRow[]; meta: Record<string, unknown> }>(
+    `/api/asset/cancellation/journals${params}`,
   );
 }
 
