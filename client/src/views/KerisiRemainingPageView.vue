@@ -75,6 +75,13 @@ const spec = computed<KerisiRemainingPageSpec | null>(() => {
   return getKerisiRemainingSpec(id);
 });
 
+/** Drops unused legacy placeholders — Journal Revaluation (3254) “Bill & Credit Note” table had no API. */
+const shellPageDatatables = computed<KerisiRemainingDatatable[]>(() => {
+  const dts = spec.value?.datatables ?? [];
+  if (menuId.value === 3254) return dts.filter((dt) => dt.componentId !== 8501);
+  return dts;
+});
+
 const pageHeading = computed(() => {
   const trail = menuId.value !== null ? getKerisiMenuTrailByMenuId(menuId.value) : null;
   if (trail?.length) return trail.join(" / ");
@@ -97,6 +104,14 @@ function toStr(v: string | Record<string, unknown> | undefined): string {
 function cellKey(dt: KerisiRemainingDatatable, colIdx: number): string {
   const raw = toStr(dt.dtKey[colIdx]);
   if (raw.trim()) return raw.trim();
+  if (menuId.value === 3254 && dt.componentId === 8500) {
+    const byIdx: Record<number, string> = {
+      9: "bim_balance_curr",
+      12: "bim_balance_rm",
+      13: "bim_jr_rm",
+    };
+    if (byIdx[colIdx]) return byIdx[colIdx];
+  }
   const lab = toStr(dt.dtBi[colIdx]) || `col_${colIdx}`;
   return lab.replace(/\s+/g, "_").toLowerCase();
 }
@@ -380,6 +395,47 @@ function displayCell(row: Record<string, unknown>, dt: KerisiRemainingDatatable,
     return m ? `${m[3]}/${m[2]}/${m[1]}` : v;
   }
 
+  if (menuId.value === 3254) {
+    const dk = key.toLowerCase();
+    const amtKeys = [
+      "bim_ent_amt",
+      "sum_crd_cn_ent_amt",
+      "bim_balance_curr",
+      "bim_bill_amt",
+      "sum_crd_cn_amt",
+      "bim_balance_rm",
+      "bim_jr_rm",
+      "bid_ent_amt",
+      "crd_cn_ent_amt",
+      "jrd_trans_amt",
+    ];
+    if (amtKeys.includes(dk)) {
+      const raw = (resolved ?? "").trim().replace(/,/g, "");
+      if (raw === "") return "";
+      const n = parseFloat(raw);
+      return Number.isFinite(n)
+        ? new Intl.NumberFormat("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+        : (resolved ?? "");
+    }
+    const rateKeys = ["cyd_conversation_rate", "jrd_ag_rate_latest", "cna_conversion_rate", "jrd_ag_rate_current"];
+    if (rateKeys.includes(dk)) {
+      const raw = (resolved ?? "").trim().replace(/,/g, "");
+      if (raw === "") return "";
+      const n = parseFloat(raw);
+      return Number.isFinite(n)
+        ? new Intl.NumberFormat("en-MY", { minimumFractionDigits: 4, maximumFractionDigits: 4 }).format(n)
+        : (resolved ?? "");
+    }
+    if (dk === "bim_currency_unit") {
+      const raw = (resolved ?? "").trim().replace(/,/g, "");
+      if (raw === "") return "";
+      const n = parseFloat(raw);
+      return Number.isFinite(n)
+        ? new Intl.NumberFormat("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+        : (resolved ?? "");
+    }
+  }
+
   const po = formatPurchasingPoAmountCell(menuId.value, dt, colIdx, resolved ?? "");
   const withWpn = formatKerisiWpnMoney(menuId.value, dt, colIdx, po);
 
@@ -408,6 +464,11 @@ function isHiddenDtCol(dt: KerisiRemainingDatatable, colIdx: number): boolean {
   const label = stripHtmlBrLabel(dt.dtBi[colIdx]).trim().toLowerCase();
   if ((menuId.value === 3346 || menuId.value === 3348) && key === "mtm_id") return true;
   if (isMoneyTransferKitchenMenu(menuId.value) && label === "mtm_id") return true;
+  if (menuId.value === 3254 && dt.componentId === 8500) {
+    if (label.includes("journal revaluation")) return true;
+    if (label === "action") return true;
+    if (/<input/i.test(String(dt.dtBi[colIdx] ?? ""))) return true;
+  }
 
   const raw = dt.dtClass?.[colIdx];
   if (typeof raw !== "string" || !raw.trim()) return false;
@@ -500,8 +561,32 @@ function purchasingGrnNumericColClass(dt: KerisiRemainingDatatable, hi: number):
   return "";
 }
 
+function journalRevaluation3254NumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
+  if (menuId.value !== 3254) return "";
+  const dk = String(dt.dtKey[hi] ?? "").toLowerCase();
+  const lab = String(dt.dtBi[hi] ?? "")
+    .toLowerCase()
+    .replace(/<br\s*\/?>/gi, " ");
+  if (
+    dk.includes("amt") ||
+    dk.includes("rate") ||
+    lab.includes("(currency)") ||
+    lab.includes("(rm)") ||
+    lab.includes("ag rate")
+  ) {
+    return "text-right tabular-nums";
+  }
+  return "";
+}
+
 function tableNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
-  return poNumericColClass(dt, hi) || wpnNumericColClass(dt, hi) || purchasingGrnNumericColClass(dt, hi) || billRegistrationNumericColClass(dt, hi);
+  return (
+    poNumericColClass(dt, hi) ||
+    wpnNumericColClass(dt, hi) ||
+    purchasingGrnNumericColClass(dt, hi) ||
+    billRegistrationNumericColClass(dt, hi) ||
+    journalRevaluation3254NumericColClass(dt, hi)
+  );
 }
 
 function billRegistrationNumericColClass(dt: KerisiRemainingDatatable, hi: number): string {
@@ -692,6 +777,8 @@ function bankUpdatedFieldKey(title: string): string {
     "Date": "approvalDate",
     "Approval Status": "approvalStatus",
     "Remark *": "approvalRemark",
+    "Bill No *": "bimBillsNo",
+    "Voucher No *": "vmaVoucherNo",
   };
   return map[title] ?? title.replace(/[^a-zA-Z0-9]+(.)/g, (_, c: string) => c.toUpperCase()).replace(/^[A-Z]/, (c) => c.toLowerCase());
 }
@@ -705,11 +792,23 @@ function bankUpdatedOptions(title: string): { value: string; label: string }[] {
   if (title === "Creditor" || title === "Debtor") return options.yesNo ?? [];
   if (title === "Taraf") return options.taraf ?? [];
   if (title === "Approval Status") return options.approvalStatus ?? [];
+  if (title === "Bill No *") return options.bimBillsNo ?? [];
+  if (title === "Voucher No *") return options.vmaVoucherNo ?? [];
   return [];
+}
+
+function onFactoringBillVoucherFilterChange(): void {
+  const id = menuId.value;
+  if (id !== 3526 && id !== 3529) return;
+  page.value = 1;
+  void loadRows();
 }
 
 // ── layout: form-before-datatable ─────────────────────────────────────────
 const formBeforeDataTable = computed(() => {
+  const mid = menuId.value;
+  /** Legacy shell: bill/voucher factoring filter above the grids (registry componentId order would place form after tables). */
+  if (mid === 3526 || mid === 3529) return true;
   const s = spec.value;
   if (!s || s.formSections.length === 0) return false;
   const firstFormId = s.formSections[0]?.componentId ?? Infinity;
@@ -1355,7 +1454,10 @@ function shellRows(di: number): Record<string, unknown>[] {
   }
   if (menuId.value === 2618 && di === 1) return extraDatatableRowsStore.value[0] ?? [];
   if (menuId.value === 2618 && di === 2) return extraDatatableRowsStore.value[1] ?? [];
-  if (menuId.value === 1955 && di > 0) return extraDatatableRowsStore.value[di - 1] ?? [];
+  if ((menuId.value === 1955 || menuId.value === 3526 || menuId.value === 3529) && di > 0) {
+    return extraDatatableRowsStore.value[di - 1] ?? [];
+  }
+  if (menuId.value === 3254 && di === 1) return extraDatatableRowsStore.value[0] ?? [];
   return rows.value;
 }
 
@@ -1453,6 +1555,23 @@ async function loadRows() {
   });
   if (id === 3306 && (kerisiFormValues.value.tdmTenderId || kerisiFormValues.value.tdm_tender_id)) {
     params.set("tdm_tender_id", kerisiFormValues.value.tdmTenderId || kerisiFormValues.value.tdm_tender_id);
+  }
+  if (id === 3526 && (kerisiFormValues.value.bimBillsNo || kerisiFormValues.value.bim_bills_no)?.trim()) {
+    params.set("bim_bills_no", (kerisiFormValues.value.bimBillsNo || kerisiFormValues.value.bim_bills_no || "").trim());
+  }
+  if (id === 3529 && (kerisiFormValues.value.vmaVoucherNo || kerisiFormValues.value.vma_voucher_no)?.trim()) {
+    params.set("vma_voucher_no", (kerisiFormValues.value.vmaVoucherNo || kerisiFormValues.value.vma_voucher_no || "").trim());
+  }
+  if (id === 2166) {
+    // HTML date inputs give yyyy-mm-dd; convert to dd/mm/yyyy for the backend STR_TO_DATE('%d/%m/%Y')
+    const fmtDate = (iso: string) => {
+      if (!iso) return "";
+      const [y, m, d] = iso.split("-");
+      return d && m && y ? `${d}/${m}/${y}` : iso;
+    };
+    if (billDays2166Filter.value.tf_0) params.set("tf_0", fmtDate(billDays2166Filter.value.tf_0));
+    if (billDays2166Filter.value.tf_1) params.set("tf_1", fmtDate(billDays2166Filter.value.tf_1));
+    if (billDays2166Filter.value.tf_2) params.set("tf_2", billDays2166Filter.value.tf_2);
   }
 
   // Pass route query params
@@ -1847,6 +1966,21 @@ onUnmounted(() => {
         </div>
         <h1 v-else class="page-title">{{ pageHeading }}</h1>
 
+        <!-- Journal Revaluation Process — legacy grey strip below breadcrumb -->
+        <div
+          v-if="menuId === 3254"
+          class="flex flex-wrap justify-between gap-x-8 gap-y-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 shadow-inner shadow-slate-200/60"
+        >
+          <div>
+            <span class="font-semibold text-slate-800">Process Date : </span>
+            <span class="tabular-nums">{{ kerisiFormValues.processDate ?? kerisiFormValues.process_date ?? "" }}</span>
+          </div>
+          <div>
+            <span class="font-semibold text-slate-800">Revaluation Date : </span>
+            <span class="tabular-nums">{{ kerisiFormValues.revaluationDate ?? kerisiFormValues.revaluation_date ?? "" }}</span>
+          </div>
+        </div>
+
         <!-- Top Filter panel (rendered above datatables when present) -->
         <article v-if="showTopFilterUi" class="rounded-lg border border-slate-200 bg-white shadow-sm">
           <div class="border-b border-slate-100 px-4 py-3">
@@ -1898,7 +2032,7 @@ onUnmounted(() => {
         </article>
 
         <!-- Form sections BEFORE datatable -->
-        <template v-if="formBeforeDataTable && menuId !== 1838 && menuId !== 1955 && menuId !== 2107 && menuId !== 3270 && menuId !== 2618 && menuId !== 3306 && menuId !== 3461 && menuId !== 2974 && !isNewVariationOrderPage">
+        <template v-if="formBeforeDataTable && menuId !== 1838 && menuId !== 1955 && menuId !== 2107 && menuId !== 3270 && menuId !== 2618 && menuId !== 3306 && menuId !== 3461 && menuId !== 2974 && menuId !== 3526 && menuId !== 3529 && !isNewVariationOrderPage">
           <article
             v-for="grp in formSectionGroups"
             :key="grp.title"
@@ -1920,7 +2054,7 @@ onUnmounted(() => {
             </div>
           </article>
         </template>
-        <template v-else-if="formBeforeDataTable && menuId === 1955">
+        <template v-else-if="formBeforeDataTable && (menuId === 1955 || menuId === 3526 || menuId === 3529)">
           <article
             v-for="grp in formSectionGroups"
             :key="'bank-update-' + grp.title"
@@ -1955,6 +2089,7 @@ onUnmounted(() => {
                   v-model="kerisiFormValues[bankUpdatedFieldKey(f.title)]"
                   :disabled="bankUpdatedFieldDisabled(f)"
                   class="h-8 rounded border border-slate-300 bg-white px-2 text-xs disabled:bg-slate-100 disabled:text-slate-500"
+                  @change="onFactoringBillVoucherFilterChange"
                 >
                   <option value="">— Select —</option>
                   <option
@@ -2448,7 +2583,7 @@ onUnmounted(() => {
 
         <!-- Datatable sections -->
         <section
-          v-for="(dt, di) in spec?.datatables ?? []"
+          v-for="(dt, di) in shellPageDatatables"
           v-show="showDetailSection(di)"
           :key="dt.componentId + '-' + di"
           class="rounded-lg border border-slate-200 bg-white shadow-sm"
@@ -2457,7 +2592,10 @@ onUnmounted(() => {
             <h2 class="text-base font-semibold text-slate-900">
               {{ dt.componentTitle || "Data" }}
             </h2>
-            <div v-if="(di === 0) || (menuId !== 3038 && menuId !== 3133)" class="flex items-center gap-2">
+            <div
+              v-if="di === 0 || ((menuId !== 3038 && menuId !== 3133) && !(menuId === 3254 && di === 1))"
+              class="flex items-center gap-2"
+            >
               <!-- Add / PDF / CSV / Excel — visible only for non-kitchen menus (kitchen menus render these in the footer) -->
               <template v-if="!isKitchenDatatableMenu(menuId) || di !== 0">
                 <!-- Add button (only on popup-modal pages or default) -->
@@ -2526,14 +2664,21 @@ onUnmounted(() => {
 
           <div class="space-y-3 p-4">
             <!-- Search + smart-filter bar (primary datatable only) -->
-          <template v-if="di === 0 || menuId === 2624 || menuId === 2626">
+            <template v-if="di === 0 || menuId === 2624 || menuId === 2626 || (menuId === 3254 && di === 1)">
               <div
                 class="flex flex-wrap gap-4 border-b border-slate-200 bg-white/90 pb-3"
                 :class="
-                  isKitchenDatatableMenu(menuId) ? 'items-end justify-between' : 'items-center gap-2'
+                  isKitchenDatatableMenu(menuId)
+                    ? menuId === 3254 && di === 1
+                      ? 'items-end justify-end'
+                      : 'items-end justify-between'
+                    : 'items-center gap-2'
                 "
               >
-                <div v-if="isKitchenDatatableMenu(menuId)" class="flex flex-wrap items-center gap-2">
+                <div
+                  v-if="isKitchenDatatableMenu(menuId) && !(menuId === 3254 && di === 1)"
+                  class="flex flex-wrap items-center gap-2"
+                >
                   <label class="text-xs font-medium text-slate-600" for="kerisi-mt-limit">Display</label>
                   <select
                     id="kerisi-mt-limit"
@@ -2609,6 +2754,7 @@ onUnmounted(() => {
                   menuId === 2895 ? 'min-w-[3400px]' : '',
                   menuId === 3133 ? 'min-w-[1800px]' : '',
                   menuId === 2974 ? 'min-w-[2800px]' : '',
+                  menuId === 3254 ? 'min-w-[1200px]' : '',
                 ]"
               >
                 <thead class="admin-table-thead-sticky">
@@ -3232,6 +3378,23 @@ onUnmounted(() => {
                             @click="toast.info('Surat Makluman', 'PDF download is not wired in Kerisi20 yet.')"
                           >
                             <FileText class="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+
+                        <!-- Journal Revaluation Process — List Of Revaluation -->
+                        <div v-else-if="menuId === 3254 && di === 1" class="flex justify-center" @click.stop>
+                          <button
+                            type="button"
+                            class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600"
+                            title="Delete"
+                            @click="
+                              toast.info(
+                                'Journal Revaluation',
+                                `Bill ${String(row.jrd_reference ?? row.jrdReference ?? '')}: delete action is not wired in Kerisi20 yet.`,
+                              )
+                            "
+                          >
+                            <Trash2 class="h-3.5 w-3.5" />
                           </button>
                         </div>
 

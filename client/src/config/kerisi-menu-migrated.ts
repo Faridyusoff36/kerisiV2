@@ -3738,6 +3738,21 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
             to: "/admin/kerisi/m/1904",
             children: [
               {
+                menuId: 1905,
+                label: "EFT Preparation",
+                to: "/admin/kerisi/m/1905"
+              },
+              {
+                menuId: 1906,
+                label: "Payroll Batching",
+                to: "/admin/kerisi/m/1906"
+              },
+              {
+                menuId: 1907,
+                label: "Batching EPY List",
+                to: "/admin/kerisi/m/1907"
+              },
+              {
                 menuId: 1920,
                 label: "Payroll Batching Form",
                 to: "/admin/kerisi/m/1920",
@@ -4997,6 +5012,11 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
             label: "Refund (Staff)",
             to: "/admin/kerisi/m/2285",
             children: [
+              {
+                menuId: 2291,
+                label: "List of Refund Application (Portal)",
+                to: "/admin/kerisi/m/2291"
+              },
               {
                 menuId: 2702,
                 label: "Admin",

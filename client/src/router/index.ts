@@ -1305,6 +1305,20 @@ const router = createRouter({
       meta: { requiresAuth: true, title: "Payment In Advance Details" },
     },
     {
+      path: "/admin/kerisi/m/2291",
+      name: "kerisi-cc-m-2291",
+      component: CreditControlLegacyPlaceholderView,
+      props: {
+        title: "List of Refund Application (Portal)",
+        breadcrumb: "Credit Control / Refund / Refund (Staff) / List of Refund Application (Portal)",
+        description:
+          "This legacy Credit Control screen is not reproduced in Kerisi20. Use Kerisi Classic for the full workflow.",
+        relatedPath: "/admin/kerisi/m/1809",
+        relatedLabel: "Deposit",
+      },
+      meta: { requiresAuth: true, title: "List of Refund Application (Portal)" },
+    },
+    {
       path: "/admin/kerisi/m/2300",
       name: "kerisi-cc-m-2300",
       component: CreditControlLegacyPlaceholderView,
@@ -5619,6 +5633,42 @@ const router = createRouter({
         relatedLabel: "Account Bank Updated",
       },
       meta: { requiresAuth: true, title: "Cheque Listing (Old)" },
+    },
+    {
+      path: "/admin/kerisi/m/1905",
+      name: "kerisi-ap-payment-payroll-payment-eft-preparation",
+      component: AccountPayableLegacyPlaceholderView,
+      props: {
+        title: "EFT Preparation",
+        breadcrumb: "Account Payable / Payment / Payroll Payment / EFT Preparation",
+        relatedPath: "/admin/kerisi/m/2078",
+        relatedLabel: "Account Bank Updated",
+      },
+      meta: { requiresAuth: true, title: "EFT Preparation" },
+    },
+    {
+      path: "/admin/kerisi/m/1906",
+      name: "kerisi-ap-payment-payroll-payment-payroll-batching",
+      component: AccountPayableLegacyPlaceholderView,
+      props: {
+        title: "Payroll Batching",
+        breadcrumb: "Account Payable / Payment / Payroll Payment / Payroll Batching",
+        relatedPath: "/admin/kerisi/m/2078",
+        relatedLabel: "Account Bank Updated",
+      },
+      meta: { requiresAuth: true, title: "Payroll Batching" },
+    },
+    {
+      path: "/admin/kerisi/m/1907",
+      name: "kerisi-ap-payment-payroll-payment-batching-epy-list",
+      component: AccountPayableLegacyPlaceholderView,
+      props: {
+        title: "Batching EPY List",
+        breadcrumb: "Account Payable / Payment / Payroll Payment / Batching EPY List",
+        relatedPath: "/admin/kerisi/m/2078",
+        relatedLabel: "Account Bank Updated",
+      },
+      meta: { requiresAuth: true, title: "Batching EPY List" },
     },
     {
       path: "/admin/kerisi/m/1920",

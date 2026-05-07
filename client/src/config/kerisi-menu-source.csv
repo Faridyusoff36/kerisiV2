@@ -825,6 +825,7 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 2552,"New of Application Waqaf/Zakat Deduction",3023,4,1
 2589,"Kew Pa 1 - Penerimaan Aset",3531,4,1
 2647,"Senarai Tempoh Masa LPO 			",2810,4,1
+2291,"List of Refund Application (Portal)",2285,4,1
 2702,Admin,2285,4,1
 2718,Preparation,2763,4,1
 3010,"Calculation of Commission ",3018,4,1
@@ -905,6 +906,9 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 3371,"Creditor Ageing Details",3369,4,4
 3384,"Vot Book Report (WBR051)",3424,4,4
 3411,"Disabled Screen",2368,4,4
+1905,"EFT Preparation",1904,4,1
+1906,"Payroll Batching",1904,4,2
+1907,"Batching EPY List",1904,4,3
 3437,"Listing Approved Batching EPY",1904,4,4
 3443,"Creditor Ageing Details( > 6 Years)",3369,4,4
 3446,"Debtor Ageing Details ( > 6 Years )",3376,4,4

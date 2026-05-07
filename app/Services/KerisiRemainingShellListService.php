@@ -2,7 +2,12 @@
 
 namespace App\Services;
 
+use App\Models\BillsDetail;
+use App\Models\BillsMaster;
+use App\Models\VoucherDetail;
+use App\Models\VoucherMaster;
 use Illuminate\Database\Connection;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Http\Request;
@@ -315,8 +320,8 @@ class KerisiRemainingShellListService
             3372 => $this->apBukuDaftarTerimaan($request, $page, $limit, $q),
             3387 => $this->assetScheduleMaintenance($request, $page, $limit, $q),
             3461 => $this->apDirectVoucher($request, $page, $limit, $q),
-            3526 => $this->apUpdateBankAccount($request, $page, $limit, $q),
-            3529 => $this->apUpdateBankAccount($request, $page, $limit, $q),
+            3526 => $this->apUpdateBankFactoringBill($request, $page, $limit, $q),
+            3529 => $this->apUpdateBankFactoringVoucher($request, $page, $limit, $q),
             3534 => $this->apDownloadVoucherByRef($request, $page, $limit, $q),
             3535 => $this->apVoucherProcess($request, $page, $limit, $q),
             3538 => $this->apPaymentRejectBatch($request, $page, $limit, $q),
@@ -6328,9 +6333,149 @@ class KerisiRemainingShellListService
         return $this->shellPreview('ap_debit_note_cancel_form');
     }
 
+    /**
+     * Account Payable / Journal Revaluation / Journal Revaluation Process (menu 3254).
+     * Mirrors legacy unpaid-bill SQL (distinct filters, exclusions) and draft revaluation-detail SQL for the second grid.
+     */
     private function apJournalRevaluation(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->shellPreview('ap_journal_revaluation');
+        $cx = $this->conn();
+        $nowYear = (int) date('Y');
+        $approveFrom = sprintf('%04d-01-01', $nowYear - 3);
+        $approveTo = sprintf('%04d-12-31 23:59:59', $nowYear - 1);
+        $currencyDetailDate = sprintf('%04d-12-31', $nowYear - 1);
+
+        $cnAgg = $cx->table('credit_note_ap_master as cna')
+            ->join('credit_note_ap_details as cnd', function ($j): void {
+                $j->on('cnd.cna_credit_note_ap_master_id', '=', 'cna.cna_credit_note_ap_master_id')
+                    ->where('cnd.crd_transaction_type', '=', 'CR');
+            })
+            ->where('cna.cna_status_cd', 'APPROVE')
+            ->groupBy('cna.bim_bills_no')
+            ->select([
+                'cna.bim_bills_no',
+                DB::raw('COALESCE(SUM(cnd.crd_cn_ent_amt), 0) AS sum_crd_cn_ent_amt'),
+                DB::raw('COALESCE(SUM(cnd.crd_cn_amt), 0) AS sum_crd_cn_amt'),
+                DB::raw('MAX(cna.cna_conversion_rate) AS cna_conversion_rate'),
+            ]);
+
+        $base = $cx->table('bills_master as bm')
+            ->leftJoinSub($cnAgg, 'cn_agg', function ($join): void {
+                $join->on('cn_agg.bim_bills_no', '=', 'bm.bim_bills_no');
+            })
+            ->leftJoin('currency_details as cyd', function ($join) use ($currencyDetailDate): void {
+                $join->on('cyd.cym_currency_code', '=', 'bm.bim_currency_code')
+                    ->where('cyd.cyd_start_date', '=', $currencyDetailDate);
+            })
+            ->whereIn('bm.bim_status', ['APPROVE', 'APPROVED'])
+            ->whereRaw("IFNULL(bm.bim_currency_code, '') NOT IN ('MYR', '')")
+            ->whereBetween('bm.bim_approve_date', [$approveFrom, $approveTo])
+            ->whereNotExists(function (Builder $sub) use ($nowYear): void {
+                $sub->selectRaw('1')
+                    ->from('journal_revaluation_details as jrd')
+                    ->join('journal_revaluation_master as jrm', 'jrm.jrm_revaluation_id', '=', 'jrd.jrm_revaluation_id')
+                    ->whereColumn('jrd.jrd_reference', 'bm.bim_bills_no')
+                    ->where('jrm.jrm_status', 'DRAFT')
+                    ->whereYear('jrm.createddate', $nowYear);
+            })
+            ->whereNotExists(function (Builder $sub): void {
+                $sub->selectRaw('1')
+                    ->from('voucher_master as vma')
+                    ->join('voucher_details as vde', 'vma.vma_voucher_id', '=', 'vde.vma_voucher_id')
+                    ->whereColumn('vde.bim_bills_no', 'bm.bim_bills_no')
+                    ->whereNotIn('vma.vma_vch_status', ['CANCEL', 'REJECT']);
+            })
+            ->whereNotExists(function (Builder $sub) use ($nowYear): void {
+                $sub->selectRaw('1')
+                    ->from('manual_journal_master as mjm')
+                    ->join('manual_journal_details as mjd', 'mjm.mjm_journal_id', '=', 'mjd.mjm_journal_no')
+                    ->whereColumn('mjd.mjd_document_no', 'bm.bim_bills_no')
+                    ->whereNotIn('mjm.mjm_status', ['CANCEL', 'REJECT'])
+                    ->where(function (Builder $w) use ($nowYear): void {
+                        $w->where('mjm.mjm_system_id', '!=', 'REVALUATION')
+                            ->orWhereYear('mjm.createddate', $nowYear);
+                    });
+            })
+            ->select([
+                'bm.bim_bills_no',
+                'bm.bim_bills_desc',
+                'cyd.cyd_conversation_rate',
+                'bm.bim_currency_unit',
+                'bm.bim_currency_code',
+                'bm.bim_ent_amt',
+                DB::raw('bm.bim_conversion_rate AS jrd_ag_rate_latest'),
+                DB::raw('COALESCE(cn_agg.sum_crd_cn_ent_amt, 0) AS sum_crd_cn_ent_amt'),
+                DB::raw('COALESCE(cn_agg.cna_conversion_rate, 0) AS cna_conversion_rate'),
+                DB::raw('(bm.bim_ent_amt - COALESCE(cn_agg.sum_crd_cn_ent_amt, 0)) AS bim_balance_curr'),
+                'bm.bim_bill_amt',
+                DB::raw('COALESCE(cn_agg.sum_crd_cn_amt, 0) AS sum_crd_cn_amt'),
+                DB::raw('(bm.bim_bill_amt - COALESCE(cn_agg.sum_crd_cn_amt, 0)) AS bim_balance_rm'),
+                DB::raw('0 AS bim_jr_rm'),
+            ])
+            ->orderBy('bm.bim_bills_no');
+
+        $billNoSf = trim((string) $r->input('sf_0', ''));
+        if ($billNoSf !== '') {
+            $likeBill = $this->likeEscape(mb_strtolower($billNoSf, 'UTF-8'));
+            $base->whereRaw('LOWER(bm.bim_bills_no) LIKE ?', [$likeBill]);
+        }
+
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(bm.bim_bills_no,''), IFNULL(bm.bim_bills_desc,''))) LIKE ?",
+                [$like]
+            );
+        }
+
+        $pack = array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_journal_revaluation']);
+
+        // Second grid: legacy “list of revaluation” — draft JR current year, DT lines only, currency from bill.
+        $rev = $cx->table('journal_revaluation_details as jd')
+            ->join('journal_revaluation_master as jm', 'jm.jrm_revaluation_id', '=', 'jd.jrm_revaluation_id')
+            ->join('bills_master as bim', 'jd.jrd_reference', '=', 'bim.bim_bills_no')
+            ->where('jm.jrm_status', 'DRAFT')
+            ->whereYear('jm.createddate', $nowYear)
+            ->where('jd.jrd_trans_type', 'DT')
+            ->select([
+                'jd.jrd_reference',
+                'jd.jrd_trans_type',
+                'jd.fty_fund_type',
+                'jd.at_activity_code',
+                'jd.oun_code',
+                'jd.ccr_costcentre',
+                'jd.code_so',
+                'jd.jrd_item_code',
+                'jd.acm_acct_code',
+                'jd.budget_code',
+                'bim.bim_currency_unit',
+                'bim.bim_currency_code',
+                'jd.jrd_ag_rate_latest',
+                'jd.jrd_ag_rate_current',
+                'jd.jrd_trans_amt',
+                DB::raw("JSON_UNQUOTE(JSON_EXTRACT(jd.jrd_extended_field, '$.bid_line_no')) AS bid_line_no"),
+                DB::raw("JSON_UNQUOTE(JSON_EXTRACT(jd.jrd_extended_field, '$.bid_ent_amt')) AS bid_ent_amt"),
+                DB::raw('(SELECT cnd.crd_cn_ent_amt FROM credit_note_ap_details AS cnd WHERE cnd.bid_bills_details_id = jd.bid_bills_details_id LIMIT 1) AS crd_cn_ent_amt'),
+            ])
+            ->orderBy('jd.jrd_reference')
+            ->orderByRaw('CAST(IFNULL(JSON_UNQUOTE(JSON_EXTRACT(jd.jrd_extended_field, \'$.bid_line_no\')), \'0\') AS UNSIGNED)');
+
+        if ($q !== '') {
+            $likeRv = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $rev->whereRaw(
+                "LOWER(CONCAT_WS('|', IFNULL(jd.jrd_reference,''), IFNULL(jd.jrd_item_code,''), IFNULL(jd.budget_code,''))) LIKE ?",
+                [$likeRv]
+            );
+        }
+
+        $pack['extra_datatable_rows'] = [$rev->get()->map(fn ($row) => (array) $row)->toArray()];
+
+        $pack['form_values'] = [
+            'process_date' => \Carbon\Carbon::now()->format('d/m/Y'),
+            'revaluation_date' => \Carbon\Carbon::parse($currencyDetailDate)->format('d/m/Y'),
+        ];
+
+        return $pack;
     }
 
     private function apMoneyTransferList(Request $r, int $page, int $limit, string $q): array
@@ -6431,9 +6576,275 @@ class KerisiRemainingShellListService
         ];
     }
 
-    private function apUpdateBankAccount(Request $r, int $page, int $limit, string $q): array
+    /**
+     * Account Payable / Update Information / Update Bank Account and Factoring for Bill (3526).
+     * Legacy BL: {@code HQL_FACTORING_BILL_API} DebitDatatable / CreditDatatable filtered by Bill No.
+     * Returns debit lines as {@code rows}, credit lines in {@code extra_datatable_rows[0]}, ORM on mysql_secondary.
+     */
+    private function apUpdateBankFactoringBill(Request $r, int $page, int $limit, string $q): array
     {
-        return $this->purchasingVendorList($r, $page, $limit, $q);
+        $billNo = trim((string) $r->input('bim_bills_no', $r->input('bimBillsNo', '')));
+
+        $billOptions = BillsMaster::query()
+            ->whereIn('bim_status', ['APPROVE', 'APPROVED'])
+            ->orderByDesc('bim_bills_id')
+            ->limit(2000)
+            ->get(['bim_bills_no', 'bim_bills_desc'])
+            ->filter(fn ($row) => $row->bim_bills_no !== null && trim((string) $row->bim_bills_no) !== '')
+            ->map(fn ($row): array => [
+                'value' => (string) $row->bim_bills_no,
+                'label' => trim((string) $row->bim_bills_no.((trim((string) ($row->bim_bills_desc ?? '')) !== '')
+                    ? ' - '.trim((string) $row->bim_bills_desc)
+                    : '')),
+            ])
+            ->values()
+            ->all();
+
+        if ($billNo === '') {
+            return [
+                'rows' => [],
+                'total' => 0,
+                'connector' => 'ap_update_bank_factoring_bill',
+                'form_options' => ['bim_bills_no' => $billOptions],
+                'form_values' => ['bim_bills_no' => ''],
+                'extra_datatable_rows' => [[]],
+            ];
+        }
+
+        $billRow = BillsMaster::query()
+            ->where('bim_bills_no', $billNo)
+            ->first(['bim_bills_id', 'bim_bills_no', 'bim_status', 'bim_voucher_no']);
+
+        if (! $billRow || $billRow->bim_bills_id === null) {
+            return [
+                'rows' => [],
+                'total' => 0,
+                'connector' => 'ap_update_bank_factoring_bill',
+                'form_options' => ['bim_bills_no' => $billOptions],
+                'form_values' => ['bim_bills_no' => $billNo],
+                'extra_datatable_rows' => [[]],
+            ];
+        }
+
+        $billId = $billRow->bim_bills_id;
+        $editable = $this->apFactoringBillLineEditable((string) ($billRow->bim_status ?? ''), (string) ($billRow->bim_voucher_no ?? ''));
+
+        $debitBase = $this->apFactoringBillLineQuery((string) $billId)->where('bills_details.bid_trans_type', 'DT')->orderBy('bills_details.bid_bills_details_id');
+        $creditAll = $this->apFactoringBillLineQuery((string) $billId)->where('bills_details.bid_trans_type', 'CR')->orderBy('bills_details.bid_bills_details_id')
+            ->get()
+            ->map(fn ($row) => (array) $row->getAttributes());
+
+        $debitSelect = clone $debitBase;
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $debitSelect->whereRaw(
+                'LOWER(CONCAT_WS(\'|\', '
+                .'IFNULL(bills_details.bid_payto_id,\'\'), IFNULL(bills_details.bid_payto_name,\'\'), IFNULL(bills_details.bid_factoring_id,\'\'), '
+                .'IFNULL(bills_details.bid_factoring_name,\'\'), IFNULL(bills_details.fty_fund_type,\'\'), IFNULL(bills_details.at_activity_code,\'\'), '
+                .'IFNULL(bills_details.oun_code,\'\'), IFNULL(bills_details.ccr_costcentre,\'\'), IFNULL(bills_details.cpa_project_no,\'\'), '
+                .'IFNULL(bills_details.itm_item_code,\'\'), IFNULL(bills_details.acm_acct_code,\'\'), IFNULL(bills_details.bdg_budget_code,\'\'), '
+                .'IFNULL(bills_details.vsa_vendor_bank,\'\'), IFNULL(bills_details.vsa_bank_accno,\'\')'
+                .')) LIKE ?',
+                [$like]
+            );
+        }
+
+        $total = (clone $debitSelect)->count();
+        $rows = $debitSelect
+            ->skip(($page - 1) * $limit)
+            ->take($limit)
+            ->get()
+            ->map(function ($row) use ($editable): array {
+                $a = $row->getAttributes();
+                $a['editable'] = $editable;
+
+                return $a;
+            })
+            ->all();
+
+        return [
+            'rows' => $rows,
+            'total' => $total,
+            'connector' => 'ap_update_bank_factoring_bill',
+            'form_options' => ['bim_bills_no' => $billOptions],
+            'form_values' => ['bim_bills_no' => $billNo],
+            'extra_datatable_rows' => [$creditAll->values()->all()],
+        ];
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<BillsDetail>
+     */
+    private function apFactoringBillLineQuery(string $billId): EloquentBuilder
+    {
+        return BillsDetail::query()
+            ->where('bills_details.bim_bills_id', $billId)
+            ->select([
+                'bills_details.bid_bills_details_id',
+                'bills_details.bid_payto_type',
+                'bills_details.bid_payto_id',
+                'bills_details.bid_payto_name',
+                'bills_details.bid_factoring_type',
+                'bills_details.bid_factoring_id',
+                'bills_details.bid_factoring_name',
+                'bills_details.fty_fund_type',
+                'bills_details.at_activity_code',
+                'bills_details.oun_code',
+                'bills_details.ccr_costcentre',
+                'bills_details.cpa_project_no',
+                'bills_details.itm_item_code',
+                'bills_details.acm_acct_code',
+                'bills_details.bdg_budget_code',
+                'bills_details.bid_onbehalf',
+                'bills_details.vsa_vendor_bank',
+                'bills_details.vsa_bank_accno',
+                'bills_details.bid_fact_bank_name',
+                'bills_details.bid_fact_bank_acctno',
+                'bills_details.bid_ent_amt',
+                'bills_details.bid_amt',
+            ]);
+    }
+
+    private function apFactoringBillLineEditable(string $bimStatus, string $bimVoucherNo): string
+    {
+        if (in_array($bimStatus, ['CANCEL', 'REJECT', 'DRAFT'], true)) {
+            return 'N';
+        }
+        if (trim($bimVoucherNo) !== '') {
+            return 'N';
+        }
+
+        return 'Y';
+    }
+
+    /**
+     * Account Payable / Update Information / Update Bank Account and Factoring for Voucher (3529).
+     * Legacy BL: {@code HQL_FACTORING_VOUCHER_API} — debit/credit grids by voucher no.
+     */
+    private function apUpdateBankFactoringVoucher(Request $r, int $page, int $limit, string $q): array
+    {
+        $voucherNo = trim((string) $r->input('vma_voucher_no', $r->input('vmaVoucherNo', '')));
+
+        $voucherOptions = VoucherMaster::query()
+            ->whereNotIn('vma_vch_status', ['CANCEL', 'REJECT', 'ERROR'])
+            ->orderByDesc('vma_voucher_id')
+            ->limit(2000)
+            ->get(['vma_voucher_no', 'vma_vch_description'])
+            ->filter(fn ($row) => $row->vma_voucher_no !== null && trim((string) $row->vma_voucher_no) !== '')
+            ->map(fn ($row): array => [
+                'value' => (string) $row->vma_voucher_no,
+                'label' => trim((string) $row->vma_voucher_no.((trim((string) ($row->vma_vch_description ?? '')) !== '')
+                    ? ' - '.trim((string) $row->vma_vch_description)
+                    : '')),
+            ])
+            ->values()
+            ->all();
+
+        if ($voucherNo === '') {
+            return [
+                'rows' => [],
+                'total' => 0,
+                'connector' => 'ap_update_bank_factoring_voucher',
+                'form_options' => ['vma_voucher_no' => $voucherOptions],
+                'form_values' => ['vma_voucher_no' => ''],
+                'extra_datatable_rows' => [[]],
+            ];
+        }
+
+        $vm = VoucherMaster::query()
+            ->where('vma_voucher_no', $voucherNo)
+            ->first(['vma_voucher_id', 'vma_voucher_no', 'vma_vch_status']);
+
+        if (! $vm || $vm->vma_voucher_id === null) {
+            return [
+                'rows' => [],
+                'total' => 0,
+                'connector' => 'ap_update_bank_factoring_voucher',
+                'form_options' => ['vma_voucher_no' => $voucherOptions],
+                'form_values' => ['vma_voucher_no' => $voucherNo],
+                'extra_datatable_rows' => [[]],
+            ];
+        }
+
+        $vmaId = (string) $vm->vma_voucher_id;
+        $editable = (((string) ($vm->vma_vch_status ?? '')) === 'APPROVE') ? 'Y' : 'N';
+
+        $debitBase = $this->apFactoringVoucherLineBase($vmaId)->where('vd.vde_trans_type', 'DT')->orderBy('vd.vde_voucher_detl_id');
+        $creditAll = $this->apFactoringVoucherLineBase($vmaId)->where('vd.vde_trans_type', 'CR')->orderBy('vd.vde_voucher_detl_id')
+            ->get()
+            ->map(fn ($row) => (array) $row->getAttributes());
+
+        $debitSelect = clone $debitBase;
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $debitSelect->whereRaw(
+                'LOWER(CONCAT_WS(\'|\', IFNULL(vd.bim_bills_no,\'\'), IFNULL(vd.vde_payto_id,\'\'), IFNULL(vd.vde_payto_name,\'\'), '
+                .'IFNULL(vd.vde_bank_name,\'\'), IFNULL(vd.fty_fund_type,\'\'), IFNULL(vd.at_activity_code,\'\'), IFNULL(vd.oun_code,\'\'), '
+                .'IFNULL(vd.ccr_costcentre,\'\'), IFNULL(vd.cpa_project_no,\'\'), IFNULL(vd.acm_acct_code,\'\'), '
+                .'IFNULL(vd.vde_factoring_name,\'\') )) LIKE ?',
+                [$like]
+            );
+        }
+
+        $total = (clone $debitSelect)->count();
+        $rows = $debitSelect
+            ->skip(($page - 1) * $limit)
+            ->take($limit)
+            ->get()
+            ->map(function ($row) use ($editable): array {
+                $a = $row->getAttributes();
+                $a['editable'] = $editable;
+
+                return $a;
+            })
+            ->all();
+
+        return [
+            'rows' => $rows,
+            'total' => $total,
+            'connector' => 'ap_update_bank_factoring_voucher',
+            'form_options' => ['vma_voucher_no' => $voucherOptions],
+            'form_values' => ['vma_voucher_no' => $voucherNo],
+            'extra_datatable_rows' => [$creditAll->values()->all()],
+        ];
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<VoucherDetail>
+     */
+    private function apFactoringVoucherLineBase(string $vmaVoucherId): EloquentBuilder
+    {
+        return VoucherDetail::query()
+            ->from('voucher_details as vd')
+            ->join('voucher_master as vma', 'vd.vma_voucher_id', '=', 'vma.vma_voucher_id')
+            ->where('vma.vma_voucher_id', $vmaVoucherId)
+            ->leftJoin('lookup_details as fact_type', function (JoinClause $join): void {
+                $join->on('fact_type.lde_value', '=', 'vd.vde_factoring_type')
+                    ->where('fact_type.lma_code_name', '=', 'CUSTOMER_TYPE');
+            })
+            ->leftJoin('lookup_bank_main as fact_bank', 'fact_bank.lbm_bank_code', '=', 'vd.vde_fact_bank_name')
+            ->select([
+                'vd.vde_voucher_detl_id',
+                DB::raw('IFNULL(vd.bim_bills_no, \'\') AS bim_bills_no'),
+                'vd.vde_payto_id',
+                'vd.vde_payto_name',
+                'vd.vde_bank_name',
+                'vd.vde_bank_acctno',
+                'vd.fty_fund_type',
+                'vd.at_activity_code',
+                'vd.oun_code',
+                'vd.ccr_costcentre',
+                'vd.cpa_project_no',
+                'vd.acm_acct_code',
+                'vd.vde_amount',
+                'vd.vde_factoring_type',
+                DB::raw('COALESCE(fact_type.lde_description2, fact_type.lde_description, vd.vde_factoring_type) AS vde_factoring_type_desc'),
+                'vd.vde_factoring_id',
+                'vd.vde_factoring_name',
+                'vd.vde_fact_bank_name',
+                DB::raw('COALESCE(fact_bank.lbm_bank_name, vd.vde_fact_bank_name) AS vde_fact_bank_name_desc'),
+                'vd.vde_fact_bank_acctno',
+            ]);
     }
 
     private function apPaymentRejectBatch(Request $r, int $page, int $limit, string $q): array
