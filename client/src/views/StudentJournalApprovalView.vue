@@ -594,8 +594,8 @@ onUnmounted(() => {
         <div class="space-y-3 p-4">
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="credit.rows.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="admin-table-kitchen w-full min-w-[960px] text-sm">
-                <thead class="admin-table-thead-sticky">
+              <table class="w-full min-w-[960px] text-sm">
+                <thead class="sticky top-0 bg-slate-50">
                   <tr class="border-b border-slate-200 text-left">
                     <th
                       class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"
@@ -780,8 +780,8 @@ onUnmounted(() => {
         <div class="space-y-3 p-4">
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="debit.rows.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="admin-table-kitchen w-full min-w-[900px] text-sm">
-                <thead class="admin-table-thead-sticky">
+              <table class="w-full min-w-[900px] text-sm">
+                <thead class="sticky top-0 bg-slate-50">
                   <tr class="border-b border-slate-200 text-left">
                     <th
                       class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase"

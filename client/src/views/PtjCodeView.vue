@@ -454,11 +454,11 @@ onUnmounted(() => {
             <header class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-3 py-2">
               <p class="text-xs font-bold tracking-wide text-slate-700">{{ col.title }}</p>
               <div class="relative">
-                <button type="button" class="rounded p-1 text-slate-600 hover:bg-slate-100" @click="actionMenuOpen[col.key] = !actionMenuOpen[col.key]"><MoreVertical class="h-4 w-4" /></button>
+                <button class="rounded p-1 text-slate-600 hover:bg-slate-100" @click="actionMenuOpen[col.key] = !actionMenuOpen[col.key]"><MoreVertical class="h-4 w-4" /></button>
                 <div v-if="actionMenuOpen[col.key]" class="absolute right-0 z-20 mt-1 w-36 rounded-md border border-slate-200 bg-white py-1 shadow-lg">
-                  <button type="button" class="block w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50" @click="actionMenuOpen[col.key] = false; exportPdf(col.key)">Export PDF</button>
-                  <button type="button" class="block w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50" @click="actionMenuOpen[col.key] = false; exportCsv(col.key)">Export CSV</button>
-                  <button type="button" class="block w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50" @click="actionMenuOpen[col.key] = false; exportExcel(col.key)">Export Excel</button>
+                  <button class="block w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50" @click="actionMenuOpen[col.key] = false; exportPdf(col.key)">Export PDF</button>
+                  <button class="block w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50" @click="actionMenuOpen[col.key] = false; exportCsv(col.key)">Export CSV</button>
+                  <button class="block w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50" @click="actionMenuOpen[col.key] = false; exportExcel(col.key)">Export Excel</button>
                 </div>
               </div>
             </header>
@@ -495,11 +495,11 @@ onUnmounted(() => {
                   :class="{ 'ring-2 ring-blue-400': selected[col.key]?.ounCode === row.ounCode }"
                 >
                   <div class="flex items-start justify-between gap-2">
-                    <button type="button" class="flex-1 text-left" @click="selectRow(col.key, row)">{{ rowLabel(row) }}</button>
+                    <button class="flex-1 text-left" @click="selectRow(col.key, row)">{{ rowLabel(row) }}</button>
                     <div class="flex items-center gap-1">
-                      <button type="button" class="rounded p-1 text-slate-500 hover:bg-slate-100" @click="openEditView(col.key, 'view', row)"><Eye class="h-3.5 w-3.5" /></button>
-                      <button type="button" class="rounded p-1 text-slate-500 hover:bg-slate-100" @click="openEditView(col.key, 'edit', row)"><Pencil class="h-3.5 w-3.5" /></button>
-                      <button type="button" class="rounded p-1 text-rose-600 hover:bg-rose-50" @click="removeRow(col.key, row)"><Trash2 class="h-3.5 w-3.5" /></button>
+                      <button class="rounded p-1 text-slate-500 hover:bg-slate-100" @click="openEditView(col.key, 'view', row)"><Eye class="h-3.5 w-3.5" /></button>
+                      <button class="rounded p-1 text-slate-500 hover:bg-slate-100" @click="openEditView(col.key, 'edit', row)"><Pencil class="h-3.5 w-3.5" /></button>
+                      <button class="rounded p-1 text-rose-600 hover:bg-rose-50" @click="removeRow(col.key, row)"><Trash2 class="h-3.5 w-3.5" /></button>
                     </div>
                   </div>
                 </li>
@@ -507,7 +507,7 @@ onUnmounted(() => {
             </div>
 
             <div class="border-t border-slate-100 p-2">
-              <button type="button" class="inline-flex items-center gap-1.5 rounded bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800" @click="openCreate(col.key)">
+              <button class="inline-flex items-center gap-1.5 rounded bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800" @click="openCreate(col.key)">
                 <Plus class="h-3.5 w-3.5" />
                 Add
               </button>
@@ -563,8 +563,8 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="flex justify-end gap-2 border-t border-slate-100 px-4 py-3">
-            <button type="button" class="rounded border border-slate-300 px-4 py-2 text-sm" @click="showModal = false">Close</button>
-            <button type="button" v-if="modalMode !== 'view'" class="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white" @click="saveModal">Save</button>
+            <button class="rounded border border-slate-300 px-4 py-2 text-sm" @click="showModal = false">Close</button>
+            <button v-if="modalMode !== 'view'" class="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white" @click="saveModal">Save</button>
           </div>
         </div>
       </div>

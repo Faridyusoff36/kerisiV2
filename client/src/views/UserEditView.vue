@@ -327,7 +327,7 @@ onMounted(load);
               </div>
 
               <div class="mt-4 flex justify-end">
-                <button type="button"
+                <button
                   class="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
                   :disabled="savingProfile || !profileForm.name || !profileForm.email"
                   @click="saveProfile"
@@ -383,7 +383,7 @@ onMounted(load);
                 </div>
               </div>
               <div class="mt-4 flex justify-end">
-                <button type="button"
+                <button
                   class="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
                   :disabled="savingPassword"
                   @click="savePassword"
@@ -439,7 +439,7 @@ onMounted(load);
                     @change="onAvatarUpload"
                   />
                 </label>
-                <button type="button"
+                <button
                   v-if="auth.user?.photoUrl"
                   class="flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
                   @click="onRemoveAvatar"

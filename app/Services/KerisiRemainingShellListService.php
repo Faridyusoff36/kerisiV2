@@ -2,12 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\BillsDetail;
-use App\Models\BillsMaster;
-use App\Models\VoucherDetail;
-use App\Models\VoucherMaster;
 use Illuminate\Database\Connection;
-use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\Http\Request;
@@ -182,7 +177,7 @@ class KerisiRemainingShellListService
             2336 => $this->ccAdvanceMonitoring($request, $page, $limit, $q),
             2364 => $this->ccReminderReport($request, $page, $limit, $q),
             2627 => $this->ccDebtorBucketAgeing($request, $page, $limit, $q),
-            // 2633 is routed as Account Payable / Payment / Payment Notice in the migrated menu.
+            2633 => $this->ccDebtMovementReport($request, $page, $limit, $q),
             3064 => $this->ccDebtorReminder($request, $page, $limit, $q),
             3069 => $this->ccBucketAgeingReport($request, $page, $limit, $q),
             3226 => $this->investmentNewApplication($request, $page, $limit, $q), // reuse
@@ -219,10 +214,6 @@ class KerisiRemainingShellListService
             1858 => $this->purchasingGrnForm($request, $page, $limit, $q),
             /** Purchasing / Purchase Order Cancellation — POCANCEL_STATUS (PAGE 1684 / menu 2039). */
             2039 => $this->purchasingPoCancellationStatus2039($request, $page, $limit, $q),
-            /** Purchasing / PO Report Print / Bendahari (PAGE 1602 / menu 1939). */
-            1939 => $this->purchasingPoReportPrint1939($request, $page, $limit, $q),
-            /** Purchasing / PO Report Print / PTJ (PAGE 1605 / menu 1941). */
-            1941 => $this->purchasingPoReportPrint1941($request, $page, $limit, $q),
             2041 => $this->purchasingPoClosing($request, $page, $limit, $q),
             2042 => $this->purchasingPoUpdate($request, $page, $limit, $q),
             /** Purchasing / Work Progress Note Cancel List (PAGE 1723 / menu 2082). */
@@ -320,8 +311,8 @@ class KerisiRemainingShellListService
             3372 => $this->apBukuDaftarTerimaan($request, $page, $limit, $q),
             3387 => $this->assetScheduleMaintenance($request, $page, $limit, $q),
             3461 => $this->apDirectVoucher($request, $page, $limit, $q),
-            3526 => $this->apUpdateBankFactoringBill($request, $page, $limit, $q),
-            3529 => $this->apUpdateBankFactoringVoucher($request, $page, $limit, $q),
+            3526 => $this->apUpdateBankAccount($request, $page, $limit, $q),
+            3529 => $this->apUpdateBankAccount($request, $page, $limit, $q),
             3534 => $this->apDownloadVoucherByRef($request, $page, $limit, $q),
             3535 => $this->apVoucherProcess($request, $page, $limit, $q),
             3538 => $this->apPaymentRejectBatch($request, $page, $limit, $q),
@@ -2044,58 +2035,6 @@ class KerisiRemainingShellListService
         $base = $this->purchaseOrderKerisiBase($r, $q, 'cancellation_log');
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_po_cancel_status_2039']);
-    }
-
-    /** Purchasing / PO Report Print / Bendahari (menu 1939). */
-    private function purchasingPoReportPrint1939(Request $r, int $page, int $limit, string $q): array
-    {
-        $base = $this->purchaseOrderPoReportPrintBase($r, $q);
-
-        return array_merge($this->paginate($base, $page, $limit), [
-            'connector' => 'purchasing_po_report_print_bendahari_1939',
-        ]);
-    }
-
-    /** Purchasing / PO Report Print / PTJ (menu 1941). */
-    private function purchasingPoReportPrint1941(Request $r, int $page, int $limit, string $q): array
-    {
-        $base = $this->purchaseOrderPoReportPrintBase($r, $q);
-
-        return array_merge($this->paginate($base, $page, $limit), [
-            'connector' => 'purchasing_po_report_print_ptj_1941',
-        ]);
-    }
-
-    /**
-     * Approved PO listing for PO Report Print (menus 1939, 1941). Registry dtKeys: pom_*, vcs_*, APPROVE_UPDATEDATE → approve_updatedate.
-     */
-    private function purchaseOrderPoReportPrintBase(Request $r, string $q): Builder
-    {
-        $base = $this->conn()->table('purchase_order_master AS pom')
-            ->leftJoin('vend_customer_supplier AS vc', 'vc.vcs_vendor_code', '=', 'pom.vcs_vendor_code')
-            ->select([
-                'pom.pom_order_id',
-                'pom.pom_order_no',
-                'pom.pom_description',
-                DB::raw('pom.pom_order_amt_rm AS pom_order_amt'),
-                'pom.vcs_vendor_code',
-                'vc.vcs_vendor_name',
-                'pom.pom_order_status',
-                DB::raw('pom.updateddate AS approve_updatedate'),
-            ])
-            ->whereRaw("UPPER(TRIM(IFNULL(pom.pom_order_status,''))) = 'APPROVE'")
-            ->orderByDesc('pom.pom_order_id');
-
-        $qTrim = trim($q);
-        if ($qTrim !== '') {
-            $like = $this->likeEscape(mb_strtolower($qTrim, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(pom.pom_order_no,''), IFNULL(pom.pom_description,''), IFNULL(pom.vcs_vendor_code,''), IFNULL(vc.vcs_vendor_name,''), IFNULL(pom.pom_order_status,''))) LIKE ?",
-                [$like]
-            );
-        }
-
-        return $base;
     }
 
     /**
@@ -3973,286 +3912,27 @@ class KerisiRemainingShellListService
         ];
     }
 
-    /**
-     * Purchasing / Report / Report Vendor Assessment (GRN) — menu 3100.
-     * Registry {@see topFilterFields} dropdowns resolved via meta.top_filter_options (tf_*).
-     */
+    private function purchasingVendorAssessment(Request $r, int $page, int $limit, string $q): array
+    {
+        $base = $this->conn()->table('vendor_assessment_master as vam')
+            ->select(['vam.vam_assessment_id', 'vam.vcs_vendor_code', 'vam.createddate', 'vam.vam_mark', 'vam.vam_grade', 'vam.vam_status'])
+            ->orderByDesc('vam.vam_assessment_id');
+        if ($q !== '') {
+            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
+            $base->whereRaw("LOWER(IFNULL(vam.vcs_vendor_code,'')) LIKE ?", [$like]);
+        }
+
+        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'purchasing_vendor_assessment']);
+    }
+
     private function purchasingVendorAssessmentReport(Request $r, int $page, int $limit, string $q): array
     {
-        $base = $this->vendorAssessmentReport3100Base($r, $q);
-
-        return array_merge($this->paginate($base, $page, $limit), [
-            'connector' => 'purchasing_vendor_assessment_report_grn_3100',
-            'top_filter_options' => $this->vendorAssessmentReportTopFilterOptions3100(),
-        ]);
+        return $this->purchasingVendorAssessment($r, $page, $limit, $q);
     }
 
-    /**
-     * Purchasing / Report / Report Vendor Assessment (WPN) — menu 3106.
-     */
     private function purchasingVendorAssessmentWpn(Request $r, int $page, int $limit, string $q): array
     {
-        $base = $this->vendorAssessmentReport3106Base($r, $q);
-
-        return array_merge($this->paginate($base, $page, $limit), [
-            'connector' => 'purchasing_vendor_assessment_report_wpn_3106',
-            'top_filter_options' => $this->vendorAssessmentReportTopFilterOptions3106(),
-        ]);
-    }
-
-    /**
-     * @return list<int, array{value: string, label: string}>
-     */
-    private function pluckDistinctToFilterOptions(?\Illuminate\Support\Collection $pluck): array
-    {
-        if ($pluck === null || $pluck->isEmpty()) {
-            return [];
-        }
-
-        return $pluck
-            ->map(fn ($v) => ['value' => (string) $v, 'label' => (string) $v])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return array<string, list<int, array{value: string, label: string}>>
-     */
-    private function vendorAssessmentReportTopFilterOptions3100(): array
-    {
-        $cx = $this->conn();
-
-        $tfGrn = $cx->table('goods_receive_master AS grm')
-            ->join('vendor_assessment_master AS vam', 'vam.vam_grn_no', '=', 'grm.grm_receive_no')
-            ->whereNotNull('grm.grm_receive_no')
-            ->whereRaw("TRIM(IFNULL(grm.grm_receive_no,'')) <> ''")
-            ->selectRaw('DISTINCT TRIM(grm.grm_receive_no) AS col')
-            ->orderByRaw('col')
-            ->pluck('col');
-
-        return $this->vendorAssessmentReportTopFilterOptionsShared($cx, $tfGrn);
-    }
-
-    /**
-     * @param  \Illuminate\Support\Collection<int, mixed>  $tf0DocNos  distinct GRN or WPN numbers for filter dropdown 1
-     * @return array<string, list<int, array{value: string, label: string}>>
-     */
-    private function vendorAssessmentReportTopFilterOptionsShared(Connection $cx, \Illuminate\Support\Collection $tf0DocNos): array
-    {
-        $pre = $cx->table('purchase_order_details')
-            ->whereRaw("TRIM(IFNULL(rqm_requisition_no,'')) <> ''")
-            ->selectRaw('DISTINCT TRIM(rqm_requisition_no) AS col')
-            ->orderByRaw('col')
-            ->pluck('col');
-
-        $por = $cx->table('purchase_order_master')
-            ->whereRaw("TRIM(IFNULL(pom_order_no,'')) <> ''")
-            ->selectRaw('DISTINCT TRIM(pom_order_no) AS col')
-            ->orderByRaw('col')
-            ->pluck('col');
-
-        $vendorRows = $cx->table('vendor_assessment_master AS vam')
-            ->join('vend_customer_supplier AS vcs', 'vcs.vcs_vendor_code', '=', 'vam.vcs_vendor_code')
-            ->whereRaw("TRIM(IFNULL(vam.vcs_vendor_code,'')) <> ''")
-            ->groupBy('vam.vcs_vendor_code')
-            ->selectRaw('TRIM(vam.vcs_vendor_code) AS code')
-            ->selectRaw('MAX(TRIM(IFNULL(vcs.vcs_vendor_name, \'\'))) AS vname')
-            ->orderByRaw('code')
-            ->get();
-
-        $vendorOpts = $vendorRows->map(function ($row): array {
-            $code = (string) $row->code;
-            $name = trim((string) $row->vname);
-
-            return [
-                'value' => $code,
-                'label' => $name !== '' ? $code.' — '.$name : $code,
-            ];
-        })->values()->all();
-
-        try {
-            $jenis = $cx->table('lookup_details AS ld')
-                ->whereRaw('UPPER(ld.lma_code_name) LIKE ?', ['%TENDERTYPE%'])
-                ->whereRaw("TRIM(IFNULL(ld.lde_description,'')) <> ''")
-                ->whereRaw("IFNULL(ld.lde_status,'') NOT IN ('0','N','INACTIVE')")
-                ->selectRaw('DISTINCT TRIM(ld.lde_description) AS col')
-                ->orderByRaw('col')
-                ->pluck('col');
-        } catch (\Throwable) {
-            $jenis = collect();
-        }
-
-        $ptj = $cx->table('purchase_order_details')
-            ->whereRaw("TRIM(IFNULL(oun_code,'')) <> ''")
-            ->selectRaw('DISTINCT TRIM(oun_code) AS col')
-            ->orderByRaw('col')
-            ->pluck('col');
-
-        return [
-            'tf_0' => $this->pluckDistinctToFilterOptions($tf0DocNos),
-            'tf_1' => $this->pluckDistinctToFilterOptions($pre),
-            'tf_2' => $this->pluckDistinctToFilterOptions($por),
-            'tf_3' => $vendorOpts,
-            'tf_5' => $this->pluckDistinctToFilterOptions($jenis),
-            'tf_6' => $this->pluckDistinctToFilterOptions($ptj),
-        ];
-    }
-
-    /**
-     * @return array<string, list<int, array{value: string, label: string}>>
-     */
-    private function vendorAssessmentReportTopFilterOptions3106(): array
-    {
-        $cx = $this->conn();
-
-        $tfWpn = $cx->table('work_progress_master AS wpm')
-            ->join('vendor_assessment_master AS vam', 'vam.vam_grn_no', '=', 'wpm.wpm_progress_no')
-            ->whereNotNull('wpm.wpm_progress_no')
-            ->whereRaw("TRIM(IFNULL(wpm.wpm_progress_no,'')) <> ''")
-            ->selectRaw('DISTINCT TRIM(wpm.wpm_progress_no) AS col')
-            ->orderByRaw('col')
-            ->pluck('col');
-
-        return $this->vendorAssessmentReportTopFilterOptionsShared($cx, $tfWpn);
-    }
-
-    private function vendorAssessmentReport3100Base(Request $r, string $q): Builder
-    {
-        $cx = $this->conn();
-        $subPoMeta = $cx->table('purchase_order_details')
-            ->select([
-                'pom_order_id',
-                DB::raw('MIN(IFNULL(TRIM(oun_code), \'\')) AS meta_oun_code'),
-                DB::raw('MIN(IFNULL(TRIM(rqm_requisition_no), \'\')) AS meta_rqm_no'),
-            ])
-            ->groupBy('pom_order_id');
-
-        $base = $cx->table('vendor_assessment_master AS vam')
-            ->join('goods_receive_master AS grm', 'grm.grm_receive_no', '=', 'vam.vam_grn_no')
-            ->leftJoin('purchase_order_master AS pom', 'pom.pom_order_no', '=', 'grm.pom_order_no')
-            ->leftJoinSub($subPoMeta, 'pometa', function (JoinClause $join) {
-                $join->on('pometa.pom_order_id', '=', 'pom.pom_order_id');
-            })
-            ->leftJoin('requisition_master AS rm', 'rm.rqm_requisition_no', '=', 'pometa.meta_rqm_no')
-            ->leftJoin('vend_customer_supplier AS vcs', 'vcs.vcs_vendor_code', '=', 'vam.vcs_vendor_code')
-            ->select([
-                'vam.vam_assessment_id',
-                DB::raw('NULLIF(TRIM(pometa.meta_rqm_no), \'\') AS rqm_requisition_no'),
-                'pom.pom_order_no',
-                'grm.grm_receive_no',
-                DB::raw('NULLIF(TRIM(pometa.meta_oun_code), \'\') AS oun_code'),
-                'vam.createddate',
-                'vcs.vcs_vendor_name',
-                'vam.vcs_vendor_code',
-                DB::raw('IFNULL(NULLIF(TRIM(vam.vam_status), \'\'), IFNULL(vcs.vcs_vendor_status, \'\')) AS vendStatus'),
-                'rm.rqm_jenis_tender',
-                DB::raw('IFNULL(vam.vam_evaluator_note, \'\') AS vam_evaluator_note'),
-                DB::raw('\'\' AS pengesahan'),
-                DB::raw('IFNULL(vam.vam_approve_note, \'\') AS vam_approve_note'),
-            ]);
-
-        return $this->vendorAssessmentReportApplyTopFiltersAndSearch($base, $r, $q, 'grm.grm_receive_no');
-    }
-
-    private function vendorAssessmentReport3106Base(Request $r, string $q): Builder
-    {
-        $cx = $this->conn();
-        $subPoMeta = $cx->table('purchase_order_details')
-            ->select([
-                'pom_order_id',
-                DB::raw('MIN(IFNULL(TRIM(oun_code), \'\')) AS meta_oun_code'),
-                DB::raw('MIN(IFNULL(TRIM(rqm_requisition_no), \'\')) AS meta_rqm_no'),
-            ])
-            ->groupBy('pom_order_id');
-
-        $base = $cx->table('vendor_assessment_master AS vam')
-            ->join('work_progress_master AS wpm', 'wpm.wpm_progress_no', '=', 'vam.vam_grn_no')
-            ->leftJoin('purchase_order_master AS pom', 'pom.pom_order_no', '=', 'wpm.pom_order_no')
-            ->leftJoinSub($subPoMeta, 'pometa', function (JoinClause $join) {
-                $join->on('pometa.pom_order_id', '=', 'pom.pom_order_id');
-            })
-            ->leftJoin('requisition_master AS rm', 'rm.rqm_requisition_no', '=', 'pometa.meta_rqm_no')
-            ->leftJoin('vend_customer_supplier AS vcs', 'vcs.vcs_vendor_code', '=', 'vam.vcs_vendor_code')
-            ->select([
-                'vam.vam_assessment_id',
-                DB::raw('NULLIF(TRIM(pometa.meta_rqm_no), \'\') AS rqm_requisition_no'),
-                'pom.pom_order_no',
-                'wpm.wpm_progress_no',
-                DB::raw('NULLIF(TRIM(pometa.meta_oun_code), \'\') AS oun_code'),
-                'vam.createddate',
-                'vcs.vcs_vendor_name',
-                'vam.vcs_vendor_code',
-                DB::raw('IFNULL(NULLIF(TRIM(vam.vam_status), \'\'), IFNULL(vcs.vcs_vendor_status, \'\')) AS vendStatus'),
-                'rm.rqm_jenis_tender',
-                DB::raw('IFNULL(vam.vam_evaluator_note, \'\') AS vam_evaluator_note'),
-                DB::raw('\'\' AS pengesahan'),
-                DB::raw('IFNULL(vam.vam_approve_note, \'\') AS vam_approve_note'),
-            ]);
-
-        return $this->vendorAssessmentReportApplyTopFiltersAndSearch($base, $r, $q, 'wpm.wpm_progress_no');
-    }
-
-    /** @param  'grm.grm_receive_no'|'wpm.wpm_progress_no'  $qualifiedDocumentColumn */
-    private function vendorAssessmentReportApplyTopFiltersAndSearch(
-        Builder $base,
-        Request $r,
-        string $q,
-        string $qualifiedDocumentColumn,
-    ): Builder {
-        $quotedDocCol = '`'.str_replace('.', '`.`', $qualifiedDocumentColumn).'`';
-        $docTrimSql = 'IFNULL(TRIM(IFNULL('.$quotedDocCol.", '')), '')";
-
-        $tf0 = trim((string) $r->input('tf_0', ''));
-        if ($tf0 !== '') {
-            $base->whereRaw($docTrimSql.' = ?', [$tf0]);
-        }
-
-        $tf1 = trim((string) $r->input('tf_1', ''));
-        if ($tf1 !== '') {
-            $base->whereRaw('TRIM(IFNULL(pometa.meta_rqm_no, \'\')) = ?', [$tf1]);
-        }
-
-        $tf2 = trim((string) $r->input('tf_2', ''));
-        if ($tf2 !== '') {
-            $base->whereRaw('TRIM(IFNULL(pom.pom_order_no, \'\')) = ?', [$tf2]);
-        }
-
-        $tf3 = trim((string) $r->input('tf_3', ''));
-        if ($tf3 !== '') {
-            $base->whereRaw('TRIM(IFNULL(vam.vcs_vendor_code, \'\')) = ?', [$tf3]);
-        }
-
-        $tf5 = trim((string) $r->input('tf_5', ''));
-        if ($tf5 !== '') {
-            $base->whereRaw('TRIM(IFNULL(rm.rqm_jenis_tender, \'\')) = ?', [$tf5]);
-        }
-
-        $tf6 = trim((string) $r->input('tf_6', ''));
-        if ($tf6 !== '') {
-            $base->whereRaw('TRIM(IFNULL(pometa.meta_oun_code, \'\')) = ?', [$tf6]);
-        }
-
-        $qTrim = trim($q);
-        if ($qTrim !== '') {
-            $like = $this->likeEscape(mb_strtolower($qTrim, 'UTF-8'));
-            $base->whereRaw(
-                'LOWER(CONCAT_WS(\'|\', '.
-                $docTrimSql.", ".
-                "IFNULL(TRIM(pometa.meta_rqm_no),''), ".
-                "IFNULL(TRIM(pom.pom_order_no),''), ".
-                "IFNULL(TRIM(pometa.meta_oun_code),''), ".
-                "IFNULL(TRIM(vam.vcs_vendor_code),''), ".
-                "IFNULL(TRIM(vcs.vcs_vendor_name),''), ".
-                "IFNULL(TRIM(rm.rqm_jenis_tender),''), ".
-                "IFNULL(TRIM(vam.vam_status),''), ".
-                'IFNULL(TRIM(IFNULL(vam.vam_evaluator_note, \'\')),\'\'), '.
-                'IFNULL(TRIM(IFNULL(vam.vam_approve_note, \'\')),\'\')'.
-                ')) LIKE ?',
-                [$like]
-            );
-        }
-
-        return $base->orderByDesc('vam.vam_assessment_id');
+        return $this->purchasingVendorAssessment($r, $page, $limit, $q);
     }
 
     private function purchasingTenderBrief(Request $r, int $page, int $limit, string $q): array
@@ -4652,45 +4332,21 @@ class KerisiRemainingShellListService
      * ══════════════════════════════════════════════════════════════════ */
     private function apBillRegistrationList(Request $r, int $page, int $limit, string $q): array
     {
-        $creditNotes = $this->conn()->table('credit_note_ap_master')
-            ->selectRaw('bim_bills_no, GROUP_CONCAT(cna_crnote_no ORDER BY cna_credit_note_ap_master_id SEPARATOR ", ") AS cna_crnote_no, SUM(COALESCE(cna_cn_total_amount, 0)) AS cna_cn_total_amount')
-            ->whereRaw("IFNULL(cna_status_cd, '') <> 'CANCEL'")
-            ->groupBy('bim_bills_no');
-
+        // bills_master: bim_bills_id, bim_bills_no, vcs_vendor_code, bim_bill_amt, bim_status (verified)
         $base = $this->conn()->table('bills_master as bm')
-            ->leftJoinSub($creditNotes, 'cn', function (JoinClause $join): void {
-                $join->on('cn.bim_bills_no', '=', 'bm.bim_bills_no');
-            })
             ->select([
-                DB::raw('bm.bim_bills_id AS bim_bills_id'),
-                DB::raw('bm.bim_system_id AS bim_system_id'),
-                DB::raw('bm.bim_bills_no AS bim_bills_no'),
-                DB::raw('bm.grm_receive_no AS grm_receive_no'),
-                DB::raw('bm.rqm_requisition_no AS rqm_requisition_no'),
-                DB::raw('bm.bim_payee_count AS bim_payee_count'),
-                DB::raw('bm.bim_payto_id AS bim_payto_id'),
-                DB::raw('bm.bim_payto_name AS bim_payto_name'),
-                DB::raw('bm.bim_bills_desc AS bim_bills_desc'),
-                DB::raw('bm.bim_cust_invoice_no AS bim_cust_invoice_no'),
-                DB::raw('bm.bim_cust_invoice_date AS bim_cust_invoice_date'),
-                DB::raw('bm.bim_ent_amt AS bim_ent_amt'),
-                DB::raw('bm.bim_bill_amt AS bim_bill_amt'),
-                DB::raw('cn.cna_crnote_no AS cna_crnote_no'),
-                DB::raw('cn.cna_cn_total_amount AS cna_cn_total_amount'),
-                DB::raw('(COALESCE(bm.bim_bill_amt, 0) - COALESCE(cn.cna_cn_total_amount, 0)) AS bim_balance'),
-                DB::raw('bm.bim_status AS bim_status'),
-                DB::raw("CASE WHEN IFNULL(bm.bim_system_id, '') = '' THEN 'NO' ELSE 'YES' END AS isMigration"),
-                DB::raw('bm.createddate AS createddate'),
-                DB::raw('bm.bim_approve_date AS bim_approve_date'),
-                DB::raw('bm.bim_currency_code AS bim_currency_code'),
+                'bm.bim_bills_id',
+                'bm.bim_bills_no',
+                'bm.bim_bills_desc',
+                'bm.vcs_vendor_code',
+                'bm.bim_bill_amt',
+                'bm.bim_status',
+                'bm.oun_code',
             ])
             ->orderByDesc('bm.bim_bills_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(bm.bim_bills_no,''), IFNULL(bm.grm_receive_no,''), IFNULL(bm.rqm_requisition_no,''), IFNULL(bm.bim_payto_id,''), IFNULL(bm.bim_payto_name,''), IFNULL(bm.bim_bills_desc,''), IFNULL(bm.bim_cust_invoice_no,''), IFNULL(bm.bim_status,''))) LIKE ?",
-                [$like]
-            );
+            $base->whereRaw("LOWER(CONCAT_WS('|', IFNULL(bm.bim_bills_no,''), IFNULL(bm.vcs_vendor_code,''))) LIKE ?", [$like]);
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_bill_registration_list']);
@@ -4732,162 +4388,9 @@ class KerisiRemainingShellListService
         return $this->shellPreview('ap_bill_days_report');
     }
 
-    /**
-     * Account Payable / Report / Bill Report (MENUID 2895).
-     *
-     * Legacy: AS_BL_AP_KPT_REPORT.dt_kpt_list=1.
-     * UNION across bills_master + temp_advance_bills_master + temp_emergencyfund_bills_master
-     * + temp_refund_bills_master, then LEFT JOINed to voucher_master/details, payment_record,
-     * payment_batch, plus 11 status-scoped joins on wf_application_status to expose the
-     * Bill / Voucher / BFT lifecycle dates (Check, Endorse, Receive, Verify, Approve, Entry, etc.).
-     */
     private function apBillReport(Request $r, int $page, int $limit, string $q): array
     {
-        $conn = $this->conn();
-
-        $main = $this->apBillReportSubQuery($conn, 'bills_details', 'bills_master');
-        $adv = $this->apBillReportSubQuery($conn, 'temp_advance_bills_details', 'temp_advance_bills_master');
-        $ef = $this->apBillReportSubQuery($conn, 'temp_emergencyfund_bills_details', 'temp_emergencyfund_bills_master');
-        $rf = $this->apBillReportSubQuery($conn, 'temp_refund_bills_details', 'temp_refund_bills_master');
-
-        $inner = $main->union($adv)->union($ef)->union($rf);
-
-        $statusJoins = [
-            ['wch', 'tbl.bim_bills_no', 'CHECK'],
-            ['wen', 'tbl.bim_bills_no', 'ENDORSE'],
-            ['wre', 'tbl.bim_bills_no', 'RECEIVE'],
-            ['wve', 'tbl.bim_bills_no', 'VERIFIED'],
-            ['wap', 'tbl.bim_bills_no', 'APPROVE'],
-            ['ven', 'tbl.bim_voucher_no', 'ENTRY'],
-            ['vve', 'tbl.bim_voucher_no', 'VERIFIED'],
-            ['vap', 'tbl.bim_voucher_no', 'APPROVE'],
-            ['ben', 'pre.pre_payment_batch', 'ENTRY'],
-            ['bve', 'pre.pre_payment_batch', 'VERIFIED'],
-            ['bap', 'pre.pre_payment_batch', 'APPROVE'],
-        ];
-
-        $base = $conn->query()
-            ->fromSub($inner, 'tbl')
-            ->leftJoin('voucher_master as vma', function (JoinClause $j): void {
-                $j->on('tbl.bim_voucher_no', '=', 'vma.vma_voucher_no')
-                    ->whereNotIn('vma.vma_vch_status', ['ERROR', 'DRAFT']);
-            })
-            ->leftJoin('voucher_details as vde', function (JoinClause $j): void {
-                $j->on('vma.vma_voucher_id', '=', 'vde.vma_voucher_id')
-                    ->where('vde.vde_trans_type', 'CR');
-            })
-            ->leftJoin('payment_record as pre', function (JoinClause $j): void {
-                $j->on('pre.pre_voucher_no', '=', 'vma.vma_voucher_no')
-                    ->on('pre.pre_payment_no', '=', 'vde.vde_payment_no');
-            })
-            ->leftJoin('payment_batch as pb', 'pre.pre_payment_batch_id', '=', 'pb.pyb_pybatch_id');
-
-        foreach ($statusJoins as [$alias, $idCol, $status]) {
-            $base->leftJoin('wf_application_status as '.$alias, function (JoinClause $j) use ($alias, $idCol, $status): void {
-                $j->on($idCol, '=', $alias.'.was_application_id')
-                    ->where($alias.'.was_status', $status);
-            });
-        }
-
-        $base->distinct()
-            ->selectRaw(
-                "tbl.bim_bills_no AS bim_bills_no,
-                tbl.bim_bills_desc AS bim_bills_desc,
-                tbl.bim_status AS bim_status,
-                DATE_FORMAT(tbl.entry_date, '%d/%m/%Y') AS entry_date,
-                tbl.bid_payto_id AS bid_payto_id,
-                tbl.bid_payto_name AS bid_payto_name,
-                tbl.bim_cust_invoice_no AS bim_cust_invoice_no,
-                tbl.vsa_bank_accno AS vsa_bank_accno,
-                tbl.third_party_id AS third_party_id,
-                pre.pre_payto_id AS pre_payto_id,
-                pre.pre_payto_name AS pre_payto_name,
-                pre.pre_bank_name AS pre_bank_name,
-                pre.acm_acct_code_bank AS acm_acct_code_bank,
-                DATE_FORMAT(wch.createddate, '%d/%m/%Y') AS Bill_Check_Date,
-                DATE_FORMAT(wen.createddate, '%d/%m/%Y') AS Bill_Endorsed_Date,
-                DATE_FORMAT(wre.createddate, '%d/%m/%Y') AS Bill_Received_Date,
-                DATE_FORMAT(wve.createddate, '%d/%m/%Y') AS Bill_Verify_Date,
-                DATE_FORMAT(wap.createddate, '%d/%m/%Y') AS Bill_Approve_Date,
-                tbl.bim_voucher_no AS bim_voucher_no,
-                vma.vma_vch_status AS vma_vch_status,
-                DATE_FORMAT(ven.createddate, '%d/%m/%Y') AS Voucher_Entry_Date,
-                DATE_FORMAT(vve.createddate, '%d/%m/%Y') AS Voucher_Verify_date,
-                DATE_FORMAT(vap.createddate, '%d/%m/%Y') AS Voucher_Approve_date,
-                pre.pre_payment_no AS pre_payment_no,
-                DATE_FORMAT(pre.pre_bankin_date, '%d/%m/%Y') AS pre_bankin_date,
-                pre.pre_payment_batch AS pre_payment_batch,
-                pb.pyb_status AS pyb_status,
-                DATE_FORMAT(ben.createddate, '%d/%m/%Y') AS BFT_Entry_Date,
-                DATE_FORMAT(bve.createddate, '%d/%m/%Y') AS BFT_Verify_Date,
-                DATE_FORMAT(bap.createddate, '%d/%m/%Y') AS BFT_Approve_Date,
-                DATE_FORMAT(pb.pyb_transfer_date, '%d/%m/%Y') AS pyb_transfer_date,
-                FORMAT(pre.pre_total_amt, 2) AS pre_total_amt,
-                CONCAT_WS('__',
-                    IFNULL(tbl.bim_bills_no, ''),
-                    IFNULL(tbl.bim_bills_desc, ''),
-                    IFNULL(tbl.bim_status, ''),
-                    IFNULL(DATE_FORMAT(tbl.entry_date, '%d/%m/%Y'), ''),
-                    IFNULL(tbl.bid_payto_id, ''),
-                    IFNULL(tbl.bid_payto_name, ''),
-                    IFNULL(tbl.vsa_bank_accno, ''),
-                    IFNULL(tbl.third_party_id, ''),
-                    IFNULL(pre.pre_payto_id, ''),
-                    IFNULL(pre.pre_payto_name, ''),
-                    IFNULL(tbl.bim_cust_invoice_no, ''),
-                    IFNULL(pre.pre_bank_name, ''),
-                    IFNULL(pre.acm_acct_code_bank, ''),
-                    IFNULL(tbl.bim_voucher_no, ''),
-                    IFNULL(vma.vma_vch_status, ''),
-                    IFNULL(pre.pre_payment_no, ''),
-                    IFNULL(pre.pre_payment_batch, ''),
-                    IFNULL(pb.pyb_status, '')
-                ) AS _search_concat"
-            );
-
-        $wrapped = $conn->query()
-            ->fromSub($base, 'rep')
-            ->orderBy('bim_bills_no')
-            ->orderBy('bid_payto_name');
-
-        if ($q !== '') {
-            $needle = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $wrapped->whereRaw('LOWER(IFNULL(_search_concat, \'\')) LIKE ?', [$needle]);
-        }
-
-        $pack = $this->paginate($wrapped, $page, $limit);
-        $pack['rows'] = array_map(static function (array $row): array {
-            unset($row['_search_concat']);
-
-            return $row;
-        }, $pack['rows']);
-
-        return array_merge($pack, ['connector' => 'ap_bill_report']);
-    }
-
-    /**
-     * One UNION branch for the AP Bill Report inner subquery.
-     * Mirrors the legacy 4-way UNION across bills + temp_advance/emergency/refund.
-     */
-    private function apBillReportSubQuery(Connection $conn, string $detailsTable, string $masterTable): Builder
-    {
-        return $conn->table($detailsTable.' as bd')
-            ->leftJoin($masterTable.' as bm', 'bd.bim_bills_id', '=', 'bm.bim_bills_id')
-            ->whereNotNull('bm.bim_bills_no')
-            ->distinct()
-            ->selectRaw(
-                'bm.bim_bills_no AS bim_bills_no,
-                bm.bim_bills_desc AS bim_bills_desc,
-                bm.bim_status AS bim_status,
-                bm.createddate AS entry_date,
-                bd.bid_payto_id AS bid_payto_id,
-                bd.bid_payto_type AS bid_payto_type,
-                bd.bid_payto_name AS bid_payto_name,
-                bm.bim_cust_invoice_no AS bim_cust_invoice_no,
-                bd.vsa_bank_accno AS vsa_bank_accno,
-                bd.bid_factoring_name AS third_party_id,
-                bm.bim_voucher_no AS bim_voucher_no'
-            );
+        return $this->shellPreview('ap_bill_report');
     }
 
     private function apVoucherRegistration(Request $r, int $page, int $limit, string $q): array
@@ -4915,68 +4418,25 @@ class KerisiRemainingShellListService
 
     private function apVoucherListing(Request $r, int $page, int $limit, string $q): array
     {
-        // Voucher Listing (menu 2297) — dtKey: vma_voucher_no, vma_payto_id, vma_payto_name,
-        // bim_bills_no, vma_currency_code, vma_vch_description, vma_total_amt, createddate,
-        // vma_vch_status, vde_cust_invoice_no
-        $base = $this->conn()->table('voucher_master as vm')
-            ->leftJoin('voucher_details as vde', function ($j) {
-                $j->on('vde.vma_voucher_id', '=', 'vm.vma_voucher_id')
-                  ->where('vde.vde_trans_type', 'DT');
-            })
-            ->select([
-                'vm.vma_voucher_id',
-                'vm.vma_voucher_no',
-                'vm.vma_payto_id',
-                'vm.vma_payto_name',
-                DB::raw('MIN(vde.bim_bills_no) AS bim_bills_no'),
-                'vm.vma_currency_code',
-                'vm.vma_vch_description',
-                'vm.vma_total_amt',
-                'vm.createddate',
-                'vm.vma_vch_status',
-                DB::raw('MIN(vde.vde_cust_invoice_no) AS vde_cust_invoice_no'),
-            ])
-            ->groupBy([
-                'vm.vma_voucher_id', 'vm.vma_voucher_no', 'vm.vma_payto_id',
-                'vm.vma_payto_name', 'vm.vma_currency_code', 'vm.vma_vch_description',
-                'vm.vma_total_amt', 'vm.createddate', 'vm.vma_vch_status',
-            ])
-            ->orderByDesc('vm.vma_voucher_id');
-
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(vm.vma_voucher_no,''), IFNULL(vm.vma_payto_id,''), IFNULL(vm.vma_payto_name,''), IFNULL(vm.vma_vch_description,''))) LIKE ?",
-                [$like]
-            );
-        }
-
-        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_voucher_listing']);
+        return $this->apVoucherRegistration($r, $page, $limit, $q);
     }
 
     private function apVoucherCancel(Request $r, int $page, int $limit, string $q): array
     {
-        // Voucher Cancel (menu 2298) — dtKey: vma_voucher_id, vma_voucher_no,
-        // vma_vch_description, vma_total_amt, vma_payto_type, vma_payto_id, vma_payto_name
-        // Shows vouchers eligible to be cancelled (APPROVE/ENTRY/VERIFIED status)
         $base = $this->conn()->table('voucher_master as vm')
-            ->whereIn('vm.vma_vch_status', ['APPROVE', 'ENTRY', 'VERIFIED'])
+            ->where('vm.vma_vch_status', 'CANCEL')
             ->select([
                 'vm.vma_voucher_id',
                 'vm.vma_voucher_no',
-                'vm.vma_vch_description',
-                'vm.vma_total_amt',
-                'vm.vma_payto_type',
-                'vm.vma_payto_id',
                 'vm.vma_payto_name',
+                'vm.vma_total_amt',
+                'vm.vma_vch_status',
+                'vm.createddate',
             ])
             ->orderByDesc('vm.vma_voucher_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(vm.vma_voucher_no,''), IFNULL(vm.vma_payto_id,''), IFNULL(vm.vma_payto_name,''), IFNULL(vm.vma_vch_description,''))) LIKE ?",
-                [$like]
-            );
+            $base->whereRaw("LOWER(CONCAT_WS('|', IFNULL(vm.vma_voucher_no,''), IFNULL(vm.vma_payto_name,''))) LIKE ?", [$like]);
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_voucher_cancel']);
@@ -4984,132 +4444,12 @@ class KerisiRemainingShellListService
 
     private function apVoucherCancelJournal(Request $r, int $page, int $limit, string $q): array
     {
-        // Journal Voucher Cancel (menu 2412) — dtKey: vma_voucher_id, mjm_journal_no,
-        // mjm_journal_desc, mjm_typeofjournal, mjm_enterdate, mjm_total_amt, mjm_status,
-        // mjm_system_id, createdby, mjm_journal_id
-        $base = $this->conn()->table('manual_journal_master as mjm')
-            ->leftJoin('voucher_master as vm', 'vm.mjm_journal_id', '=', 'mjm.mjm_journal_id')
-            ->select([
-                DB::raw('MIN(vm.vma_voucher_id) AS vma_voucher_id'),
-                'mjm.mjm_journal_id',
-                'mjm.mjm_journal_no',
-                'mjm.mjm_journal_desc',
-                'mjm.mjm_typeofjournal',
-                'mjm.mjm_enterdate',
-                'mjm.mjm_total_amt',
-                'mjm.mjm_status',
-                'mjm.mjm_system_id',
-                'mjm.createdby',
-            ])
-            ->groupBy([
-                'mjm.mjm_journal_id', 'mjm.mjm_journal_no', 'mjm.mjm_journal_desc',
-                'mjm.mjm_typeofjournal', 'mjm.mjm_enterdate', 'mjm.mjm_total_amt',
-                'mjm.mjm_status', 'mjm.mjm_system_id', 'mjm.createdby',
-            ])
-            ->orderByDesc('mjm.mjm_journal_id');
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(mjm.mjm_journal_no,''), IFNULL(mjm.mjm_journal_desc,''), IFNULL(mjm.mjm_system_id,''))) LIKE ?",
-                [$like]
-            );
-        }
-
-        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_voucher_cancel_journal']);
+        return $this->apVoucherCancel($r, $page, $limit, $q);
     }
 
     private function apVoucherReplace(Request $r, int $page, int $limit, string $q): array
     {
-        // Voucher Replace (menu 2337) — exact port of the legacy SQL
-        // (BL: AS_BL_AP_VOUCHERREPLACE).
-        //
-        //   FROM manual_journal_master mjm,
-        //        manual_journal_details mjd,
-        //        voucher_master vm,
-        //        voucher_details vd
-        //   WHERE vm.vma_voucher_no = mjm.mjm_extended_field ->> '$.Voucher_No'
-        //     AND mjm.mjm_journal_id = mjd.mjm_journal_no  -- legacy: column name is misleading, holds the FK ID
-        //     AND vm.vma_voucher_id = vd.vma_voucher_id
-        //     AND vd.vde_payto_id   = mjd.mjd_payto_id
-        //     AND mjm.mjm_system_id = 'PAYMENT_REPLACE'
-        //     AND mjm.mjm_status IN ('APPROVE','APPROVED')
-        //     AND (vd.flag_vch_replace IS NULL OR vd.flag_vch_replace = 'N')
-        //
-        // The voucher number is NOT a FK column — it lives in the JSON field
-        // mjm.mjm_extended_field at $.Voucher_No and is matched by string
-        // equality to voucher_master.vma_voucher_no.
-        //
-        // The 4-table join multiplies each journal by every matching line item
-        // (manual_journal_details × voucher_details), so SELECT DISTINCT is
-        // required and the count must use COUNT(DISTINCT mjm_journal_id) — the
-        // generic paginate() helper would otherwise report inflated totals.
-        $applyJoinsAndFilters = function ($q1) use ($q) {
-            $q1->join('manual_journal_details as mjd', 'mjm.mjm_journal_id', '=', 'mjd.mjm_journal_no')
-                ->join('voucher_master as vm', function ($j) {
-                    $j->whereRaw("vm.vma_voucher_no = mjm.mjm_extended_field ->> '$.Voucher_No'");
-                })
-                ->join('voucher_details as vd', function ($j) {
-                    $j->on('vd.vma_voucher_id', '=', 'vm.vma_voucher_id')
-                      ->on('vd.vde_payto_id', '=', 'mjd.mjd_payto_id');
-                })
-                ->where('mjm.mjm_system_id', 'PAYMENT_REPLACE')
-                ->whereIn('mjm.mjm_status', ['APPROVE', 'APPROVED'])
-                ->where(function ($w) {
-                    $w->whereNull('vd.flag_vch_replace')
-                      ->orWhere('vd.flag_vch_replace', 'N');
-                });
-
-            if ($q !== '') {
-                $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-                $q1->whereRaw(
-                    "LOWER(CONCAT_WS('|', "
-                    . "IFNULL(mjm.mjm_journal_no,''), "
-                    . "IFNULL(mjm.mjm_journal_desc,''), "
-                    . "IFNULL(vm.vma_subsystem_code,''), "
-                    . "IFNULL(mjm.mjm_typeofjournal,''), "
-                    . "IFNULL(mjm.mjm_total_amt,''), "
-                    . "IFNULL(mjm.mjm_extended_field ->> '$.Voucher_No', ''), "
-                    . "IFNULL(mjm.mjm_reverse_status,'')"
-                    . ")) LIKE ?",
-                    [$like]
-                );
-            }
-        };
-
-        $countQuery = $this->conn()->table('manual_journal_master as mjm');
-        $applyJoinsAndFilters($countQuery);
-        $total = (int) $countQuery
-            ->selectRaw('COUNT(DISTINCT mjm.mjm_journal_id) as aggregate')
-            ->value('aggregate');
-
-        $rowsQuery = $this->conn()->table('manual_journal_master as mjm');
-        $applyJoinsAndFilters($rowsQuery);
-        $rows = $rowsQuery
-            ->select([
-                'mjm.mjm_journal_id',
-                'mjm.mjm_journal_no',
-                'mjm.mjm_journal_desc',
-                'vm.vma_subsystem_code',
-                'mjm.mjm_typeofjournal',
-                'mjm.mjm_total_amt',
-                'mjm.mjm_status',
-                'mjm.mjm_system_id',
-                'mjm.mjm_enterdate',
-                DB::raw("mjm.mjm_extended_field ->> '$.Voucher_No' AS VoucherNo"),
-            ])
-            ->distinct()
-            ->orderByDesc('mjm.mjm_journal_no')
-            ->skip(($page - 1) * $limit)
-            ->take($limit)
-            ->get()
-            ->map(fn ($row) => (array) $row)
-            ->toArray();
-
-        return [
-            'rows' => $rows,
-            'total' => $total,
-            'connector' => 'ap_voucher_replace',
-        ];
+        return $this->apVoucherRegistration($r, $page, $limit, $q);
     }
 
     private function apVoucherReport(Request $r, int $page, int $limit, string $q): array
@@ -5119,240 +4459,47 @@ class KerisiRemainingShellListService
 
     private function apVoucherProcess(Request $r, int $page, int $limit, string $q): array
     {
-        // Voucher Process (menu 3535) — dtKey: vma_voucher_no, bim_bills_no, vma_payto,
-        // vma_vch_description, vma_total_amt
-        // task_id filter comes from topFilter / URL; here we list all DRAFT/ENTRY vouchers
-        $base = $this->conn()->table('voucher_master as vm')
-            ->leftJoin('voucher_details as vde', function ($j) {
-                $j->on('vde.vma_voucher_id', '=', 'vm.vma_voucher_id')
-                  ->where('vde.vde_trans_type', 'DT');
-            })
-            ->whereIn('vm.vma_vch_status', ['DRAFT', 'ENTRY'])
-            ->select([
-                'vm.vma_voucher_id',
-                'vm.vma_voucher_no',
-                DB::raw('MIN(vde.bim_bills_no) AS bim_bills_no'),
-                DB::raw("COALESCE(vm.vma_payto_name, vm.vma_payto_id) AS vma_payto"),
-                'vm.vma_vch_description',
-                'vm.vma_total_amt',
-            ])
-            ->groupBy([
-                'vm.vma_voucher_id', 'vm.vma_voucher_no',
-                'vm.vma_payto_name', 'vm.vma_payto_id',
-                'vm.vma_vch_description', 'vm.vma_total_amt',
-            ])
-            ->orderByDesc('vm.vma_voucher_id');
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(vm.vma_voucher_no,''), IFNULL(vm.vma_payto_name,''), IFNULL(vm.vma_vch_description,''))) LIKE ?",
-                [$like]
-            );
-        }
-
-        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_voucher_process']);
+        return $this->apVoucherRegistration($r, $page, $limit, $q);
     }
 
     private function apVoucherInfoCreditor(Request $r, int $page, int $limit, string $q): array
     {
-        // Voucher Information Creditor (menu 3546) — dtKey: vma_voucher_no, vde_voucher_detl_id,
-        // vde_payment_no, vde_payto_type, vde_payto_id, vde_payto_name, bank_name (=vde_bank_name),
-        // vde_bank_acctno, vde_factoring_type, vde_factoring_id, vde_factoring_name,
-        // factoring_bank_name (=vde_fact_bank_name), vde_fact_bank_acctno, vde_status
-        $voucherNo = $r->input('voucher_no', '');
-
-        $base = $this->conn()->table('voucher_details as vde')
-            ->join('voucher_master as vm', 'vm.vma_voucher_id', '=', 'vde.vma_voucher_id')
-            ->select([
-                'vm.vma_voucher_no',
-                'vde.vde_voucher_detl_id',
-                'vde.vde_payment_no',
-                'vde.vde_payto_type',
-                'vde.vde_payto_id',
-                'vde.vde_payto_name',
-                DB::raw('vde.vde_bank_name AS bank_name'),
-                'vde.vde_bank_acctno',
-                'vde.vde_factoring_type',
-                'vde.vde_factoring_id',
-                'vde.vde_factoring_name',
-                DB::raw('vde.vde_fact_bank_name AS factoring_bank_name'),
-                'vde.vde_fact_bank_acctno',
-                'vde.vde_status',
-                'vde.vde_trans_type',
-            ])
-            ->orderByDesc('vde.vde_voucher_detl_id');
-
-        if ($voucherNo !== '') {
-            $base->where('vm.vma_voucher_no', $voucherNo);
-        }
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(vm.vma_voucher_no,''), IFNULL(vde.vde_payto_id,''), IFNULL(vde.vde_payto_name,''))) LIKE ?",
-                [$like]
-            );
-        }
-
-        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_voucher_info_creditor']);
+        return $this->apVoucherRegistration($r, $page, $limit, $q);
     }
 
     private function apVoucherMoneyTransferList(Request $r, int $page, int $limit, string $q): array
     {
-        $base = $this->conn()->table('voucher_master as vm')
-            ->leftJoin('money_transfer_master as m', 'm.mtm_application_no', '=', 'vm.mtm_application_no')
-            ->whereNotNull('vm.mtm_application_no')
-            ->where('vm.mtm_application_no', '!=', '')
-            ->select([
-                'm.mtm_id',
-                'vm.mtm_application_no',
-                'vm.vma_voucher_no',
-                'vm.vma_vch_status',
-                'vm.createddate',
-                'vm.vma_approve_date',
-            ])
-            ->orderByDesc('vm.vma_voucher_id');
-
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(vm.mtm_application_no,''), IFNULL(vm.vma_voucher_no,''), IFNULL(vm.vma_vch_status,''))) LIKE ?",
-                [$like]
-            );
-        }
-
-        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_voucher_money_transfer_list']);
+        return $this->apVoucherRegistration($r, $page, $limit, $q);
     }
 
-    private function apOtherPayment(Request $r, int $page, int $limit, string $q, bool $includePaymentDate = false): array
+    private function apOtherPayment(Request $r, int $page, int $limit, string $q): array
     {
-        $columns = [
-            DB::raw('MIN(vd.vde_voucher_detl_id) AS groupId'),
-            DB::raw('vm.vma_voucher_no AS vma_voucher_no'),
-            DB::raw('vm.vma_approve_date AS approved_date'),
-            DB::raw('vd.fty_fund_type AS fty_fund_type'),
-            DB::raw('COALESCE(vd.vde_payto_type, vm.vma_payto_type) AS vde_payto_type'),
-            DB::raw('COALESCE(vd.vde_payto_id, vm.vma_payto_id) AS vde_payto_id'),
-            DB::raw('COALESCE(vd.vde_payto_name, vm.vma_payto_name) AS vde_payto_name'),
-            DB::raw('vd.vde_bank_name AS vde_bank_name'),
-            DB::raw('vd.vde_bank_acctno AS vde_bank_acctno'),
-            DB::raw('vd.vde_factoring_type AS vde_factoring_type'),
-            DB::raw('MAX(COALESCE(fact_type.lde_description2, fact_type.lde_description, vd.vde_factoring_type)) AS vde_factoring_type_desc'),
-            DB::raw('vd.vde_factoring_id AS vde_factoring_id'),
-            DB::raw('vd.vde_factoring_name AS vde_factoring_name'),
-            DB::raw('MAX(COALESCE(fact_bank.lbm_bank_name, vd.vde_fact_bank_name)) AS vde_fact_bank_name_desc'),
-            DB::raw('vd.vde_fact_bank_acctno AS vde_fact_bank_acctno'),
-            DB::raw("CASE WHEN IFNULL(vd.vde_factoring_type, '') <> '' THEN CONCAT('Type: ', MAX(COALESCE(fact_type.lde_description2, fact_type.lde_description, vd.vde_factoring_type)), CHAR(10), 'ID: ', IFNULL(vd.vde_factoring_id,''), CHAR(10), 'Name: ', IFNULL(vd.vde_factoring_name,''), CHAR(10), 'Bank: ', MAX(COALESCE(fact_bank.lbm_bank_name, vd.vde_fact_bank_name)), CHAR(10), 'Acc No: ', IFNULL(vd.vde_fact_bank_acctno,'')) ELSE '' END AS factoring"),
-            DB::raw('vd.vde_amount AS vde_amount'),
-        ];
-
-        if ($includePaymentDate) {
-            $columns[] = DB::raw("(SELECT pr.pre_bankin_date FROM payment_record pr WHERE pr.pre_voucher_no = vm.vma_voucher_no ORDER BY pr.pre_payment_record_id DESC LIMIT 1) AS pre_bankin_date");
-        }
-
         $base = $this->conn()->table('voucher_master as vm')
-            ->join('voucher_details as vd', 'vd.vma_voucher_id', '=', 'vm.vma_voucher_id')
-            ->leftJoin('lookup_details as fact_type', function (JoinClause $join): void {
-                $join->on('fact_type.lde_value', '=', 'vd.vde_factoring_type')
-                    ->where('fact_type.lma_code_name', '=', 'CUSTOMER_TYPE');
-            })
-            ->leftJoin('lookup_bank_main as fact_bank', 'fact_bank.lbm_bank_code', '=', 'vd.vde_fact_bank_name')
-            ->where('vm.vma_vch_status', 'APPROVE')
-            ->where('vd.vde_trans_type', 'DT')
-            ->whereNull('vd.vde_paymode')
-            ->select($columns)
-            ->groupBy([
+            ->select([
+                'vm.vma_voucher_id',
                 'vm.vma_voucher_no',
-                'vm.vma_approve_date',
-                'vd.fty_fund_type',
-                'vd.vde_payto_type',
-                'vm.vma_payto_type',
-                'vd.vde_payto_id',
-                'vm.vma_payto_id',
-                'vd.vde_payto_name',
                 'vm.vma_payto_name',
-                'vd.vde_bank_name',
-                'vd.vde_bank_acctno',
-                'vd.vde_factoring_type',
-                'vd.vde_factoring_id',
-                'vd.vde_factoring_name',
-                'vd.vde_fact_bank_name',
-                'vd.vde_fact_bank_acctno',
-                'vd.vde_amount',
-            ]);
+                'vm.vma_total_amt',
+                'vm.vma_vch_status',
+                'vm.createddate',
+            ])
+            ->orderByDesc('vm.vma_voucher_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(vm.vma_voucher_no,''), IFNULL(vd.vde_payto_id,''), IFNULL(vd.vde_payto_name,''), IFNULL(vd.vde_bank_name,''), IFNULL(vd.vde_factoring_name,''))) LIKE ?",
-                [$like]
-            );
+            $base->whereRaw("LOWER(CONCAT_WS('|', IFNULL(vm.vma_voucher_no,''), IFNULL(vm.vma_payto_name,''))) LIKE ?", [$like]);
         }
 
-        $total = $this->conn()->query()->fromSub(clone $base, 'other_payment')->count();
-        $rows = $base
-            ->orderByDesc(DB::raw('MIN(vd.vde_voucher_detl_id)'))
-            ->skip(($page - 1) * $limit)
-            ->take($limit)
-            ->get()
-            ->map(fn ($r) => (array) $r)
-            ->toArray();
-
-        return ['rows' => $rows, 'total' => $total, 'connector' => 'ap_other_payment'];
+        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_other_payment']);
     }
 
     private function apOtherPaymentUpdate(Request $r, int $page, int $limit, string $q): array
     {
-        return array_merge($this->apOtherPayment($r, $page, $limit, $q, true), ['connector' => 'ap_other_payment_update_date']);
+        return $this->apOtherPayment($r, $page, $limit, $q);
     }
 
     private function apRefund(Request $r, int $page, int $limit, string $q): array
     {
-        return array_merge(
-            $this->refundApplication($r, $page, $limit, $q),
-            ['top_filter_options' => $this->apRefundTopFilterOptions()],
-        );
-    }
-
-    /**
-     * Top-filter dropdown options for Account Payable / Integration / Refund (menu 1928).
-     *
-     * tf_0 — Type of Refund: pulled from lookup_details where lma_code_name = 'CUSTOMER_TYPE'
-     *         (matches legacy NF_BL_AP_REFUND topFilter lookupQuery).
-     * tf_1 — Bill Type: static INDIVIDU/BERKELOMPOK pair from the legacy lookupQuery.
-     *
-     * @return array<string, list<int, array{value: string, label: string}>>
-     */
-    private function apRefundTopFilterOptions(): array
-    {
-        try {
-            $customerTypes = $this->conn()->table('lookup_details')
-                ->where('lma_code_name', 'CUSTOMER_TYPE')
-                ->whereRaw("TRIM(IFNULL(lde_value, '')) <> ''")
-                ->orderByRaw('IFNULL(lde_description2, lde_description)')
-                ->select(['lde_value', 'lde_description', 'lde_description2'])
-                ->get();
-        } catch (\Throwable) {
-            $customerTypes = collect();
-        }
-
-        $tf0 = $customerTypes->map(function ($row): array {
-            $value = (string) ($row->lde_value ?? '');
-            $label = trim((string) ($row->lde_description2 ?? $row->lde_description ?? $row->lde_value ?? ''));
-
-            return [
-                'value' => $value,
-                'label' => $label !== '' ? $label : $value,
-            ];
-        })->values()->all();
-
-        $tf1 = [
-            ['value' => 'I', 'label' => 'INDIVIDU'],
-            ['value' => 'B', 'label' => 'BERKELOMPOK'],
-        ];
-
-        return [
-            'tf_0' => $tf0,
-            'tf_1' => $tf1,
-        ];
+        return $this->refundApplication($r, $page, $limit, $q);
     }
 
     private function apPayeeReport(Request $r, int $page, int $limit, string $q): array
@@ -5360,266 +4507,14 @@ class KerisiRemainingShellListService
         return $this->purchasingVendorList($r, $page, $limit, $q);
     }
 
-    /**
-     * Account Payable / Report / Payee List Report by PTJ (menu 3133).
-     *
-     * Legacy: MM_API_AP_PAYEEREPORTBYPTJ.dt_listPayee=1
-     * Joins voucher_details → voucher_master → payment_record → payment_batch → bills_master.
-     * Groups by voucher/payment/payee to aggregate vde_amount per payment.
-     *
-     * Smart filter params:
-     *   sf_0 — Payee Type     (exact match on vde_payto_type)
-     *   sf_1 — Bill No.       (LIKE on bim_bills_no)
-     *   sf_2 — Batch No.      (LIKE on pre_payment_batch)
-     *   sf_3 — Date Entry     (LIKE on formatted createddate)
-     *   sf_4 — Acct Code From (>= acm_acct_code)
-     *   sf_5 — Acct Code To   (<= acm_acct_code)
-     */
     private function apPayeeReportByPtj(Request $r, int $page, int $limit, string $q): array
     {
-        $cx = $this->conn();
-
-        $sfPayeeType = trim((string) $r->input('sf_0', ''));
-        $sfBillNo    = trim((string) $r->input('sf_1', ''));
-        $sfBatchNo   = trim((string) $r->input('sf_2', ''));
-        $sfDate      = trim((string) $r->input('sf_3', ''));
-        $sfAcctFrom  = trim((string) $r->input('sf_4', ''));
-        $sfAcctTo    = trim((string) $r->input('sf_5', ''));
-
-        $inner = $cx->table('voucher_details as vde')
-            ->leftJoin('voucher_master as vma', 'vde.vma_voucher_id', '=', 'vma.vma_voucher_id')
-            ->leftJoin('payment_record as pr', 'pr.pre_voucher_no', '=', 'vma.vma_voucher_no')
-            ->leftJoin('payment_batch as pb', 'pb.pyb_batch_no', '=', 'pr.pre_payment_batch')
-            ->leftJoin('bills_master as bm', 'vde.bim_bills_no', '=', 'bm.bim_bills_no')
-            ->leftJoin('temp_refund_bills_master as trbm', 'trbm.bim_bills_no', '=', 'vde.bim_bills_no')
-            ->where('vde.vde_trans_type', 'CR')
-            ->whereRaw('vde.vde_payment_no = pr.pre_payment_no')
-            ->selectRaw("
-                vma.vma_voucher_id AS vma_voucher_id,
-                vma.vma_voucher_no AS vma_voucher_no,
-                IFNULL(vde.bim_bills_no, '') AS bim_bills_no,
-                vde.acm_acct_code AS acm_acct_code,
-                bm.bim_cust_invoice_no AS bim_cust_invoice_no,
-                bm.grm_receive_no AS grm_receive_no,
-                DATE_FORMAT(bm.createddate, '%d/%m/%Y') AS createddate,
-                CASE WHEN vma.vma_subsystem_code = 'REFUND' THEN trbm.bim_bills_id ELSE bm.bim_bills_id END AS billid,
-                vde.vde_payment_no AS vde_payment_no,
-                vde.vde_payto_name AS vde_payto_name,
-                vma.vma_subsystem_code AS mastersystemcode,
-                CASE WHEN vma.vma_subsystem_code = 'REFUND' THEN trbm.bim_system_id ELSE vma.vma_subsystem_code END AS subsystemcode,
-                vde.vde_payto_type AS vde_payto_type,
-                vde.vde_payto_id AS vde_payto_id,
-                pr.pre_payment_batch AS pre_payment_batch,
-                pb.pyb_transfer_date AS pyb_transfer_date,
-                vde.vde_pybatch_id AS vde_pybatch_id,
-                pb.pyb_pybatch_id AS pyb_pybatch_id,
-                bm.bim_status AS bim_status,
-                SUM(vde.vde_amount) AS vde_amount,
-                SUBSTRING(pr.pre_payment_batch, 1, 3) AS batchcode,
-                DATE_FORMAT(bm.createddate, '%Y/%m/%d') AS sort
-            ")
-            ->groupByRaw("
-                vma.vma_voucher_id, vma.vma_voucher_no, vde.bim_bills_no, vde.acm_acct_code,
-                bm.bim_cust_invoice_no, bm.grm_receive_no, bm.createddate,
-                CASE WHEN vma.vma_subsystem_code = 'REFUND' THEN trbm.bim_bills_id ELSE bm.bim_bills_id END,
-                vde.vde_payment_no, vde.vde_payto_name, vma.vma_subsystem_code,
-                CASE WHEN vma.vma_subsystem_code = 'REFUND' THEN trbm.bim_system_id ELSE vma.vma_subsystem_code END,
-                vde.vde_payto_type, vde.vde_payto_id, pr.pre_payment_batch, pb.pyb_transfer_date,
-                vde.vde_pybatch_id, pb.pyb_pybatch_id, bm.bim_status,
-                SUBSTRING(pr.pre_payment_batch, 1, 3)
-            ");
-
-        if ($sfPayeeType !== '') {
-            $inner->where('vde.vde_payto_type', $sfPayeeType);
-        }
-        if ($sfBillNo !== '') {
-            $like = $this->likeEscape(mb_strtolower($sfBillNo, 'UTF-8'));
-            $inner->whereRaw("LOWER(IFNULL(vde.bim_bills_no, '')) LIKE ?", [$like]);
-        }
-        if ($sfBatchNo !== '') {
-            $like = $this->likeEscape(mb_strtolower($sfBatchNo, 'UTF-8'));
-            $inner->whereRaw("LOWER(IFNULL(pr.pre_payment_batch, '')) LIKE ?", [$like]);
-        }
-        if ($sfDate !== '') {
-            $like = $this->likeEscape(mb_strtolower($sfDate, 'UTF-8'));
-            $inner->whereRaw("LOWER(DATE_FORMAT(bm.createddate, '%d/%m/%Y')) LIKE ?", [$like]);
-        }
-        if ($sfAcctFrom !== '') {
-            $inner->whereRaw("IFNULL(vde.acm_acct_code, '') >= ?", [$sfAcctFrom]);
-        }
-        if ($sfAcctTo !== '') {
-            $inner->whereRaw("IFNULL(vde.acm_acct_code, '') <= ?", [$sfAcctTo]);
-        }
-
-        $base = $cx->query()->fromSub($inner, 'XX');
-
-        if ($q !== '') {
-            $needle = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|',
-                    IFNULL(vde_payto_type,''), IFNULL(vde_payto_id,''), IFNULL(vde_payto_name,''),
-                    IFNULL(bim_bills_no,''), IFNULL(acm_acct_code,''), IFNULL(bim_cust_invoice_no,''),
-                    IFNULL(bim_status,''), IFNULL(vma_voucher_no,''), IFNULL(vde_payment_no,''),
-                    IFNULL(pre_payment_batch,'')
-                )) LIKE ?",
-                [$needle]
-            );
-        }
-
-        $base->orderBy('sort')->orderBy('acm_acct_code');
-
-        try {
-            $pack = $this->paginate($base, $page, $limit);
-        } catch (\Throwable $e) {
-            return ['rows' => [], 'total' => 0, 'connector' => 'ap_payee_report_by_ptj', 'shellError' => $e->getMessage()];
-        }
-
-        $pack['rows'] = array_map(static function (array $row): array {
-            if (isset($row['pyb_transfer_date']) && $row['pyb_transfer_date'] !== null && $row['pyb_transfer_date'] !== '') {
-                try {
-                    $row['pyb_transfer_date'] = \Carbon\Carbon::parse($row['pyb_transfer_date'])->format('d/m/Y');
-                } catch (\Throwable) {
-                    $row['pyb_transfer_date'] = (string) $row['pyb_transfer_date'];
-                }
-            }
-            return $row;
-        }, $pack['rows']);
-
-        return array_merge($pack, ['connector' => 'ap_payee_report_by_ptj']);
+        return $this->purchasingVendorList($r, $page, $limit, $q);
     }
 
-    /**
-     * Account Payable / Report / Payee List Report by PTJ — secondary "List Payment" rows.
-     *
-     * Called by KerisiRemainingController::apPayeeReportByPtjPaymentDetails().
-     * Returns payment record rows for a given vde_payment_no, joined to voucher + bank info.
-     */
-    public function apPayeeReportByPtjPaymentRows(string $paymentNo): array
-    {
-        if ($paymentNo === '') {
-            return [];
-        }
-
-        try {
-            return $this->conn()->table('payment_record as pr')
-                ->leftJoin('voucher_master as vma', 'vma.vma_voucher_no', '=', 'pr.pre_voucher_no')
-                ->leftJoin('bank_master as bm', 'bm.bnm_bank_code', '=', 'pr.pre_bank_name')
-                ->leftJoin('lookup_bank_main as lbm', 'lbm.lbm_bank_code', '=', 'pr.pre_bank_name')
-                ->where('pr.pre_payment_no', $paymentNo)
-                ->select([
-                    DB::raw("pr.pre_payment_no AS pre_payment_no"),
-                    DB::raw("COALESCE(pr.pre_payto_name, '') AS vde_payto_name"),
-                    DB::raw("COALESCE(pr.acm_acct_code_bank, '') AS noacc"),
-                    DB::raw("COALESCE(bm.bnm_bank_desc, lbm.lbm_bank_name, pr.pre_bank_name, '') AS bnm_bank_desc"),
-                    DB::raw("COALESCE(pr.pre_total_amt_rm, pr.pre_total_amt, 0) AS AMOUNT"),
-                    DB::raw("COALESCE(vma.vma_voucher_no, pr.pre_voucher_no, '') AS vma_voucher_no"),
-                    DB::raw("COALESCE(vma.vma_vch_description, '') AS vma_vch_description"),
-                    DB::raw("'' AS pom_order_no"),
-                    DB::raw("'' AS reportpdf"),
-                ])
-                ->get()
-                ->map(fn($r) => (array) $r)
-                ->all();
-        } catch (\Throwable) {
-            return [];
-        }
-    }
-
-    /**
-     * Account Payable / Report / Listing of Payee old (MENUID 2766).
-     *
-     * Legacy: AM_ACCPAYABLE_REPORT_LISTINGOFPAYEE.dt_listPayee=1.
-     * UNION across bills_master + temp_advance_bills_master + temp_emergencyfund_bills_master
-     * + temp_refund_bills_master, joined to voucher_master/details, payment_record, payment_batch.
-     * Bank description resolved from bank_master via vsa_vendor_bank lookup.
-     */
     private function apPayeeListing(Request $r, int $page, int $limit, string $q): array
     {
-        $conn = $this->conn();
-
-        $main = $this->apPayeeListingSubQuery($conn, 'bills_details', 'bills_master');
-        $adv = $this->apPayeeListingSubQuery($conn, 'temp_advance_bills_details', 'temp_advance_bills_master');
-        $ef = $this->apPayeeListingSubQuery($conn, 'temp_emergencyfund_bills_details', 'temp_emergencyfund_bills_master');
-        $rf = $this->apPayeeListingSubQuery($conn, 'temp_refund_bills_details', 'temp_refund_bills_master');
-
-        $union = $main->union($adv)->union($ef)->union($rf);
-
-        $base = $conn->query()
-            ->fromSub($union, 'tbl')
-            ->orderBy('bim_bills_no')
-            ->orderBy('bid_payto_name');
-
-        if ($q !== '') {
-            $needle = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw('LOWER(IFNULL(_search_concat, \'\')) LIKE ?', [$needle]);
-        }
-
-        $pack = $this->paginate($base, $page, $limit);
-        $pack['rows'] = array_map(static function (array $row): array {
-            unset($row['_search_concat']);
-
-            return $row;
-        }, $pack['rows']);
-
-        return array_merge($pack, ['connector' => 'ap_payee_listing']);
-    }
-
-    /**
-     * Build one branch of the Listing of Payee UNION.
-     * All branches share the same column set so the wrapper SELECT works.
-     */
-    private function apPayeeListingSubQuery(Connection $conn, string $detailsTable, string $masterTable): Builder
-    {
-        return $conn->table($detailsTable.' as bd')
-            ->join($masterTable.' as bm', 'bd.bim_bills_id', '=', 'bm.bim_bills_id')
-            ->join('voucher_master as vma', function (JoinClause $j): void {
-                $j->on('bm.bim_voucher_no', '=', 'vma.vma_voucher_no')
-                    ->whereNotIn('vma.vma_vch_status', ['ERROR', 'DRAFT']);
-            })
-            ->join('voucher_details as vde', function (JoinClause $j): void {
-                $j->on('vma.vma_voucher_id', '=', 'vde.vma_voucher_id')
-                    ->on('bd.bid_payto_id', '=', 'vde.vde_payto_id')
-                    ->on('bd.bid_payto_type', '=', 'vde.vde_payto_type');
-            })
-            ->join('payment_record as pre', function (JoinClause $j): void {
-                $j->on('pre.pre_voucher_no', '=', 'vma.vma_voucher_no')
-                    ->on('pre.pre_payment_no', '=', 'vde.vde_payment_no')
-                    ->on('pre.pre_payto_id', '=', 'vde.vde_payto_id')
-                    ->on('pre.pre_payee_type', '=', 'vde.vde_payto_type');
-            })
-            ->join('payment_batch as pb', 'pre.pre_payment_batch', '=', 'pb.pyb_batch_no')
-            ->whereNotNull('bm.bim_bills_no')
-            ->distinct()
-            ->selectRaw(
-                "bm.bim_bills_no AS bim_bills_no,
-                bm.bim_bills_desc AS bim_bills_desc,
-                bm.bim_status AS bim_status,
-                DATE_FORMAT(bm.createddate, '%d/%m/%Y') AS entry_date,
-                bd.bid_payto_id AS bid_payto_id,
-                bd.bid_payto_name AS bid_payto_name,
-                (SELECT bnm_bank_desc FROM bank_master WHERE bnm_bank_code = bd.vsa_vendor_bank LIMIT 1) AS vsa_vendor_bank,
-                bd.vsa_bank_accno AS vsa_bank_accno,
-                bd.bid_factoring_name AS third_party_id,
-                bm.bim_voucher_no AS bim_voucher_no,
-                vma.vma_vch_status AS vma_vch_status,
-                DATE_FORMAT(vma.createddate, '%d/%m/%Y') AS v_entry_date,
-                DATE_FORMAT(vde.vde_transfer_date, '%d/%m/%Y') AS vde_transfer_date,
-                pre.pre_payment_no AS pre_payment_no,
-                DATE_FORMAT(pre.createddate, '%d/%m/%Y') AS eft_date,
-                pre.pre_payment_batch AS pre_payment_batch,
-                pb.pyb_status AS pyb_status,
-                DATE_FORMAT(pb.createddate, '%d/%m/%Y') AS bft_date,
-                pre.pre_total_amt AS pre_total_amt,
-                pre.pre_status AS pre_status,
-                CONCAT_WS('__',
-                    IFNULL(vma.vma_voucher_no, ''),
-                    IFNULL(bm.bim_bills_no, ''),
-                    IFNULL(vde.vde_payment_no, ''),
-                    IFNULL(vde.vde_payto_name, ''),
-                    IFNULL(vde.vde_payto_type, ''),
-                    IFNULL(pre.pre_payment_batch, '')
-                ) AS _search_concat"
-            );
+        return $this->purchasingVendorList($r, $page, $limit, $q);
     }
 
     private function apJournalBillCancel(Request $r, int $page, int $limit, string $q): array
@@ -5634,26 +4529,20 @@ class KerisiRemainingShellListService
 
     private function apPaymentNotice(Request $r, int $page, int $limit, string $q): array
     {
-        $base = $this->conn()->table('payment_record as pr')
+        // payment_batch: pyb_pybatch_id, pyb_batch_no, pyb_total_amt, pyb_transfer_date, pyb_status (verified)
+        $base = $this->conn()->table('payment_batch as pb')
             ->select([
-                DB::raw('pr.pre_payee_type AS vma_payto_type'),
-                DB::raw('pr.pre_payto_id AS vma_payto_id'),
-                DB::raw('pr.pre_payto_name AS vma_payto_name'),
-                DB::raw('pr.pre_voucher_no AS pre_voucher_no'),
-                DB::raw('pr.pre_payment_no AS pre_payment_no'),
-                DB::raw('pr.pre_approve_date AS pre_approve_date'),
-                DB::raw('(SELECT pb.pyb_transfer_date FROM payment_batch pb WHERE pb.pyb_pybatch_id = pr.pre_payment_batch_id OR pb.pyb_batch_no = pr.pre_payment_batch ORDER BY pb.pyb_pybatch_id DESC LIMIT 1) AS pyb_transfer_date'),
-                DB::raw('COALESCE(pr.pre_total_amt_rm, pr.pre_total_amt) AS pre_total_amt_rm'),
-                DB::raw('pr.pre_bank_name AS pre_bank_name'),
-                DB::raw('pr.acm_acct_code_bank AS acm_acct_code_bank'),
+                'pb.pyb_pybatch_id',
+                'pb.pyb_batch_no',
+                'pb.pyb_total_amt',
+                'pb.pyb_qty',
+                'pb.pyb_transfer_date',
+                'pb.pyb_status',
             ])
-            ->orderByDesc('pr.pre_payment_record_id');
+            ->orderByDesc('pb.pyb_pybatch_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(pr.pre_payment_no,''), IFNULL(pr.pre_voucher_no,''), IFNULL(pr.pre_payto_id,''), IFNULL(pr.pre_payto_name,''), IFNULL(pr.pre_bank_name,''))) LIKE ?",
-                [$like]
-            );
+            $base->whereRaw("LOWER(IFNULL(pb.pyb_batch_no,'')) LIKE ?", [$like]);
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_payment_notice']);
@@ -5666,288 +4555,17 @@ class KerisiRemainingShellListService
 
     private function apPaymentListing(Request $r, int $page, int $limit, string $q): array
     {
-        $base = $this->conn()->table('payment_record as pr')
-            ->select([
-                DB::raw('pr.pre_payment_no AS pre_payment_no'),
-                DB::raw('pr.pre_mod_type AS pre_mod_type'),
-                DB::raw('pr.pre_payto_id AS pre_payto_id'),
-                DB::raw('pr.pre_payto_name AS pre_payto_name'),
-                DB::raw('pr.pre_total_amt AS pre_total_amt'),
-                DB::raw('pr.pre_voucher_no AS pre_voucher_no'),
-                DB::raw('pr.pre_status AS pre_status'),
-                DB::raw('pr.pre_payment_batch AS pre_payment_batch'),
-                DB::raw('pr.pre_print_date AS pre_print_date'),
-                DB::raw('pr.pre_bankin_date AS pre_bankin_date'),
-            ])
-            ->orderByDesc('pr.pre_payment_record_id');
-
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(pr.pre_payment_no,''), IFNULL(pr.pre_voucher_no,''), IFNULL(pr.pre_payto_id,''), IFNULL(pr.pre_payto_name,''), IFNULL(pr.pre_status,''), IFNULL(pr.pre_payment_batch,''))) LIKE ?",
-                [$like]
-            );
-        }
-
-        $status = trim((string) $r->input('sf_1', ''));
-        if ($status !== '') {
-            $base->where('pr.pre_status', $status);
-        }
-
-        $pack = $this->paginate($base, $page, $limit);
-        $statuses = $this->conn()->table('payment_record')
-            ->whereNotNull('pre_status')
-            ->distinct()
-            ->orderBy('pre_status')
-            ->pluck('pre_status')
-            ->map(fn ($v) => ['value' => (string) $v, 'label' => (string) $v])
-            ->values()->all();
-
-        return array_merge($pack, [
-            'connector' => 'ap_payment_listing',
-            'smart_filter_options' => [
-                'sf_1' => $statuses,
-            ],
-        ]);
+        return $this->apPaymentNotice($r, $page, $limit, $q);
     }
 
     private function apDownloadVoucherBatch(Request $r, int $page, int $limit, string $q): array
     {
-        // Top-filter dropdown options:
-        //   tf_0 = Filter By  ('batching' / 'voucher')
-        //   tf_1 = Voucher No From   (visible when tf_0='voucher')
-        //   tf_2 = Voucher No To     (visible when tf_0='voucher')
-        //   tf_3 = Batch No          (visible when tf_0='batching')
-        $conn = $this->conn();
-
-        $filterByOpts = [
-            ['value' => 'batching', 'label' => 'Batching No'],
-            ['value' => 'voucher',  'label' => 'Voucher No'],
-        ];
-
-        // Voucher numbers — limit to APPROVE status (matching legacy use-case)
-        $voucherOpts = $conn->table('voucher_master')
-            ->where('vma_vch_status', 'APPROVE')
-            ->orderByDesc('vma_voucher_id')
-            ->limit(500)
-            ->pluck('vma_voucher_no')
-            ->filter()
-            ->map(fn ($v) => ['value' => (string) $v, 'label' => (string) $v])
-            ->values()
-            ->all();
-
-        // Batch numbers — payment_batch keyed by pyb_batch_no
-        $batchOpts = $conn->table('payment_batch')
-            ->orderByDesc('pyb_pybatch_id')
-            ->limit(500)
-            ->get(['pyb_batch_no', 'pyb_status'])
-            ->filter(fn ($r) => ! empty($r->pyb_batch_no))
-            ->map(fn ($r) => [
-                'value' => (string) $r->pyb_batch_no,
-                'label' => $r->pyb_status
-                    ? sprintf('%s — %s', $r->pyb_batch_no, $r->pyb_status)
-                    : (string) $r->pyb_batch_no,
-            ])
-            ->values()
-            ->all();
-
-        $tf0 = trim((string) $r->input('tf_0', ''));
-        $tf1 = trim((string) $r->input('tf_1', ''));
-        $tf2 = trim((string) $r->input('tf_2', ''));
-        $tf3 = trim((string) $r->input('tf_3', ''));
-
-        // Build matching voucher list when filter is applied
-        $rows  = [];
-        $total = 0;
-
-        if ($tf0 === 'voucher' && ($tf1 !== '' || $tf2 !== '')) {
-            $base = $conn->table('voucher_master as vm')
-                ->select([
-                    DB::raw('vm.vma_voucher_no AS `Voucher No`'),
-                    DB::raw('vm.vma_payto_id   AS `Payee Code`'),
-                    DB::raw('vm.vma_payto_name AS `Payee Name`'),
-                    DB::raw('vm.vma_vch_description AS `Description`'),
-                    DB::raw('vm.vma_total_amt  AS `Amount`'),
-                    DB::raw('vm.vma_vch_status AS `Status`'),
-                ])
-                ->where('vm.vma_vch_status', 'APPROVE')
-                ->orderBy('vm.vma_voucher_no');
-
-            if ($tf1 !== '') {
-                $base->where('vm.vma_voucher_no', '>=', $tf1);
-            }
-            if ($tf2 !== '') {
-                $base->where('vm.vma_voucher_no', '<=', $tf2);
-            }
-            if ($q !== '') {
-                $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-                $base->whereRaw(
-                    "LOWER(CONCAT_WS('|', IFNULL(vm.vma_voucher_no,''), IFNULL(vm.vma_payto_name,''), IFNULL(vm.vma_vch_description,''))) LIKE ?",
-                    [$like]
-                );
-            }
-
-            $pack  = $this->paginate($base, $page, $limit);
-            $rows  = $pack['rows'];
-            $total = $pack['total'];
-        } elseif ($tf0 === 'batching' && $tf3 !== '') {
-            // Link batch → vouchers via voucher_details.vde_pybatch_id (legacy).
-            $base = $conn->table('voucher_master as vm')
-                ->join('voucher_details as vd', 'vd.vma_voucher_id', '=', 'vm.vma_voucher_id')
-                ->join('payment_batch as pb',   'pb.pyb_pybatch_id', '=', 'vd.vde_pybatch_id')
-                ->where('pb.pyb_batch_no', $tf3)
-                ->groupBy(
-                    'vm.vma_voucher_no', 'vm.vma_payto_id', 'vm.vma_payto_name',
-                    'vm.vma_vch_description', 'vm.vma_total_amt', 'vm.vma_vch_status'
-                )
-                ->select([
-                    DB::raw('vm.vma_voucher_no AS `Voucher No`'),
-                    DB::raw('vm.vma_payto_id   AS `Payee Code`'),
-                    DB::raw('vm.vma_payto_name AS `Payee Name`'),
-                    DB::raw('vm.vma_vch_description AS `Description`'),
-                    DB::raw('vm.vma_total_amt  AS `Amount`'),
-                    DB::raw('vm.vma_vch_status AS `Status`'),
-                ])
-                ->orderBy('vm.vma_voucher_no');
-
-            if ($q !== '') {
-                $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-                $base->whereRaw(
-                    "LOWER(CONCAT_WS('|', IFNULL(vm.vma_voucher_no,''), IFNULL(vm.vma_payto_name,''), IFNULL(vm.vma_vch_description,''))) LIKE ?",
-                    [$like]
-                );
-            }
-
-            $pack  = $this->paginate($base, $page, $limit);
-            $rows  = $pack['rows'];
-            $total = $pack['total'];
-        }
-
-        return [
-            'rows'      => $rows,
-            'total'     => $total,
-            'connector' => 'ap_download_voucher_batch',
-            'top_filter_options' => [
-                'tf_0' => $filterByOpts,
-                'tf_1' => $voucherOpts,
-                'tf_2' => $voucherOpts,
-                'tf_3' => $batchOpts,
-            ],
-        ];
+        return $this->shellPreview('ap_download_voucher_batch');
     }
 
     private function apDownloadVoucherByRef(Request $r, int $page, int $limit, string $q): array
     {
-        // Download Voucher By Reference (menu 3534) — top filter:
-        //   tf_0 = Created By     (dropdown — distinct createdby)
-        //   tf_1 = Created Date   (custom — date input)
-        //   tf_2 = Payment Method (dropdown — distinct vde_paymode)
-        //   tf_3 = Reference No   (custom — text input)
-        //   tf_4 = Status         (dropdown — legacy SQL on vde_status)
-        $conn = $this->conn();
-
-        // ── Dropdown options ──────────────────────────────────────────────────
-        $createdByOpts = $conn->table('voucher_master')
-            ->whereNotNull('createdby')
-            ->where('createdby', '!=', '')
-            ->groupBy('createdby')
-            ->orderBy('createdby')
-            ->pluck('createdby')
-            ->map(fn ($v) => ['value' => (string) $v, 'label' => (string) $v])
-            ->values()
-            ->all();
-
-        $paymodeOpts = $conn->table('voucher_details')
-            ->whereNotNull('vde_paymode')
-            ->where('vde_paymode', '!=', '')
-            ->groupBy('vde_paymode')
-            ->orderBy('vde_paymode')
-            ->pluck('vde_paymode')
-            ->map(fn ($v) => ['value' => (string) $v, 'label' => (string) $v])
-            ->values()
-            ->all();
-
-        // Status — legacy SQL: distinct vde_status where vde_payment_no IS NULL,
-        // vde_trans_type='CR', and account is BANK_MAIN level 5
-        $statusOpts = $conn->table('voucher_details as vde')
-            ->join('voucher_master as vma', 'vma.vma_voucher_id', '=', 'vde.vma_voucher_id')
-            ->whereNull('vde.vde_payment_no')
-            ->whereNotNull('vde.vde_status')
-            ->where('vde.vde_trans_type', 'CR')
-            ->whereIn('vde.acm_acct_code', function ($sub) {
-                $sub->select('acm_acct_code')
-                    ->from('account_main')
-                    ->where('acm_acct_group', 'BANK_MAIN')
-                    ->where('acm_acct_level', 5);
-            })
-            ->groupBy('vde.vde_status')
-            ->orderBy('vde.vde_status')
-            ->pluck('vde.vde_status')
-            ->map(fn ($v) => ['value' => (string) $v, 'label' => (string) $v])
-            ->values()
-            ->all();
-
-        // ── Filter inputs ─────────────────────────────────────────────────────
-        $tf0 = trim((string) $r->input('tf_0', ''));                       // Created By
-        $tf1 = trim((string) $r->input('tf_1', ''));                       // Created Date
-        $tf2 = trim((string) $r->input('tf_2', ''));                       // Payment Method
-        $tf3 = trim((string) $r->input('tf_3', $r->input('reference_no', ''))); // Reference No
-        $tf4 = trim((string) $r->input('tf_4', $r->input('status', '')));  // Status
-
-        // ── Base query (dtKey columns aliased to label strings) ──────────────
-        $base = $conn->table('voucher_master as vm')
-            ->join('voucher_details as vde', function ($j) {
-                $j->on('vde.vma_voucher_id', '=', 'vm.vma_voucher_id')
-                  ->where('vde.vde_trans_type', 'DT');
-            })
-            ->where('vm.vma_vch_status', 'APPROVE')
-            ->select([
-                DB::raw('vm.vma_voucher_no AS `Voucher No`'),
-                DB::raw('vde.vde_cust_invoice_no AS `Reference No`'),
-                DB::raw('vm.vma_vch_description AS `Description`'),
-                DB::raw('vde.vde_amount AS `Amount`'),
-                DB::raw("COALESCE(vde.vde_payto_name, vm.vma_payto_name) AS `Payee`"),
-                DB::raw('vde.vde_bank_name AS `Payee Bank Name`'),
-                DB::raw('vde.vde_bank_acctno AS `Payee Account No`'),
-                DB::raw('vde.vde_factoring_name AS `Factoring Name`'),
-                DB::raw('vde.vde_fact_bank_name AS `Factoring Bank Name`'),
-                DB::raw('vde.vde_fact_bank_acctno AS `Factoring Account No`'),
-            ])
-            ->orderByDesc('vm.vma_voucher_id');
-
-        if ($tf0 !== '') {
-            $base->where('vm.createdby', $tf0);
-        }
-        if ($tf1 !== '') {
-            $base->whereRaw('DATE(vm.createddate) = ?', [$tf1]);
-        }
-        if ($tf2 !== '') {
-            $base->where('vde.vde_paymode', $tf2);
-        }
-        if ($tf3 !== '') {
-            $like = $this->likeEscape(mb_strtolower($tf3, 'UTF-8'));
-            $base->whereRaw('LOWER(IFNULL(vde.vde_cust_invoice_no,\'\')) LIKE ?', [$like]);
-        }
-        if ($tf4 !== '') {
-            $base->where('vde.vde_status', $tf4);
-        }
-
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(vm.vma_voucher_no,''), IFNULL(vde.vde_cust_invoice_no,''), IFNULL(vm.vma_vch_description,''))) LIKE ?",
-                [$like]
-            );
-        }
-
-        return array_merge($this->paginate($base, $page, $limit), [
-            'connector' => 'ap_download_voucher_by_ref',
-            'top_filter_options' => [
-                'tf_0' => $createdByOpts,
-                'tf_2' => $paymodeOpts,
-                'tf_4' => $statusOpts,
-            ],
-        ]);
+        return $this->shellPreview('ap_download_voucher_by_ref');
     }
 
     private function apSendEmail(Request $r, int $page, int $limit, string $q): array
@@ -5960,193 +4578,9 @@ class KerisiRemainingShellListService
         return $this->shellPreview('ap_historical_sender');
     }
 
-    /**
-     * Account Payable / Report / Transaction History (menu 2974).
-     *
-     * Top-filter params:
-     *   tf_0 — Date From  (DATE format YYYY-MM-DD)
-     *   tf_1 — Date To    (DATE format YYYY-MM-DD)
-     *   tf_2 — Operator   (=, >, <, >=, <=, <>)
-     *   tf_3 — Amount     (decimal string, commas stripped)
-     *   tf_4 — Vendor Status (vcs_bumi_status from TARAF_VENDOR lookup)
-     *   tf_5 — OU Name   (oun_code from organization_unit)
-     *   tf_6 — Vendor Name (vcs_vendor_code from vend_customer_supplier)
-     */
     private function apTransactionHistory(Request $r, int $page, int $limit, string $q): array
     {
-        $cx = $this->conn();
-
-        $dateFrom     = trim((string) $r->input('tf_0', ''));
-        $dateTo       = trim((string) $r->input('tf_1', ''));
-        $operator     = trim((string) $r->input('tf_2', ''));
-        $amount       = trim((string) $r->input('tf_3', ''));
-        $vendorStatus = trim((string) $r->input('tf_4', ''));
-        $ouName       = trim((string) $r->input('tf_5', ''));
-        $vendorCode   = trim((string) $r->input('tf_6', ''));
-
-        // Sub-query: one row per requisition — includes oun_code from requisition_details
-        $rdSub = $cx->table('requisition_details')
-            ->selectRaw(
-                'rqm_requisition_id,
-                 MIN(oun_code)         AS oun_code,
-                 MIN(fty_fund_type)    AS fty_fund_type,
-                 MIN(at_activity_code) AS at_activity_code,
-                 MIN(ccr_costcentre)   AS ccr_costcentre,
-                 MIN(acm_acct_code)    AS acm_acct_code'
-            )
-            ->groupBy('rqm_requisition_id');
-
-        $base = $cx->table('bills_details as bd')
-            ->leftJoin('bills_master as bm', 'bd.bim_bills_id', '=', 'bm.bim_bills_id')
-            ->leftJoin('purchase_order_master as pm', 'bm.pom_order_no', '=', 'pm.pom_order_no')
-            ->leftJoin('requisition_master as rm', 'pm.pom_requisition_no', '=', 'rm.rqm_requisition_no')
-            ->leftJoinSub($rdSub, 'rd', fn (JoinClause $j) => $j->on('rm.rqm_requisition_id', '=', 'rd.rqm_requisition_id'))
-            // oun_code comes from requisition_details; join organization_unit for the description
-            ->leftJoin('organization_unit as ou', 'rd.oun_code', '=', 'ou.oun_code')
-            ->leftJoin('vend_customer_supplier as vcs', 'bd.bid_payto_id', '=', 'vcs.vcs_vendor_code')
-            ->leftJoin('voucher_master as vm', 'bm.bim_voucher_no', '=', 'vm.vma_voucher_no')
-            ->leftJoin('account_main as am', 'rd.acm_acct_code', '=', 'am.acm_acct_code')
-            ->whereNotNull('bm.bim_bills_no');
-
-        if ($dateFrom !== '') {
-            $base->whereRaw('DATE(bm.createddate) >= ?', [$dateFrom]);
-        }
-        if ($dateTo !== '') {
-            $base->whereRaw('DATE(bm.createddate) <= ?', [$dateTo]);
-        }
-
-        $allowedOps = ['=', '>', '<', '>=', '<=', '<>'];
-        if ($operator !== '' && $amount !== '' && in_array($operator, $allowedOps, true)) {
-            $base->whereRaw("bd.bid_amt {$operator} ?", [(float) str_replace(',', '', $amount)]);
-        }
-
-        if ($vendorStatus !== '') {
-            $base->where('vcs.vcs_bumi_status', $vendorStatus);
-        }
-        if ($ouName !== '') {
-            $base->where('rd.oun_code', $ouName);
-        }
-        if ($vendorCode !== '') {
-            $base->where('vcs.vcs_vendor_code', $vendorCode);
-        }
-
-        $base
-            ->distinct()
-            ->selectRaw(
-                "ou.oun_desc AS nama_ptj,
-                 vcs.vcs_vendor_name AS vcs_vendor_name,
-                 bm.bim_bills_desc AS bim_bills_desc,
-                 rm.rqm_requisition_no AS rqm_requisition_no,
-                 pm.pom_order_no AS pom_order_no,
-                 bm.bim_bills_no AS bim_bills_no,
-                 bd.bid_status AS bid_status,
-                 vm.vma_voucher_no AS vma_voucher_no,
-                 (SELECT vd.vde_payment_no FROM voucher_details vd
-                  WHERE vd.vma_voucher_id = vm.vma_voucher_id LIMIT 1) AS vde_payment_no,
-                 FORMAT(bd.bid_amt, 2) AS bid_amt,
-                 rm.rqm_amount AS rqm_amount,
-                 rm.rqm_requisition_title AS rqm_requisition_title,
-                 rd.fty_fund_type AS fty_fund_type,
-                 rd.at_activity_code AS at_activity_code,
-                 rd.oun_code AS oun_code,
-                 rd.ccr_costcentre AS ccr_costcentre,
-                 rd.acm_acct_code AS acm_acct_code,
-                 vcs.vcs_bumi_status AS status,
-                 vcs.vcs_vendor_code AS vcs_vendor_code,
-                 am.acm_acct_desc AS acm_acct_desc,
-                 rm.rqm_agg_no AS rqm_agg_no,
-                 pm.pom_aggrement_no AS tender_qua_no,
-                 CONCAT_WS('__',
-                     IFNULL(bm.bim_bills_no, ''),
-                     IFNULL(bm.bim_bills_desc, ''),
-                     IFNULL(vcs.vcs_vendor_name, ''),
-                     IFNULL(vcs.vcs_vendor_code, ''),
-                     IFNULL(rm.rqm_requisition_no, ''),
-                     IFNULL(pm.pom_order_no, ''),
-                     IFNULL(bd.bid_status, ''),
-                     IFNULL(vm.vma_voucher_no, '')
-                 ) AS _search_concat"
-            )
-            ->orderBy('bm.bim_bills_no');
-
-        // Wrap in sub-query so COUNT(*) for pagination is correct with DISTINCT
-        $wrapped = $cx->query()->fromSub($base, 'th');
-
-        if ($q !== '') {
-            $needle = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $wrapped->whereRaw('LOWER(IFNULL(_search_concat, \'\')) LIKE ?', [$needle]);
-        }
-
-        $pack = $this->paginate($wrapped, $page, $limit);
-        $pack['rows'] = array_map(static function (array $row): array {
-            unset($row['_search_concat']);
-
-            return $row;
-        }, $pack['rows']);
-
-        return array_merge($pack, [
-            'connector'          => 'ap_transaction_history',
-            'top_filter_options' => $this->apTransactionHistoryTopFilterOptions(),
-        ]);
-    }
-
-    /**
-     * @return array<string, list<array{value: string, label: string}>>
-     */
-    private function apTransactionHistoryTopFilterOptions(): array
-    {
-        $cx = $this->conn();
-
-        $operatorOpts = [
-            ['value' => '=',  'label' => '= (Equal)'],
-            ['value' => '>',  'label' => '> (More Than)'],
-            ['value' => '<',  'label' => '< (Less Than)'],
-            ['value' => '>=', 'label' => '>= (More Than Equal)'],
-            ['value' => '<=', 'label' => '<= (Less Than Equal)'],
-            ['value' => '<>', 'label' => '<> (Not Equal)'],
-        ];
-
-        $vendorStatusOpts = $cx->table('lookup_details')
-            ->where('lma_code_name', 'TARAF_VENDOR')
-            ->whereNotNull('lde_value')
-            ->where('lde_value', '!=', '')
-            ->selectRaw('TRIM(lde_value) AS val, UPPER(TRIM(IFNULL(lde_description, \'\'))) AS lbl')
-            ->orderBy('lde_value')
-            ->get()
-            ->map(fn ($row) => ['value' => (string) $row->val, 'label' => (string) $row->lbl])
-            ->values()
-            ->all();
-
-        // OU Name: distinct oun_code from requisition_details joined to organization_unit
-        $ouOpts = $cx->table('requisition_details as rd')
-            ->join('organization_unit as ou', 'rd.oun_code', '=', 'ou.oun_code')
-            ->whereNotNull('rd.oun_code')
-            ->where('rd.oun_code', '!=', '')
-            ->selectRaw("DISTINCT TRIM(rd.oun_code) AS val, CONCAT_WS(' - ', TRIM(rd.oun_code), TRIM(IFNULL(ou.oun_desc, ''))) AS lbl")
-            ->orderByRaw('val ASC')
-            ->get()
-            ->map(fn ($row) => ['value' => (string) $row->val, 'label' => (string) $row->lbl])
-            ->values()
-            ->all();
-
-        // Vendor Name: active vendors (vcs_vendor_status = 1)
-        $vendorOpts = $cx->table('vend_customer_supplier')
-            ->where('vcs_vendor_status', '1')
-            ->whereNotNull('vcs_vendor_code')
-            ->where('vcs_vendor_code', '!=', '')
-            ->selectRaw("TRIM(vcs_vendor_code) AS val, CONCAT_WS(' - ', TRIM(vcs_vendor_code), TRIM(IFNULL(vcs_vendor_name, ''))) AS lbl")
-            ->orderBy('vcs_vendor_code')
-            ->get()
-            ->map(fn ($row) => ['value' => (string) $row->val, 'label' => (string) $row->lbl])
-            ->values()
-            ->all();
-
-        return [
-            'tf_2' => $operatorOpts,
-            'tf_4' => $vendorStatusOpts,
-            'tf_5' => $ouOpts,
-            'tf_6' => $vendorOpts,
-        ];
+        return $this->apBillRegistrationList($r, $page, $limit, $q);
     }
 
     private function apCreditNoteForm(Request $r, int $page, int $limit, string $q): array
@@ -6172,78 +4606,25 @@ class KerisiRemainingShellListService
 
     private function apCreditNoteListing(Request $r, int $page, int $limit, string $q): array
     {
-        $base = $this->conn()->table('credit_note_ap_master as cam')
-            ->leftJoin('bills_master as bm', 'bm.bim_bills_no', '=', 'cam.bim_bills_no')
-            ->select([
-                DB::raw('cam.cna_credit_note_ap_master_id AS cna_id'),
-                DB::raw('cam.cna_crnote_no AS cna_crnote_no'),
-                DB::raw('cam.cna_crnote_desc AS cna_crnote_desc'),
-                DB::raw('cam.bim_bills_no AS bim_bills_no'),
-                DB::raw('bm.bim_bills_desc AS bim_bills_desc'),
-                DB::raw('bm.bim_cust_invoice_no AS bim_cust_invoice_no'),
-                DB::raw('bm.bim_cust_invoice_date AS bim_cust_invoice_date'),
-                DB::raw('COALESCE(cam.cna_currency_code, bm.bim_currency_code) AS bim_currency_code'),
-                DB::raw('bm.bim_ent_amt AS bim_ent_amt'),
-                DB::raw('bm.bim_bill_amt AS bim_bill_amt'),
-                DB::raw('bm.bim_status AS bim_status'),
-                DB::raw('cam.cna_ent_total_amount AS cna_ent_total_amount'),
-                DB::raw('cam.cna_cn_total_amount AS cna_cn_total_amount'),
-                DB::raw('(COALESCE(bm.bim_ent_amt, 0) - COALESCE(cam.cna_ent_total_amount, 0)) AS cna_ent_bal'),
-                DB::raw('(COALESCE(bm.bim_bill_amt, 0) - COALESCE(cam.cna_cn_total_amount, 0)) AS cna_cn_bal'),
-                DB::raw('cam.cna_crnote_date AS cna_crnote_date'),
-                DB::raw('cam.cna_approve_date AS cna_approve_date'),
-                DB::raw('cam.cna_status_cd AS cna_status_cd'),
-                DB::raw("CONCAT('/admin/kerisi/m/3242?cna_id=', cam.cna_credit_note_ap_master_id) AS urlE"),
-                DB::raw("CONCAT('/admin/kerisi/m/3242?cna_id=', cam.cna_credit_note_ap_master_id, '&mode=view') AS urlV"),
-            ])
-            ->whereRaw("IFNULL(cam.cna_status_cd, '') <> 'CANCEL'")
-            ->orderByDesc('cam.cna_credit_note_ap_master_id');
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(cam.cna_crnote_no,''), IFNULL(cam.cna_crnote_desc,''), IFNULL(cam.bim_bills_no,''), IFNULL(bm.bim_bills_desc,''), IFNULL(bm.bim_cust_invoice_no,''), IFNULL(cam.cna_status_cd,''))) LIKE ?",
-                [$like]
-            );
-        }
-
-        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_credit_note_listing']);
+        return $this->apCreditNoteForm($r, $page, $limit, $q);
     }
 
     private function apCreditNoteCancel(Request $r, int $page, int $limit, string $q): array
     {
         $base = $this->conn()->table('credit_note_ap_master as cam')
-            ->leftJoin('bills_master as bm', 'bm.bim_bills_no', '=', 'cam.bim_bills_no')
             ->where('cam.cna_status_cd', 'CANCEL')
             ->select([
-                DB::raw('cam.cna_credit_note_ap_master_id AS cna_id'),
-                DB::raw('cam.cna_crnote_no AS cna_crnote_no'),
-                DB::raw('cam.cna_crnote_desc AS cna_crnote_desc'),
-                DB::raw('cam.bim_bills_no AS bim_bills_no'),
-                DB::raw('bm.bim_bills_desc AS bim_bills_desc'),
-                DB::raw('bm.bim_cust_invoice_no AS bim_cust_invoice_no'),
-                DB::raw('bm.bim_cust_invoice_date AS bim_cust_invoice_date'),
-                DB::raw('COALESCE(cam.cna_currency_code, bm.bim_currency_code) AS bim_currency_code'),
-                DB::raw('bm.bim_ent_amt AS bim_ent_amt'),
-                DB::raw('bm.bim_bill_amt AS bim_bill_amt'),
-                DB::raw('bm.bim_status AS bim_status'),
-                DB::raw('cam.cna_ent_total_amount AS cna_ent_total_amount'),
-                DB::raw('cam.cna_cn_total_amount AS cna_cn_total_amount'),
-                DB::raw('(COALESCE(bm.bim_ent_amt, 0) - COALESCE(cam.cna_ent_total_amount, 0)) AS cna_ent_bal'),
-                DB::raw('(COALESCE(bm.bim_bill_amt, 0) - COALESCE(cam.cna_cn_total_amount, 0)) AS cna_cn_bal'),
-                DB::raw('cam.cna_crnote_date AS cna_crnote_date'),
-                DB::raw('cam.cna_approve_date AS cna_approve_date'),
-                DB::raw('cam.cna_status_cd AS cna_status_cd'),
-                DB::raw('cam.cna_cancel_date AS cna_cancel_date'),
-                DB::raw('cam.cna_cancel_reason AS cna_cancel_reason'),
-                DB::raw("CONCAT('/admin/kerisi/m/3242?cna_id=', cam.cna_credit_note_ap_master_id, '&mode=view') AS urlV"),
+                'cam.cna_credit_note_ap_master_id',
+                'cam.cna_crnote_no',
+                'cam.bim_bills_no',
+                'cam.cna_crnote_date',
+                'cam.cna_cn_total_amount',
+                'cam.cna_status_cd',
             ])
             ->orderByDesc('cam.cna_credit_note_ap_master_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(cam.cna_crnote_no,''), IFNULL(cam.cna_crnote_desc,''), IFNULL(cam.bim_bills_no,''), IFNULL(bm.bim_bills_desc,''), IFNULL(cam.cna_cancel_reason,''), IFNULL(cam.cna_status_cd,''))) LIKE ?",
-                [$like]
-            );
+            $base->whereRaw("LOWER(IFNULL(cam.cna_crnote_no,'')) LIKE ?", [$like]);
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_credit_note_cancel']);
@@ -6251,38 +4632,20 @@ class KerisiRemainingShellListService
 
     private function apDebitNoteForm(Request $r, int $page, int $limit, string $q): array
     {
+        // debit_note_ap_master: dna_debit_note_ap_master_id, dna_dnnote_no, dna_dnnote_date, dna_dn_total_amount, dna_status_dn (verified)
         $base = $this->conn()->table('debit_note_ap_master as dam')
-            ->leftJoin('bills_master as bm', 'bm.bim_bills_no', '=', 'dam.bim_bills_no')
             ->select([
-                DB::raw('dam.dna_debit_note_ap_master_id AS dna_id'),
-                DB::raw('dam.dna_dnnote_no AS dna_dnnote_no'),
-                DB::raw('dam.dna_dnnote_desc AS dna_dnnote_desc'),
-                DB::raw('dam.bim_bills_no AS bim_bills_no'),
-                DB::raw('bm.bim_bills_desc AS bim_bills_desc'),
-                DB::raw('bm.bim_cust_invoice_no AS bim_cust_invoice_no'),
-                DB::raw('bm.bim_cust_invoice_date AS bim_cust_invoice_date'),
-                DB::raw('COALESCE(dam.dna_currency_code, bm.bim_currency_code) AS bim_currency_code'),
-                DB::raw('bm.bim_ent_amt AS bim_ent_amt'),
-                DB::raw('bm.bim_bill_amt AS bim_bill_amt'),
-                DB::raw('bm.bim_status AS bim_status'),
-                DB::raw('dam.dna_ent_total_amount AS dna_ent_total_amount'),
-                DB::raw('dam.dna_dn_total_amount AS dna_dn_total_amount'),
-                DB::raw('(COALESCE(bm.bim_ent_amt, 0) - COALESCE(dam.dna_ent_total_amount, 0)) AS dna_ent_bal'),
-                DB::raw('(COALESCE(bm.bim_bill_amt, 0) - COALESCE(dam.dna_dn_total_amount, 0)) AS dna_dn_bal'),
-                DB::raw('dam.dna_dnnote_date AS dna_dnnote_date'),
-                DB::raw('dam.dna_approve_date AS dna_approve_date'),
-                DB::raw('dam.dna_status_dn AS dna_status_dn'),
-                DB::raw("CONCAT('/admin/kerisi/m/3548?dna_id=', dam.dna_debit_note_ap_master_id) AS urlE"),
-                DB::raw("CONCAT('/admin/kerisi/m/3548?dna_id=', dam.dna_debit_note_ap_master_id, '&mode=view') AS urlV"),
+                'dam.dna_debit_note_ap_master_id',
+                'dam.dna_dnnote_no',
+                'dam.bim_bills_no',
+                'dam.dna_dnnote_date',
+                'dam.dna_dn_total_amount',
+                'dam.dna_status_dn',
             ])
-            ->whereRaw("IFNULL(dam.dna_status_dn, '') <> 'CANCEL'")
             ->orderByDesc('dam.dna_debit_note_ap_master_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(dam.dna_dnnote_no,''), IFNULL(dam.dna_dnnote_desc,''), IFNULL(dam.bim_bills_no,''), IFNULL(bm.bim_bills_desc,''), IFNULL(bm.bim_cust_invoice_no,''), IFNULL(dam.dna_status_dn,''))) LIKE ?",
-                [$like]
-            );
+            $base->whereRaw("LOWER(CONCAT_WS('|', IFNULL(dam.dna_dnnote_no,''), IFNULL(dam.bim_bills_no,''))) LIKE ?", [$like]);
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_debit_note_form']);
@@ -6291,38 +4654,19 @@ class KerisiRemainingShellListService
     private function apDebitNoteCancel(Request $r, int $page, int $limit, string $q): array
     {
         $base = $this->conn()->table('debit_note_ap_master as dam')
-            ->leftJoin('bills_master as bm', 'bm.bim_bills_no', '=', 'dam.bim_bills_no')
             ->where('dam.dna_status_dn', 'CANCEL')
             ->select([
-                DB::raw('dam.dna_debit_note_ap_master_id AS dna_id'),
-                DB::raw('dam.dna_dnnote_no AS dna_dnnote_no'),
-                DB::raw('dam.dna_dnnote_desc AS dna_dnnote_desc'),
-                DB::raw('dam.bim_bills_no AS bim_bills_no'),
-                DB::raw('bm.bim_bills_desc AS bim_bills_desc'),
-                DB::raw('bm.bim_cust_invoice_no AS bim_cust_invoice_no'),
-                DB::raw('bm.bim_cust_invoice_date AS bim_cust_invoice_date'),
-                DB::raw('COALESCE(dam.dna_currency_code, bm.bim_currency_code) AS bim_currency_code'),
-                DB::raw('bm.bim_ent_amt AS bim_ent_amt'),
-                DB::raw('bm.bim_bill_amt AS bim_bill_amt'),
-                DB::raw('bm.bim_status AS bim_status'),
-                DB::raw('dam.dna_ent_total_amount AS dna_ent_total_amount'),
-                DB::raw('dam.dna_dn_total_amount AS dna_dn_total_amount'),
-                DB::raw('(COALESCE(bm.bim_ent_amt, 0) - COALESCE(dam.dna_ent_total_amount, 0)) AS dna_ent_bal'),
-                DB::raw('(COALESCE(bm.bim_bill_amt, 0) - COALESCE(dam.dna_dn_total_amount, 0)) AS dna_cn_bal'),
-                DB::raw('dam.dna_dnnote_date AS dna_dnnote_date'),
-                DB::raw('dam.dna_approve_date AS dna_approve_date'),
-                DB::raw('dam.dna_status_dn AS dna_status_dn'),
-                DB::raw('dam.dna_cancel_date AS dna_cancel_date'),
-                DB::raw('dam.dna_cancel_reason AS dna_cancel_reason'),
-                DB::raw("CONCAT('/admin/kerisi/m/3550?dna_id=', dam.dna_debit_note_ap_master_id, '&mode=view') AS urlV"),
+                'dam.dna_debit_note_ap_master_id',
+                'dam.dna_dnnote_no',
+                'dam.bim_bills_no',
+                'dam.dna_dnnote_date',
+                'dam.dna_dn_total_amount',
+                'dam.dna_status_dn',
             ])
             ->orderByDesc('dam.dna_debit_note_ap_master_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(dam.dna_dnnote_no,''), IFNULL(dam.dna_dnnote_desc,''), IFNULL(dam.bim_bills_no,''), IFNULL(bm.bim_bills_desc,''), IFNULL(dam.dna_cancel_reason,''), IFNULL(dam.dna_status_dn,''))) LIKE ?",
-                [$like]
-            );
+            $base->whereRaw("LOWER(IFNULL(dam.dna_dnnote_no,'')) LIKE ?", [$like]);
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_debit_note_cancel']);
@@ -6333,187 +4677,27 @@ class KerisiRemainingShellListService
         return $this->shellPreview('ap_debit_note_cancel_form');
     }
 
-    /**
-     * Account Payable / Journal Revaluation / Journal Revaluation Process (menu 3254).
-     * Mirrors legacy unpaid-bill SQL (distinct filters, exclusions) and draft revaluation-detail SQL for the second grid.
-     */
     private function apJournalRevaluation(Request $r, int $page, int $limit, string $q): array
     {
-        $cx = $this->conn();
-        $nowYear = (int) date('Y');
-        $approveFrom = sprintf('%04d-01-01', $nowYear - 3);
-        $approveTo = sprintf('%04d-12-31 23:59:59', $nowYear - 1);
-        $currencyDetailDate = sprintf('%04d-12-31', $nowYear - 1);
-
-        $cnAgg = $cx->table('credit_note_ap_master as cna')
-            ->join('credit_note_ap_details as cnd', function ($j): void {
-                $j->on('cnd.cna_credit_note_ap_master_id', '=', 'cna.cna_credit_note_ap_master_id')
-                    ->where('cnd.crd_transaction_type', '=', 'CR');
-            })
-            ->where('cna.cna_status_cd', 'APPROVE')
-            ->groupBy('cna.bim_bills_no')
-            ->select([
-                'cna.bim_bills_no',
-                DB::raw('COALESCE(SUM(cnd.crd_cn_ent_amt), 0) AS sum_crd_cn_ent_amt'),
-                DB::raw('COALESCE(SUM(cnd.crd_cn_amt), 0) AS sum_crd_cn_amt'),
-                DB::raw('MAX(cna.cna_conversion_rate) AS cna_conversion_rate'),
-            ]);
-
-        $base = $cx->table('bills_master as bm')
-            ->leftJoinSub($cnAgg, 'cn_agg', function ($join): void {
-                $join->on('cn_agg.bim_bills_no', '=', 'bm.bim_bills_no');
-            })
-            ->leftJoin('currency_details as cyd', function ($join) use ($currencyDetailDate): void {
-                $join->on('cyd.cym_currency_code', '=', 'bm.bim_currency_code')
-                    ->where('cyd.cyd_start_date', '=', $currencyDetailDate);
-            })
-            ->whereIn('bm.bim_status', ['APPROVE', 'APPROVED'])
-            ->whereRaw("IFNULL(bm.bim_currency_code, '') NOT IN ('MYR', '')")
-            ->whereBetween('bm.bim_approve_date', [$approveFrom, $approveTo])
-            ->whereNotExists(function (Builder $sub) use ($nowYear): void {
-                $sub->selectRaw('1')
-                    ->from('journal_revaluation_details as jrd')
-                    ->join('journal_revaluation_master as jrm', 'jrm.jrm_revaluation_id', '=', 'jrd.jrm_revaluation_id')
-                    ->whereColumn('jrd.jrd_reference', 'bm.bim_bills_no')
-                    ->where('jrm.jrm_status', 'DRAFT')
-                    ->whereYear('jrm.createddate', $nowYear);
-            })
-            ->whereNotExists(function (Builder $sub): void {
-                $sub->selectRaw('1')
-                    ->from('voucher_master as vma')
-                    ->join('voucher_details as vde', 'vma.vma_voucher_id', '=', 'vde.vma_voucher_id')
-                    ->whereColumn('vde.bim_bills_no', 'bm.bim_bills_no')
-                    ->whereNotIn('vma.vma_vch_status', ['CANCEL', 'REJECT']);
-            })
-            ->whereNotExists(function (Builder $sub) use ($nowYear): void {
-                $sub->selectRaw('1')
-                    ->from('manual_journal_master as mjm')
-                    ->join('manual_journal_details as mjd', 'mjm.mjm_journal_id', '=', 'mjd.mjm_journal_no')
-                    ->whereColumn('mjd.mjd_document_no', 'bm.bim_bills_no')
-                    ->whereNotIn('mjm.mjm_status', ['CANCEL', 'REJECT'])
-                    ->where(function (Builder $w) use ($nowYear): void {
-                        $w->where('mjm.mjm_system_id', '!=', 'REVALUATION')
-                            ->orWhereYear('mjm.createddate', $nowYear);
-                    });
-            })
-            ->select([
-                'bm.bim_bills_no',
-                'bm.bim_bills_desc',
-                'cyd.cyd_conversation_rate',
-                'bm.bim_currency_unit',
-                'bm.bim_currency_code',
-                'bm.bim_ent_amt',
-                DB::raw('bm.bim_conversion_rate AS jrd_ag_rate_latest'),
-                DB::raw('COALESCE(cn_agg.sum_crd_cn_ent_amt, 0) AS sum_crd_cn_ent_amt'),
-                DB::raw('COALESCE(cn_agg.cna_conversion_rate, 0) AS cna_conversion_rate'),
-                DB::raw('(bm.bim_ent_amt - COALESCE(cn_agg.sum_crd_cn_ent_amt, 0)) AS bim_balance_curr'),
-                'bm.bim_bill_amt',
-                DB::raw('COALESCE(cn_agg.sum_crd_cn_amt, 0) AS sum_crd_cn_amt'),
-                DB::raw('(bm.bim_bill_amt - COALESCE(cn_agg.sum_crd_cn_amt, 0)) AS bim_balance_rm'),
-                DB::raw('0 AS bim_jr_rm'),
-            ])
-            ->orderBy('bm.bim_bills_no');
-
-        $billNoSf = trim((string) $r->input('sf_0', ''));
-        if ($billNoSf !== '') {
-            $likeBill = $this->likeEscape(mb_strtolower($billNoSf, 'UTF-8'));
-            $base->whereRaw('LOWER(bm.bim_bills_no) LIKE ?', [$likeBill]);
-        }
-
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(bm.bim_bills_no,''), IFNULL(bm.bim_bills_desc,''))) LIKE ?",
-                [$like]
-            );
-        }
-
-        $pack = array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_journal_revaluation']);
-
-        // Second grid: legacy “list of revaluation” — draft JR current year, DT lines only, currency from bill.
-        $rev = $cx->table('journal_revaluation_details as jd')
-            ->join('journal_revaluation_master as jm', 'jm.jrm_revaluation_id', '=', 'jd.jrm_revaluation_id')
-            ->join('bills_master as bim', 'jd.jrd_reference', '=', 'bim.bim_bills_no')
-            ->where('jm.jrm_status', 'DRAFT')
-            ->whereYear('jm.createddate', $nowYear)
-            ->where('jd.jrd_trans_type', 'DT')
-            ->select([
-                'jd.jrd_reference',
-                'jd.jrd_trans_type',
-                'jd.fty_fund_type',
-                'jd.at_activity_code',
-                'jd.oun_code',
-                'jd.ccr_costcentre',
-                'jd.code_so',
-                'jd.jrd_item_code',
-                'jd.acm_acct_code',
-                'jd.budget_code',
-                'bim.bim_currency_unit',
-                'bim.bim_currency_code',
-                'jd.jrd_ag_rate_latest',
-                'jd.jrd_ag_rate_current',
-                'jd.jrd_trans_amt',
-                DB::raw("JSON_UNQUOTE(JSON_EXTRACT(jd.jrd_extended_field, '$.bid_line_no')) AS bid_line_no"),
-                DB::raw("JSON_UNQUOTE(JSON_EXTRACT(jd.jrd_extended_field, '$.bid_ent_amt')) AS bid_ent_amt"),
-                DB::raw('(SELECT cnd.crd_cn_ent_amt FROM credit_note_ap_details AS cnd WHERE cnd.bid_bills_details_id = jd.bid_bills_details_id LIMIT 1) AS crd_cn_ent_amt'),
-            ])
-            ->orderBy('jd.jrd_reference')
-            ->orderByRaw('CAST(IFNULL(JSON_UNQUOTE(JSON_EXTRACT(jd.jrd_extended_field, \'$.bid_line_no\')), \'0\') AS UNSIGNED)');
-
-        if ($q !== '') {
-            $likeRv = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $rev->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(jd.jrd_reference,''), IFNULL(jd.jrd_item_code,''), IFNULL(jd.budget_code,''))) LIKE ?",
-                [$likeRv]
-            );
-        }
-
-        $pack['extra_datatable_rows'] = [$rev->get()->map(fn ($row) => (array) $row)->toArray()];
-
-        $pack['form_values'] = [
-            'process_date' => \Carbon\Carbon::now()->format('d/m/Y'),
-            'revaluation_date' => \Carbon\Carbon::parse($currencyDetailDate)->format('d/m/Y'),
-        ];
-
-        return $pack;
+        return $this->shellPreview('ap_journal_revaluation');
     }
 
     private function apMoneyTransferList(Request $r, int $page, int $limit, string $q): array
     {
-        $conn = $this->conn();
-
-        // Destination PTJ (MIN oun_code from details; paired with organisation_unit.oun_desc for display).
-        $ptjAgg = $conn->table('money_transfer_details')
-            ->select(['mtm_id', DB::raw('MIN(oun_code) AS oun_code')])
-            ->whereNotNull('oun_code')
-            ->where('oun_code', '!=', '')
-            ->groupBy('mtm_id');
-
-        // wujud: Y when a voucher row is linked via mtm_application_no (legacy uses for Cancel rules).
-        $base = $conn->table('money_transfer_master as m')
-            ->leftJoinSub($ptjAgg, 'pj', 'pj.mtm_id', '=', 'm.mtm_id')
-            ->leftJoin('organization_unit as ou', 'ou.oun_code', '=', 'pj.oun_code')
+        // vot_transfer_master: vtm_posting_id, vtm_posting_no, vtm_enter_date, vtm_total_amt, vtm_status (verified)
+        $base = $this->conn()->table('vot_transfer_master as vtm')
             ->select([
-                'm.mtm_id',
-                'm.mtm_application_no',
-                'm.mtm_reference_no',
-                'm.mtm_status',
-                'm.mtm_cancel_reason',
-                'm.mtm_cancel_date',
-                'm.mtm_cancel_by',
-                'pj.oun_code',
-                'ou.oun_desc AS oun_code_desc',
-                DB::raw("(CASE WHEN EXISTS (SELECT 1 FROM voucher_master vm WHERE vm.mtm_application_no = m.mtm_application_no AND vm.mtm_application_no IS NOT NULL AND TRIM(vm.mtm_application_no) <> '') THEN 'Y' ELSE 'N' END) AS wujud"),
+                'vtm.vtm_posting_id',
+                'vtm.vtm_posting_no',
+                'vtm.vtm_enter_date',
+                'vtm.vtm_total_amt',
+                'vtm.vtm_status',
+                'vtm.vtm_description',
             ])
-            ->orderByDesc('m.mtm_id');
+            ->orderByDesc('vtm.vtm_posting_id');
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                'LOWER(CONCAT_WS(\'|\', IFNULL(m.mtm_application_no,\'\'), IFNULL(m.mtm_reference_no,\'\'), '
-                .'IFNULL(m.mtm_status,\'\'), IFNULL(m.mtm_cancel_reason,\'\'), IFNULL(m.mtm_cancel_by,\'\'), '
-                .'IFNULL(pj.oun_code,\'\'), IFNULL(ou.oun_desc,\'\'))) LIKE ?',
-                [$like]
-            );
+            $base->whereRaw("LOWER(CONCAT_WS('|', IFNULL(vtm.vtm_posting_no,''), IFNULL(vtm.vtm_description,''))) LIKE ?", [$like]);
         }
 
         return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_money_transfer_list']);
@@ -6521,32 +4705,7 @@ class KerisiRemainingShellListService
 
     private function apGenerateVoucherDraft(Request $r, int $page, int $limit, string $q): array
     {
-        $base = $this->conn()->table('money_transfer_master as m')
-            ->where('m.mtm_status', 'APPROVE')
-            ->whereNotExists(function (Builder $query): void {
-                $query->selectRaw('1')
-                    ->from('voucher_master as vm')
-                    ->whereColumn('vm.mtm_application_no', 'm.mtm_application_no')
-                    ->whereNotNull('vm.mtm_application_no')
-                    ->where('vm.mtm_application_no', '!=', '');
-            })
-            ->select([
-                'm.mtm_id',
-                'm.mtm_application_no',
-                'm.mtm_reference_no',
-                'm.mtm_status',
-            ])
-            ->orderByDesc('m.mtm_id');
-
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(m.mtm_application_no,''), IFNULL(m.mtm_reference_no,''), IFNULL(m.mtm_status,''))) LIKE ?",
-                [$like]
-            );
-        }
-
-        return array_merge($this->paginate($base, $page, $limit), ['connector' => 'ap_generate_voucher_draft']);
+        return $this->apVoucherRegistration($r, $page, $limit, $q);
     }
 
     private function apBukuDaftarTerimaan(Request $r, int $page, int $limit, string $q): array
@@ -6554,368 +4713,19 @@ class KerisiRemainingShellListService
         return $this->shellPreview('ap_buku_daftar_terimaan');
     }
 
-    /* ══════════════════════════════════════════════════════════════════
-     * AP — Direct Voucher creation form (MENUID 3461)
-     * This is a form page (Voucher Details + Debit/Credit line tables).
-     * The page starts empty; rows are populated after a voucher is selected.
-     * ══════════════════════════════════════════════════════════════════ */
     private function apDirectVoucher(Request $r, int $page, int $limit, string $q): array
     {
-        return [
-            'rows'       => [],
-            'total'      => 0,
-            'page'       => $page,
-            'limit'      => $limit,
-            'totalPages' => 0,
-            'connector'  => 'ap_direct_voucher',
-            'form_values' => [
-                'description'    => 'PEMBAYARAN KE ATAS',
-                'status'         => 'DRAFT',
-                'amount'         => '0.00',
-            ],
-        ];
+        return $this->apVoucherRegistration($r, $page, $limit, $q);
     }
 
-    /**
-     * Account Payable / Update Information / Update Bank Account and Factoring for Bill (3526).
-     * Legacy BL: {@code HQL_FACTORING_BILL_API} DebitDatatable / CreditDatatable filtered by Bill No.
-     * Returns debit lines as {@code rows}, credit lines in {@code extra_datatable_rows[0]}, ORM on mysql_secondary.
-     */
-    private function apUpdateBankFactoringBill(Request $r, int $page, int $limit, string $q): array
+    private function apUpdateBankAccount(Request $r, int $page, int $limit, string $q): array
     {
-        $billNo = trim((string) $r->input('bim_bills_no', $r->input('bimBillsNo', '')));
-
-        $billOptions = BillsMaster::query()
-            ->whereIn('bim_status', ['APPROVE', 'APPROVED'])
-            ->orderByDesc('bim_bills_id')
-            ->limit(2000)
-            ->get(['bim_bills_no', 'bim_bills_desc'])
-            ->filter(fn ($row) => $row->bim_bills_no !== null && trim((string) $row->bim_bills_no) !== '')
-            ->map(fn ($row): array => [
-                'value' => (string) $row->bim_bills_no,
-                'label' => trim((string) $row->bim_bills_no.((trim((string) ($row->bim_bills_desc ?? '')) !== '')
-                    ? ' - '.trim((string) $row->bim_bills_desc)
-                    : '')),
-            ])
-            ->values()
-            ->all();
-
-        if ($billNo === '') {
-            return [
-                'rows' => [],
-                'total' => 0,
-                'connector' => 'ap_update_bank_factoring_bill',
-                'form_options' => ['bim_bills_no' => $billOptions],
-                'form_values' => ['bim_bills_no' => ''],
-                'extra_datatable_rows' => [[]],
-            ];
-        }
-
-        $billRow = BillsMaster::query()
-            ->where('bim_bills_no', $billNo)
-            ->first(['bim_bills_id', 'bim_bills_no', 'bim_status', 'bim_voucher_no']);
-
-        if (! $billRow || $billRow->bim_bills_id === null) {
-            return [
-                'rows' => [],
-                'total' => 0,
-                'connector' => 'ap_update_bank_factoring_bill',
-                'form_options' => ['bim_bills_no' => $billOptions],
-                'form_values' => ['bim_bills_no' => $billNo],
-                'extra_datatable_rows' => [[]],
-            ];
-        }
-
-        $billId = $billRow->bim_bills_id;
-        $editable = $this->apFactoringBillLineEditable((string) ($billRow->bim_status ?? ''), (string) ($billRow->bim_voucher_no ?? ''));
-
-        $debitBase = $this->apFactoringBillLineQuery((string) $billId)->where('bills_details.bid_trans_type', 'DT')->orderBy('bills_details.bid_bills_details_id');
-        $creditAll = $this->apFactoringBillLineQuery((string) $billId)->where('bills_details.bid_trans_type', 'CR')->orderBy('bills_details.bid_bills_details_id')
-            ->get()
-            ->map(fn ($row) => (array) $row->getAttributes());
-
-        $debitSelect = clone $debitBase;
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $debitSelect->whereRaw(
-                'LOWER(CONCAT_WS(\'|\', '
-                .'IFNULL(bills_details.bid_payto_id,\'\'), IFNULL(bills_details.bid_payto_name,\'\'), IFNULL(bills_details.bid_factoring_id,\'\'), '
-                .'IFNULL(bills_details.bid_factoring_name,\'\'), IFNULL(bills_details.fty_fund_type,\'\'), IFNULL(bills_details.at_activity_code,\'\'), '
-                .'IFNULL(bills_details.oun_code,\'\'), IFNULL(bills_details.ccr_costcentre,\'\'), IFNULL(bills_details.cpa_project_no,\'\'), '
-                .'IFNULL(bills_details.itm_item_code,\'\'), IFNULL(bills_details.acm_acct_code,\'\'), IFNULL(bills_details.bdg_budget_code,\'\'), '
-                .'IFNULL(bills_details.vsa_vendor_bank,\'\'), IFNULL(bills_details.vsa_bank_accno,\'\')'
-                .')) LIKE ?',
-                [$like]
-            );
-        }
-
-        $total = (clone $debitSelect)->count();
-        $rows = $debitSelect
-            ->skip(($page - 1) * $limit)
-            ->take($limit)
-            ->get()
-            ->map(function ($row) use ($editable): array {
-                $a = $row->getAttributes();
-                $a['editable'] = $editable;
-
-                return $a;
-            })
-            ->all();
-
-        return [
-            'rows' => $rows,
-            'total' => $total,
-            'connector' => 'ap_update_bank_factoring_bill',
-            'form_options' => ['bim_bills_no' => $billOptions],
-            'form_values' => ['bim_bills_no' => $billNo],
-            'extra_datatable_rows' => [$creditAll->values()->all()],
-        ];
-    }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Builder<BillsDetail>
-     */
-    private function apFactoringBillLineQuery(string $billId): EloquentBuilder
-    {
-        return BillsDetail::query()
-            ->where('bills_details.bim_bills_id', $billId)
-            ->select([
-                'bills_details.bid_bills_details_id',
-                'bills_details.bid_payto_type',
-                'bills_details.bid_payto_id',
-                'bills_details.bid_payto_name',
-                'bills_details.bid_factoring_type',
-                'bills_details.bid_factoring_id',
-                'bills_details.bid_factoring_name',
-                'bills_details.fty_fund_type',
-                'bills_details.at_activity_code',
-                'bills_details.oun_code',
-                'bills_details.ccr_costcentre',
-                'bills_details.cpa_project_no',
-                'bills_details.itm_item_code',
-                'bills_details.acm_acct_code',
-                'bills_details.bdg_budget_code',
-                'bills_details.bid_onbehalf',
-                'bills_details.vsa_vendor_bank',
-                'bills_details.vsa_bank_accno',
-                'bills_details.bid_fact_bank_name',
-                'bills_details.bid_fact_bank_acctno',
-                'bills_details.bid_ent_amt',
-                'bills_details.bid_amt',
-            ]);
-    }
-
-    private function apFactoringBillLineEditable(string $bimStatus, string $bimVoucherNo): string
-    {
-        if (in_array($bimStatus, ['CANCEL', 'REJECT', 'DRAFT'], true)) {
-            return 'N';
-        }
-        if (trim($bimVoucherNo) !== '') {
-            return 'N';
-        }
-
-        return 'Y';
-    }
-
-    /**
-     * Account Payable / Update Information / Update Bank Account and Factoring for Voucher (3529).
-     * Legacy BL: {@code HQL_FACTORING_VOUCHER_API} — debit/credit grids by voucher no.
-     */
-    private function apUpdateBankFactoringVoucher(Request $r, int $page, int $limit, string $q): array
-    {
-        $voucherNo = trim((string) $r->input('vma_voucher_no', $r->input('vmaVoucherNo', '')));
-
-        $voucherOptions = VoucherMaster::query()
-            ->whereNotIn('vma_vch_status', ['CANCEL', 'REJECT', 'ERROR'])
-            ->orderByDesc('vma_voucher_id')
-            ->limit(2000)
-            ->get(['vma_voucher_no', 'vma_vch_description'])
-            ->filter(fn ($row) => $row->vma_voucher_no !== null && trim((string) $row->vma_voucher_no) !== '')
-            ->map(fn ($row): array => [
-                'value' => (string) $row->vma_voucher_no,
-                'label' => trim((string) $row->vma_voucher_no.((trim((string) ($row->vma_vch_description ?? '')) !== '')
-                    ? ' - '.trim((string) $row->vma_vch_description)
-                    : '')),
-            ])
-            ->values()
-            ->all();
-
-        if ($voucherNo === '') {
-            return [
-                'rows' => [],
-                'total' => 0,
-                'connector' => 'ap_update_bank_factoring_voucher',
-                'form_options' => ['vma_voucher_no' => $voucherOptions],
-                'form_values' => ['vma_voucher_no' => ''],
-                'extra_datatable_rows' => [[]],
-            ];
-        }
-
-        $vm = VoucherMaster::query()
-            ->where('vma_voucher_no', $voucherNo)
-            ->first(['vma_voucher_id', 'vma_voucher_no', 'vma_vch_status']);
-
-        if (! $vm || $vm->vma_voucher_id === null) {
-            return [
-                'rows' => [],
-                'total' => 0,
-                'connector' => 'ap_update_bank_factoring_voucher',
-                'form_options' => ['vma_voucher_no' => $voucherOptions],
-                'form_values' => ['vma_voucher_no' => $voucherNo],
-                'extra_datatable_rows' => [[]],
-            ];
-        }
-
-        $vmaId = (string) $vm->vma_voucher_id;
-        $editable = (((string) ($vm->vma_vch_status ?? '')) === 'APPROVE') ? 'Y' : 'N';
-
-        $debitBase = $this->apFactoringVoucherLineBase($vmaId)->where('vd.vde_trans_type', 'DT')->orderBy('vd.vde_voucher_detl_id');
-        $creditAll = $this->apFactoringVoucherLineBase($vmaId)->where('vd.vde_trans_type', 'CR')->orderBy('vd.vde_voucher_detl_id')
-            ->get()
-            ->map(fn ($row) => (array) $row->getAttributes());
-
-        $debitSelect = clone $debitBase;
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $debitSelect->whereRaw(
-                'LOWER(CONCAT_WS(\'|\', IFNULL(vd.bim_bills_no,\'\'), IFNULL(vd.vde_payto_id,\'\'), IFNULL(vd.vde_payto_name,\'\'), '
-                .'IFNULL(vd.vde_bank_name,\'\'), IFNULL(vd.fty_fund_type,\'\'), IFNULL(vd.at_activity_code,\'\'), IFNULL(vd.oun_code,\'\'), '
-                .'IFNULL(vd.ccr_costcentre,\'\'), IFNULL(vd.cpa_project_no,\'\'), IFNULL(vd.acm_acct_code,\'\'), '
-                .'IFNULL(vd.vde_factoring_name,\'\') )) LIKE ?',
-                [$like]
-            );
-        }
-
-        $total = (clone $debitSelect)->count();
-        $rows = $debitSelect
-            ->skip(($page - 1) * $limit)
-            ->take($limit)
-            ->get()
-            ->map(function ($row) use ($editable): array {
-                $a = $row->getAttributes();
-                $a['editable'] = $editable;
-
-                return $a;
-            })
-            ->all();
-
-        return [
-            'rows' => $rows,
-            'total' => $total,
-            'connector' => 'ap_update_bank_factoring_voucher',
-            'form_options' => ['vma_voucher_no' => $voucherOptions],
-            'form_values' => ['vma_voucher_no' => $voucherNo],
-            'extra_datatable_rows' => [$creditAll->values()->all()],
-        ];
-    }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Builder<VoucherDetail>
-     */
-    private function apFactoringVoucherLineBase(string $vmaVoucherId): EloquentBuilder
-    {
-        return VoucherDetail::query()
-            ->from('voucher_details as vd')
-            ->join('voucher_master as vma', 'vd.vma_voucher_id', '=', 'vma.vma_voucher_id')
-            ->where('vma.vma_voucher_id', $vmaVoucherId)
-            ->leftJoin('lookup_details as fact_type', function (JoinClause $join): void {
-                $join->on('fact_type.lde_value', '=', 'vd.vde_factoring_type')
-                    ->where('fact_type.lma_code_name', '=', 'CUSTOMER_TYPE');
-            })
-            ->leftJoin('lookup_bank_main as fact_bank', 'fact_bank.lbm_bank_code', '=', 'vd.vde_fact_bank_name')
-            ->select([
-                'vd.vde_voucher_detl_id',
-                DB::raw('IFNULL(vd.bim_bills_no, \'\') AS bim_bills_no'),
-                'vd.vde_payto_id',
-                'vd.vde_payto_name',
-                'vd.vde_bank_name',
-                'vd.vde_bank_acctno',
-                'vd.fty_fund_type',
-                'vd.at_activity_code',
-                'vd.oun_code',
-                'vd.ccr_costcentre',
-                'vd.cpa_project_no',
-                'vd.acm_acct_code',
-                'vd.vde_amount',
-                'vd.vde_factoring_type',
-                DB::raw('COALESCE(fact_type.lde_description2, fact_type.lde_description, vd.vde_factoring_type) AS vde_factoring_type_desc'),
-                'vd.vde_factoring_id',
-                'vd.vde_factoring_name',
-                'vd.vde_fact_bank_name',
-                DB::raw('COALESCE(fact_bank.lbm_bank_name, vd.vde_fact_bank_name) AS vde_fact_bank_name_desc'),
-                'vd.vde_fact_bank_acctno',
-            ]);
+        return $this->purchasingVendorList($r, $page, $limit, $q);
     }
 
     private function apPaymentRejectBatch(Request $r, int $page, int $limit, string $q): array
     {
-        $batchId = trim((string) $r->input('tf_0', $r->input('pyb_pybatch_id', $r->input('pybPybatchId', ''))));
-
-        $base = $this->conn()->table('payment_record as pr')
-            ->join('payment_batch as pb', 'pb.pyb_pybatch_id', '=', 'pr.pre_payment_batch_id')
-            ->leftJoin('bank_master as bm', 'bm.bnm_bank_code', '=', 'pr.pre_bank_name')
-            ->leftJoin('lookup_bank_main as lbm', 'lbm.lbm_bank_code', '=', 'pr.pre_bank_name')
-            ->where('pb.pyb_status', 'REJECT')
-            ->select([
-                DB::raw('pr.pre_payment_record_id AS pre_payment_record_id'),
-                DB::raw('pr.pre_payment_no AS pre_payment_no'),
-                DB::raw('pr.pre_voucher_no AS pre_voucher_no'),
-                DB::raw('pr.pre_payee_type AS pre_payee_type'),
-                DB::raw('pr.pre_payto_id AS pre_payto_id'),
-                DB::raw('pr.pre_payto_name AS pre_payto_name'),
-                DB::raw('COALESCE(bm.bnm_bank_desc, lbm.lbm_bank_name, pr.pre_bank_name) AS bnm_bank_desc'),
-                DB::raw('pr.acm_acct_code_bank AS acm_acct_code_bank'),
-                DB::raw('COALESCE(pr.pre_total_amt_rm, pr.pre_total_amt) AS pre_total_amt'),
-                DB::raw('pr.pre_status AS pre_status'),
-                DB::raw("CASE WHEN IFNULL(pr.pre_cashbook_batch, '') <> '' OR IFNULL(pr.pre_approve_glbatch, '') <> '' THEN 'Yes' ELSE 'No' END AS has_posting"),
-                DB::raw('pr.pre_payment_batch_id AS pre_payment_batch_id'),
-            ])
-            ->orderByDesc('pr.pre_payment_record_id');
-
-        if ($batchId !== '') {
-            $base->where('pr.pre_payment_batch_id', $batchId);
-        }
-
-        if ($q !== '') {
-            $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
-            $base->whereRaw(
-                "LOWER(CONCAT_WS('|', IFNULL(pr.pre_payment_no,''), IFNULL(pr.pre_voucher_no,''), IFNULL(pr.pre_payee_type,''), IFNULL(pr.pre_payto_id,''), IFNULL(pr.pre_payto_name,''), IFNULL(pr.pre_bank_name,''), IFNULL(bm.bnm_bank_desc,''), IFNULL(lbm.lbm_bank_name,''), IFNULL(pr.acm_acct_code_bank,''), IFNULL(pr.pre_status,''), IFNULL(pb.pyb_batch_no,''))) LIKE ?",
-                [$like]
-            );
-        }
-
-        return array_merge($this->paginate($base, $page, $limit), [
-            'connector' => 'ap_payment_reject_batch',
-            'top_filter_options' => $this->apPaymentRejectBatchTopFilterOptions(),
-        ]);
-    }
-
-    /**
-     * @return array<string, list<int, array{value: string, label: string}>>
-     */
-    private function apPaymentRejectBatchTopFilterOptions(): array
-    {
-        $rows = $this->conn()->table('payment_batch as pb')
-            ->join('payment_record as pr', 'pr.pre_payment_batch_id', '=', 'pb.pyb_pybatch_id')
-            ->where('pb.pyb_status', 'REJECT')
-            ->select([
-                DB::raw('pb.pyb_pybatch_id AS id'),
-                DB::raw('pb.pyb_batch_no AS batch_no'),
-                DB::raw('COUNT(pr.pre_payment_record_id) AS record_count'),
-            ])
-            ->groupBy('pb.pyb_pybatch_id', 'pb.pyb_batch_no')
-            ->orderByDesc('pb.pyb_pybatch_id')
-            ->get();
-
-        return [
-            'tf_0' => $rows
-                ->map(fn ($row): array => [
-                    'value' => (string) $row->id,
-                    'label' => sprintf('%s (%d)', (string) $row->batch_no, (int) $row->record_count),
-                ])
-                ->values()
-                ->all(),
-        ];
+        return $this->shellPreview('ap_payment_reject_batch');
     }
 
     private function apPaymentRecord(Request $r, int $page, int $limit, string $q): array

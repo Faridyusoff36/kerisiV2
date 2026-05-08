@@ -291,12 +291,12 @@ onMounted(load);
                         {{ uploadingSiteIcon ? 'Uploading...' : 'Upload' }}
                         <input type="file" accept="image/*" class="hidden" @change="onSiteIconUpload" :disabled="uploadingSiteIcon" />
                       </label>
-                      <button type="button" class="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50" @click="openMediaPicker('siteIconUrl')">
+                      <button class="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50" @click="openMediaPicker('siteIconUrl')">
                         <FolderOpen class="h-4 w-4" />
                         Library
                       </button>
                     </div>
-                    <button type="button" v-if="form.siteIconUrl" class="flex items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-rose-500" @click="removeAsset('siteIconUrl', 'Site icon')">
+                    <button v-if="form.siteIconUrl" class="flex items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-rose-500" @click="removeAsset('siteIconUrl', 'Site icon')">
                       <Trash2 class="h-3 w-3" />
                       Remove
                     </button>
@@ -320,12 +320,12 @@ onMounted(load);
                         {{ uploadingFavicon ? 'Uploading...' : 'Upload' }}
                         <input type="file" accept="image/*,.ico" class="hidden" @change="onFaviconUpload" :disabled="uploadingFavicon" />
                       </label>
-                      <button type="button" class="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50" @click="openMediaPicker('faviconUrl')">
+                      <button class="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50" @click="openMediaPicker('faviconUrl')">
                         <FolderOpen class="h-4 w-4" />
                         Library
                       </button>
                     </div>
-                    <button type="button" v-if="form.faviconUrl" class="flex items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-rose-500" @click="removeAsset('faviconUrl', 'Favicon')">
+                    <button v-if="form.faviconUrl" class="flex items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-rose-500" @click="removeAsset('faviconUrl', 'Favicon')">
                       <Trash2 class="h-3 w-3" />
                       Remove
                     </button>
@@ -349,12 +349,12 @@ onMounted(load);
                         {{ uploadingSidebarLogo ? 'Uploading...' : 'Upload' }}
                         <input type="file" accept="image/*" class="hidden" @change="onSidebarLogoUpload" :disabled="uploadingSidebarLogo" />
                       </label>
-                      <button type="button" class="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50" @click="openMediaPicker('sidebarLogoUrl')">
+                      <button class="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50" @click="openMediaPicker('sidebarLogoUrl')">
                         <FolderOpen class="h-4 w-4" />
                         Library
                       </button>
                     </div>
-                    <button type="button" v-if="form.sidebarLogoUrl" class="flex items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-rose-500" @click="removeAsset('sidebarLogoUrl', 'Sidebar logo')">
+                    <button v-if="form.sidebarLogoUrl" class="flex items-center gap-1.5 text-xs text-slate-400 transition-colors hover:text-rose-500" @click="removeAsset('sidebarLogoUrl', 'Sidebar logo')">
                       <Trash2 class="h-3 w-3" />
                       Remove
                     </button>
@@ -369,7 +369,7 @@ onMounted(load);
         <!-- ═══════ ACTIONS ═══════ -->
         <div class="space-y-3">
           <div class="flex items-center gap-3">
-            <button type="button"
+            <button
               class="flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800 disabled:opacity-50"
               :disabled="saving"
               @click="save"
@@ -413,7 +413,7 @@ onMounted(load);
                 <FolderOpen class="h-4 w-4 text-amber-600" />
                 <h3 class="text-sm font-semibold text-slate-900">Select from Library</h3>
               </div>
-              <button type="button" class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600" @click="mediaPickerOpen = false">
+              <button class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600" @click="mediaPickerOpen = false">
                 <X class="h-4 w-4" />
               </button>
             </div>
@@ -421,7 +421,7 @@ onMounted(load);
               <p v-if="mediaPickerLoading" class="py-10 text-center text-sm text-slate-400">Loading...</p>
               <p v-else-if="mediaPickerItems.length === 0" class="py-10 text-center text-sm text-slate-400">No images in library.</p>
               <div v-else class="grid grid-cols-4 gap-3 sm:grid-cols-5">
-                <button type="button"
+                <button
                   v-for="item in mediaPickerItems"
                   :key="item.id"
                   class="group relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-100 transition-all hover:border-[var(--accent-400)] hover:ring-1 hover:ring-[var(--accent-200)]"

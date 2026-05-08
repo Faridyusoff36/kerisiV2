@@ -77,44 +77,4 @@ body {
       var(--accent-700)
     );
   }
-
-  /**
-   * Kitchen-sink datatable (KitchenSinkView "Table" section).
-   * Use on <table class="admin-table-kitchen …">; add admin-table-thead-sticky on <thead> when the body scrolls.
-   */
-  .admin-table-kitchen {
-    @apply w-full border-collapse text-sm text-slate-800;
-  }
-
-  .admin-table-kitchen thead {
-    @apply bg-white;
-  }
-
-  .admin-table-kitchen thead tr {
-    @apply border-b border-slate-200;
-  }
-
-  /**
-   * :where() keeps selector specificity low so alignment utilities (text-right/text-center)
-   * still win, while important utilities flatten old one-off table spacing/header styles.
-   */
-  .admin-table-kitchen :where(thead th) {
-    @apply !px-3 !pb-3 !pt-2 text-left !text-xs !font-semibold !uppercase !tracking-wider !text-slate-400;
-  }
-
-  .admin-table-kitchen :where(tbody tr) {
-    @apply !border-b !border-slate-100 transition-colors last:!border-b-0 hover:!bg-slate-50;
-  }
-
-  .admin-table-kitchen :where(tbody td) {
-    @apply !px-3 !py-2 align-middle !text-slate-700;
-  }
-
-  .admin-table-kitchen-caption {
-    @apply !py-8 text-center text-sm !text-slate-500;
-  }
-
-  .admin-table-thead-sticky {
-    @apply sticky top-0 z-[1] bg-white shadow-[0_1px_0_0_rgb(226_232_240)];
-  }
 }

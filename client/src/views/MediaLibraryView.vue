@@ -254,7 +254,7 @@ onMounted(load);
             >
               {{ allSelected ? "Clear" : "Select all" }}
             </button>
-            <button type="button"
+            <button
               class="inline-flex items-center gap-1.5 rounded-md border border-rose-200 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
               :disabled="selectedIds.length === 0 || deleting"
               @click="removeSelected"
@@ -267,7 +267,7 @@ onMounted(load);
         <div class="p-4">
           <div v-if="rows.length > 0" class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div class="grid auto-rows-min grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-              <button type="button"
+              <button
                 v-for="item in rows"
                 :key="item.id"
                 class="group self-start overflow-hidden rounded-lg border bg-white text-left shadow-sm transition-all hover:shadow-md"
@@ -288,7 +288,7 @@ onMounted(load);
                     :alt="item.altText || item.originalName"
                     class="absolute inset-0 h-full w-full object-cover"
                   />
-                  <button type="button"
+                  <button
                     class="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg bg-white/90 text-slate-400 opacity-0 shadow-sm backdrop-blur-sm transition-all hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100"
                     title="Delete"
                     @click.stop="remove(item.id)"
@@ -327,7 +327,7 @@ onMounted(load);
                   <label class="block text-xs font-medium text-slate-700">Description</label>
                   <textarea v-model="metadataForm.description" rows="3" class="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-100"></textarea>
 
-                  <button type="button"
+                  <button
                     class="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
                     :disabled="savingMetadata"
                     @click="saveMetadata"

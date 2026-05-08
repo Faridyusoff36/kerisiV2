@@ -89,7 +89,7 @@ function statusColor(status: string) {
               <FileText class="h-4 w-4 text-blue-600" />
               <h2 class="text-sm font-semibold text-slate-900">Recent Posts</h2>
             </div>
-            <button type="button" class="flex items-center gap-1 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900" @click="router.push('/admin/posts')">
+            <button class="flex items-center gap-1 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900" @click="router.push('/admin/posts')">
               View all
               <ArrowRight class="h-3.5 w-3.5" />
             </button>
@@ -117,7 +117,7 @@ function statusColor(status: string) {
               <FileText class="h-4 w-4 text-emerald-600" />
               <h2 class="text-sm font-semibold text-slate-900">Recent Pages</h2>
             </div>
-            <button type="button" class="flex items-center gap-1 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900" @click="router.push('/admin/pages')">
+            <button class="flex items-center gap-1 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900" @click="router.push('/admin/pages')">
               View all
               <ArrowRight class="h-3.5 w-3.5" />
             </button>

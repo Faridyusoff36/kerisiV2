@@ -29,7 +29,7 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 1178,"Portal Legal",0,1,54
 3,"User Manual",0,1,57
 55,"Audit Trail",0,1,59
-2616,"Debtor Information",0,1,60
+2616,"Debtor Information",0,1,56
 1281,"TP1 (Tax Relief) Listing",1251,2,1
 1405,Setup,1404,2,1
 1409,"Posting to GL (TB)",1052,2,1
@@ -308,7 +308,6 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 2195,"Outstanding Invoice",2312,3,1
 2368,Setup,2315,3,1
 1771,"New Purchase Requisition",2319,3,1
-3168,"Pre - Purchase Requisition",2319,3,2
 1716,"Bill Registration",2377,3,1
 2479,"Cashbook Closing",2532,3,1
 2593,"TP1 Application",2592,3,1
@@ -612,9 +611,6 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 3423,Warrant,1966,3,7
 2847,"Senarai Semak Pembatalan Pendaftaran Aset",1991,3,7
 3341,Closing,2048,3,7
-2510,"Process Closing",3341,4,1
-3161,"PO Confirmation Process",3341,4,2
-3178,"PO Confirmation Process List",3341,4,3
 3039,"Purchase Requisition Cancel",2319,3,7
 2535,"Closing - Attachment 3",2532,3,7
 3106,"Report Vendor Assessment (WPN)",2852,3,7
@@ -825,7 +821,6 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 2552,"New of Application Waqaf/Zakat Deduction",3023,4,1
 2589,"Kew Pa 1 - Penerimaan Aset",3531,4,1
 2647,"Senarai Tempoh Masa LPO 			",2810,4,1
-2291,"List of Refund Application (Portal)",2285,4,1
 2702,Admin,2285,4,1
 2718,Preparation,2763,4,1
 3010,"Calculation of Commission ",3018,4,1
@@ -906,9 +901,6 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 3371,"Creditor Ageing Details",3369,4,4
 3384,"Vot Book Report (WBR051)",3424,4,4
 3411,"Disabled Screen",2368,4,4
-1905,"EFT Preparation",1904,4,1
-1906,"Payroll Batching",1904,4,2
-1907,"Batching EPY List",1904,4,3
 3437,"Listing Approved Batching EPY",1904,4,4
 3443,"Creditor Ageing Details( > 6 Years)",3369,4,4
 3446,"Debtor Ageing Details ( > 6 Years )",3376,4,4
@@ -1007,12 +999,3 @@ MENUID,MENUTITLE,MENUPARENT,MENULEVEL,MENUORDER
 2259,"By Email",2133,7,1
 2257,"By Post",2132,7,2
 2258,"By Post",2133,7,2
-993,Role,1003,2,3
-987,"List of Lookup",1003,2,5
-1087,"Fund Type Existing",1003,2,6
-2953,"Profile VC & TNC",1003,2,10
-1150,"PTPTN (Masri)",1149,3,3
-2128,"Bank Reconciliation",2127,3,1
-2249,"Bank Reconciliation",2242,3,1
-1411,"EPF Contribution",1410,3,1
-1412,SOCSO,1410,3,2

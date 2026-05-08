@@ -413,17 +413,17 @@ onUnmounted(() => {
         </div>
 
         <div class="overflow-x-auto px-4 py-3">
-          <table class="admin-table-kitchen min-w-full border-collapse text-sm">
-            <thead class="admin-table-thead-sticky">
-              <tr>
-                <th class="whitespace-nowrap">No</th>
-                <th class="whitespace-nowrap">Code</th>
-                <th class="whitespace-nowrap">Name</th>
-                <th class="whitespace-nowrap">Level</th>
-                <th class="whitespace-nowrap">Category</th>
-                <th class="whitespace-nowrap">Parent</th>
-                <th class="whitespace-nowrap">Status</th>
-                <th class="whitespace-nowrap">Action</th>
+          <table class="min-w-full border-collapse text-sm">
+            <thead>
+              <tr class="border-b border-slate-200 bg-violet-50 text-left">
+                <th class="whitespace-nowrap px-3 py-2 font-semibold text-slate-800">No</th>
+                <th class="whitespace-nowrap px-3 py-2 font-semibold text-slate-800">Code</th>
+                <th class="whitespace-nowrap px-3 py-2 font-semibold text-slate-800">Name</th>
+                <th class="whitespace-nowrap px-3 py-2 font-semibold text-slate-800">Level</th>
+                <th class="whitespace-nowrap px-3 py-2 font-semibold text-slate-800">Category</th>
+                <th class="whitespace-nowrap px-3 py-2 font-semibold text-slate-800">Parent</th>
+                <th class="whitespace-nowrap px-3 py-2 font-semibold text-slate-800">Status</th>
+                <th class="whitespace-nowrap px-3 py-2 font-semibold text-slate-800">Action</th>
               </tr>
             </thead>
             <tbody>

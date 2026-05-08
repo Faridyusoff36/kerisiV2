@@ -82,9 +82,7 @@ async function loadLines() {
     rows.value = res.data ?? [];
     total.value = Number(res.meta?.total ?? 0);
     const f = res.meta?.footer as { bidAmt?: unknown } | undefined;
-    const raw = f?.bidAmt;
-    footerAmt.value =
-      raw == null ? null : typeof raw === "string" || typeof raw === "number" ? raw : null;
+    footerAmt.value = f?.bidAmt != null ? f.bidAmt : null;
   } catch (e) {
     rows.value = [];
     total.value = 0;
@@ -230,8 +228,8 @@ onUnmounted(() => {
             </div>
 
             <div class="overflow-x-auto rounded-lg border border-slate-200">
-              <table class="admin-table-kitchen w-full min-w-[980px] text-sm">
-                <thead class="admin-table-thead-sticky">
+              <table class="w-full min-w-[980px] text-sm">
+                <thead class="bg-slate-50">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="px-3 py-2 text-xs font-semibold uppercase">Fund / SO</th>

@@ -92,7 +92,6 @@ use App\Http\Controllers\Api\PayeeRegistrationController;
 use App\Http\Controllers\Api\PettyCashApplicationListController;
 use App\Http\Controllers\Api\PettyCashBillController;
 use App\Http\Controllers\Api\PettyCashByPtjController;
-use App\Http\Controllers\Api\ApDirectVoucherController;
 use App\Http\Controllers\Api\PettyCashClaimFormController;
 use App\Http\Controllers\Api\PettyCashConfirmPaymentController;
 use App\Http\Controllers\Api\PettyCashRecoupController;
@@ -368,16 +367,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/petty-cash/applications/{id}', [PettyCashApplicationListController::class, 'show']);
 
     // Petty Cash Claim Form (PAGEID 1544 / MENUID 1872). Legacy BL MM_API_PETTYCASH_PETTYCASHCLAIMFORM.
-    // AP — Direct Voucher autosuggest endpoints (menuId 3461)
-    Route::prefix('ap/direct-voucher')->group(function () {
-        Route::get('/payee/suggest',         [ApDirectVoucherController::class, 'suggestPayee']);
-        Route::get('/fund-type/suggest',     [ApDirectVoucherController::class, 'suggestFundType']);
-        Route::get('/activity-code/suggest', [ApDirectVoucherController::class, 'suggestActivityCode']);
-        Route::get('/ptj/suggest',           [ApDirectVoucherController::class, 'suggestPtj']);
-        Route::get('/cost-center/suggest',   [ApDirectVoucherController::class, 'suggestCostCenter']);
-        Route::get('/account-code/suggest',  [ApDirectVoucherController::class, 'suggestAccountCode']);
-    });
-
     Route::get('/petty-cash/claim-form/request-by/suggest', [PettyCashClaimFormController::class, 'suggestRequestBy']);
     Route::get('/petty-cash/claim-form/pcm/suggest', [PettyCashClaimFormController::class, 'suggestPcm']);
     Route::get('/petty-cash/claim-form/account-code/suggest', [PettyCashClaimFormController::class, 'suggestAccountCode']);
@@ -568,33 +557,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/payroll/kerisi/{menuId}', [KerisiPayrollController::class, 'index'])
         ->whereNumber('menuId');
     Route::get('/kerisi/remaining/pr-to-cancel/details', [KerisiRemainingController::class, 'prToCancelDetails']);
-    Route::get('/kerisi/remaining/ap/payee-report-by-ptj/payment-details', [KerisiRemainingController::class, 'apPayeeReportByPtjPaymentDetails']);
     // Purchasing / WPN Cancel (menu 2082) — legacy processcancelwpn_entry
     Route::post('/kerisi/remaining/wpn-cancel', [KerisiRemainingController::class, 'wpnCancel']);
-    Route::get('/kerisi/remaining/ap/money-transfer/virement-numbers', [KerisiRemainingController::class, 'moneyTransferVirementNumbers']);
-    Route::post('/kerisi/remaining/ap/payment-reject-batch/payment-cancel', [KerisiRemainingController::class, 'paymentRejectBatchPaymentCancel']);
-    Route::post('/kerisi/remaining/ap/payment-reject-batch/voucher-cancel', [KerisiRemainingController::class, 'paymentRejectBatchVoucherCancel']);
-    // AP Credit Note Form (MENUID 3242)
-    Route::get('/kerisi/ap/credit-note-form/bill-search', [KerisiRemainingController::class, 'apCreditNoteFormBillSearch']);
-    Route::get('/kerisi/ap/credit-note-form/bill-details', [KerisiRemainingController::class, 'apCreditNoteFormBillDetails']);
-    Route::get('/kerisi/ap/credit-note-form/currencies', [KerisiRemainingController::class, 'apCreditNoteFormCurrencies']);
-    Route::get('/kerisi/ap/credit-note-form/{id}', [KerisiRemainingController::class, 'apCreditNoteFormGet']);
-    Route::post('/kerisi/ap/credit-note-form', [KerisiRemainingController::class, 'apCreditNoteFormSave']);
-    Route::post('/kerisi/ap/credit-note-form/{id}/submit', [KerisiRemainingController::class, 'apCreditNoteFormSubmit']);
-    // AP Debit Note Form (MENUID 3548 / 3550)
-    Route::get('/kerisi/ap/debit-note-form/bill-search', [KerisiRemainingController::class, 'apDebitNoteFormBillSearch']);
-    Route::get('/kerisi/ap/debit-note-form/bill-details', [KerisiRemainingController::class, 'apDebitNoteFormBillDetails']);
-    Route::get('/kerisi/ap/debit-note-form/currencies', [KerisiRemainingController::class, 'apCreditNoteFormCurrencies']);
-    Route::get('/kerisi/ap/debit-note-form/{id}', [KerisiRemainingController::class, 'apDebitNoteFormGet']);
-    Route::post('/kerisi/ap/debit-note-form', [KerisiRemainingController::class, 'apDebitNoteFormSave']);
-    Route::post('/kerisi/ap/debit-note-form/{id}/submit', [KerisiRemainingController::class, 'apDebitNoteFormSubmit']);
-    Route::post('/kerisi/ap/debit-note-form/{id}/cancel', [KerisiRemainingController::class, 'apDebitNoteFormCancel']);
-    Route::delete('/kerisi/ap/voucher/{id}', [KerisiRemainingController::class, 'apVoucherDelete']);
-    Route::post('/kerisi/ap/voucher/{id}/cancel', [KerisiRemainingController::class, 'apVoucherCancel']);
-    Route::get('/kerisi/ap/voucher-suggest', [KerisiRemainingController::class, 'apVoucherSuggestVoucher']);
-    Route::get('/kerisi/ap/voucher-detail', [KerisiRemainingController::class, 'apVoucherInfoCreditorDetail']);
-    Route::put('/kerisi/ap/voucher-detail-item/{detlId}', [KerisiRemainingController::class, 'apVoucherUpdateCreditorInfo']);
-    Route::post('/kerisi/ap/voucher-process/submit', [KerisiRemainingController::class, 'apVoucherProcessSubmit']);
     Route::get('/kerisi/remaining/{menuId}', [KerisiRemainingController::class, 'index'])
         ->whereNumber('menuId');
     Route::get('/account-receivable/kerisi-ar/{menuId}', [KerisiArController::class, 'index'])

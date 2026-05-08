@@ -66,7 +66,7 @@ onMounted(load);
       <!-- ───── Hero Header ───── -->
       <div class="flex items-center justify-between">
         <h1 class="page-title">Posts</h1>
-        <button type="button"
+        <button
           class="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
           @click="router.push('/admin/posts/new')"
         >
@@ -94,13 +94,13 @@ onMounted(load);
                   @keyup.enter="load"
                 />
               </div>
-              <button type="button" class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50" @click="load">Filter</button>
+              <button class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50" @click="load">Filter</button>
             </div>
           </div>
         </div>
         <div class="overflow-x-auto">
-          <table class="admin-table-kitchen w-full text-sm">
-            <thead class="admin-table-thead-sticky">
+          <table class="w-full text-sm">
+            <thead>
               <tr class="border-b border-slate-100 text-left">
                 <th class="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Title</th>
                 <th class="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Categories</th>
@@ -128,14 +128,14 @@ onMounted(load);
                 <td class="px-4 py-2 font-mono text-xs text-slate-500">{{ item.slug }}</td>
                 <td class="px-4 py-2 text-right">
                   <div class="flex items-center justify-end gap-1.5">
-                    <button type="button"
+                    <button
                       class="group relative flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
                       @click="router.push(`/admin/posts/${item.id}`)"
                     >
                       <Pencil class="h-3.5 w-3.5" />
                       <span class="pointer-events-none absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">Edit</span>
                     </button>
-                    <button type="button"
+                    <button
                       class="group relative flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
                       @click="remove(item.id)"
                     >

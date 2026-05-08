@@ -238,16 +238,17 @@ defineExpose({ getTemplateState, applyTemplateState, getExportConfig });
 
     <div class="overflow-x-auto rounded-lg border border-slate-200">
       <div :class="hasScrollableBody ? 'max-h-[420px] overflow-y-auto' : ''">
-        <table class="admin-table-kitchen" :style="minWidth ? { minWidth } : {}">
-          <thead class="admin-table-thead-sticky">
-            <tr>
+        <table class="w-full text-sm" :style="minWidth ? { minWidth } : {}">
+          <thead class="sticky top-0 bg-slate-50">
+            <tr class="border-b border-slate-200 text-left">
               <th
                 v-for="col in visibleColumns"
                 :key="col.key"
+                class="px-3 py-2 text-xs font-semibold uppercase text-slate-600"
                 :class="[
-                  col.align === 'right' ? '!text-right' : '',
-                  col.align === 'center' ? '!text-center' : '',
-                  col.freezeLeft ? 'sticky left-0 z-10 bg-white' : '',
+                  col.align === 'right' ? 'text-right' : '',
+                  col.align === 'center' ? 'text-center' : '',
+                  col.freezeLeft ? 'sticky left-0 bg-slate-50 z-10' : '',
                 ]"
                 :draggable="!!col.hideable"
                 @dragstart="onHeaderDragStart(col.key, $event)"
@@ -258,21 +259,14 @@ defineExpose({ getTemplateState, applyTemplateState, getExportConfig });
                 <button
                   v-if="col.sortable"
                   type="button"
-                  class="inline-flex items-center gap-1 uppercase tracking-wider text-slate-400 hover:text-slate-900"
+                  class="inline-flex items-center gap-1"
                   @click="toggleSort(col)"
                   @contextmenu.prevent="col.hideable && hideColumn(col.key)"
                 >
                   {{ col.label }}
-                  <span v-if="col.sortKey && sortBy === col.sortKey" class="font-semibold text-slate-900">{{
-                    sortDir === "asc" ? "\u2191" : "\u2193"
-                  }}</span>
+                  <span v-if="col.sortKey && sortBy === col.sortKey">{{ sortDir === "asc" ? "\u2191" : "\u2193" }}</span>
                 </button>
-                <span
-                  v-else
-                  class="uppercase tracking-wider text-slate-400"
-                  @contextmenu.prevent="col.hideable && hideColumn(col.key)"
-                  >{{ col.label }}</span
-                >
+                <span v-else @contextmenu.prevent="col.hideable && hideColumn(col.key)">{{ col.label }}</span>
               </th>
             </tr>
           </thead>
@@ -281,10 +275,11 @@ defineExpose({ getTemplateState, applyTemplateState, getExportConfig });
               <tr v-if="showGroupBar(idx) && groupBy" class="bg-slate-100/80">
                 <td :colspan="visibleColumns.length" class="px-3 py-1 text-xs font-semibold text-slate-600">{{ groupBy(row) }}</td>
               </tr>
-              <tr>
+              <tr class="border-b border-slate-100 hover:bg-slate-50">
                 <td
                   v-for="col in visibleColumns"
                   :key="col.key"
+                  class="px-3 py-2"
                   :class="[
                     col.align === 'right' ? 'text-right tabular-nums' : '',
                     col.align === 'center' ? 'text-center' : '',
@@ -304,7 +299,7 @@ defineExpose({ getTemplateState, applyTemplateState, getExportConfig });
             </template>
 
             <tr v-if="rows.length === 0">
-              <td :colspan="Math.max(visibleColumns.length, 1)" class="admin-table-kitchen-caption">No records found.</td>
+              <td :colspan="Math.max(visibleColumns.length, 1)" class="px-3 py-8 text-center text-sm text-slate-500">No records found.</td>
             </tr>
           </tbody>
         </table>

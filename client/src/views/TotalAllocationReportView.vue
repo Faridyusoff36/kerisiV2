@@ -148,21 +148,7 @@ const datatableRef = ref<DatatableRefApi | null>({
   }),
 });
 
-const overflowOpen = ref(false);
-const overflowRoot = ref<HTMLElement | null>(null);
-
-function onClickOutside(event: MouseEvent) {
-  if (!overflowOpen.value) return;
-  if (overflowRoot.value?.contains(event.target as Node)) return;
-  overflowOpen.value = false;
-}
-
-const {
-  isGrouped,
-  handleSaveTemplate,
-  handleLoadTemplate,
-  handleUngroupList,
-  handleGroupList, templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } = useDatatableFeatures({
+const { templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } = useDatatableFeatures({
   pageName: "Total Allocation, Expenditure and Balance of Allocation",
   apiDataPath: "/budget/report/total-allocation",
   defaultExportColumns: exportColumns,
@@ -227,16 +213,12 @@ watch(q, () => {
 });
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / Math.max(1, limit.value))));
-const startIdx = computed(() => (total.value === 0 ? 0 : (page.value - 1) * limit.value + 1));
-const endIdx = computed(() => Math.min(page.value * limit.value, total.value));
 
 onMounted(async () => {
-  document.addEventListener("click", onClickOutside);
   await loadOptions();
   await loadRows();
 });
 onUnmounted(() => {
-  document.removeEventListener("click", onClickOutside);
   if (searchDebounce) clearTimeout(searchDebounce);
 });
 </script>
@@ -274,17 +256,9 @@ onUnmounted(() => {
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <h1 class="text-base font-semibold text-slate-900">Listing</h1>
-                    <div ref="overflowRoot" class="relative">
-            <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" @click.stop="overflowOpen = !overflowOpen">
-              <MoreVertical class="h-4 w-4" />
-            </button>
-            <div v-if="overflowOpen" class="absolute right-0 z-30 mt-1 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg" @click.stop>
-              <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleSaveTemplate()">Save template</button>
-              <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleLoadTemplate()">Load template</button>
-              <button v-if="isGrouped" type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleUngroupList()">Ungroup list</button>
-              <button v-else type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleGroupList()">Group list</button>
-            </div>
-          </div>
+          <button class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="More">
+            <MoreVertical class="h-4 w-4" />
+          </button>
         </div>
         <div class="space-y-4 p-4">
           <div class="flex flex-wrap items-end justify-between gap-4">
@@ -295,6 +269,7 @@ onUnmounted(() => {
               </select>
             </div>
             <div class="flex items-center gap-2">
+              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-slate-50" @click="showSmartFilter = true">Filter</button>
               <label class="text-xs font-medium text-slate-600">Search</label>
               <div class="relative">
                 <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -309,13 +284,12 @@ onUnmounted(() => {
                   <X class="h-3.5 w-3.5" />
                 </button>
               </div>
-              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-slate-50" @click="showSmartFilter = true">Filter</button>
             </div>
           </div>
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="admin-table-kitchen w-full min-w-[1280px] text-sm">
-                <thead class="admin-table-thead-sticky z-[1]">
+              <table class="w-full min-w-[1280px] text-sm">
+                <thead class="sticky top-0 z-[1] bg-violet-500 text-white">
                   <tr class="border-b border-violet-400 text-left">
                     <th class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide">No</th>
                     <th class="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide">Budget Code</th>
@@ -353,11 +327,11 @@ onUnmounted(() => {
                     <td class="px-3 py-2 text-right tabular-nums">{{ fmtMoney(row.rptBalance) }}</td>
                   </tr>
                   <tr v-if="rows.length === 0">
-                    <td colspan="13" class="admin-table-kitchen-caption">No data</td>
+                    <td colspan="13" class="px-3 py-8 text-center text-sm text-slate-500">No data</td>
                   </tr>
                 </tbody>
                 <tfoot v-if="rows.length > 0">
-                  <tr class="border-t-2 border-slate-200 bg-slate-100 font-semibold text-slate-900">
+                  <tr class="bg-violet-800 font-semibold text-white">
                     <td class="px-3 py-2.5 text-left" colspan="7">Grand Total</td>
                     <td class="px-3 py-2.5 text-right tabular-nums">{{ fmtMoney(totals.opening) }}</td>
                     <td class="px-3 py-2.5 text-right tabular-nums">{{ fmtMoney(totals.allocated) }}</td>
@@ -371,7 +345,7 @@ onUnmounted(() => {
             </div>
           </div>
           <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
-            <div class="text-xs text-slate-500">Showing {{ startIdx }}-{{ endIdx }} of {{ total }}</div>
+            <div class="text-xs text-slate-500">Page {{ page }} of {{ totalPages }} · {{ total }} record{{ total === 1 ? '' : 's' }}</div>
             <div class="flex items-center gap-2">
               <button
                 type="button"

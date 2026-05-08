@@ -10,8 +10,6 @@ import AdminLayout from "@/layouts/AdminLayout.vue";
 import { listAssetInventory } from "@/api/cms";
 import { useToast } from "@/composables/useToast";
 import type { AssetInventoryRow } from "@/types";
-import { useDatatableFeatures } from "@/composables/useDatatableFeatures";
-import type { DatatableRefApi } from "@/composables/useDatatableFeatures";
 
 const toast = useToast();
 const currency = new Intl.NumberFormat("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -132,35 +130,8 @@ async function exportRows(kind: "pdf" | "csv" | "excel") {
 }
 let t: ReturnType<typeof setTimeout> | null = null;
 watch(q, () => { if (t) clearTimeout(t); t = setTimeout(() => { t = null; page.value = 1; void loadRows(); }, 350); });
-const overflowOpen = ref(false);
-const overflowRoot = ref<HTMLElement | null>(null);
-
-function onClickOutside(event: MouseEvent) {
-  if (!overflowOpen.value) return;
-  if (overflowRoot.value?.contains(event.target as Node)) return;
-  overflowOpen.value = false;
-}
-
-const {
-  templateFileInputRef,
-  isGrouped,
-  handleSaveTemplate,
-  handleLoadTemplate,
-  onTemplateFileChange,
-  handleGroupList,
-  handleUngroupList,
-} = useDatatableFeatures({
-  pageName: "Asset Inventory List",
-  apiDataPath: "",
-  defaultExportColumns: [],
-  getFilteredList: () => [],
-  datatableRef: ref<DatatableRefApi | null>(null),
-  searchKeyword: q,
-});
-onMounted(() => {
-  document.addEventListener("click", onClickOutside); void loadRows(); });
-onUnmounted(() => {
-  document.removeEventListener("click", onClickOutside); if (t) clearTimeout(t); });
+onMounted(() => { void loadRows(); });
+onUnmounted(() => { if (t) clearTimeout(t); });
 </script>
 
 <template>
@@ -170,17 +141,7 @@ onUnmounted(() => {
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <h1 class="text-base font-semibold text-slate-900">Asset inventory</h1>
-                    <div ref="overflowRoot" class="relative">
-          <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" @click.stop="overflowOpen = !overflowOpen">
-            <MoreVertical class="h-4 w-4" />
-          </button>
-          <div v-if="overflowOpen" class="absolute right-0 z-30 mt-1 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg" @click.stop>
-            <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleSaveTemplate()">Save template</button>
-            <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleLoadTemplate()">Load template</button>
-            <button v-if="isGrouped" type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleUngroupList()">Ungroup list</button>
-            <button v-else type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleGroupList()">Group list</button>
-          </div>
-          </div>
+          <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="More"><MoreVertical class="h-4 w-4" /></button>
         </div>
         <div class="space-y-4 p-4">
           <div class="flex flex-wrap items-end justify-between gap-4">
@@ -201,8 +162,8 @@ onUnmounted(() => {
           </div>
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="admin-table-kitchen w-full min-w-[1800px] text-sm">
-                <thead class="admin-table-thead-sticky">
+              <table class="w-full min-w-[1800px] text-sm">
+                <thead class="sticky top-0 bg-slate-50">
                   <tr class="border-b text-left text-xs font-semibold uppercase">
                     <th class="px-2 py-2">No</th>
                     <th class="cursor-pointer px-2 py-2" @click="toggleSort('aim_asset_code')">Code</th>
@@ -274,9 +235,9 @@ onUnmounted(() => {
               <span class="text-slate-600">Page {{ page }} / {{ totalPages }}</span>
               <button type="button" class="rounded border bg-white px-2 py-1" :disabled="page >= totalPages" @click="nextPage">Next</button>
               <div class="mx-2 h-4 w-px bg-slate-200" />
-              <button type="button" class="inline-flex items-center gap-1 rounded border bg-white px-2 py-1" @click="exportRows('pdf')"><Download class="h-3.5 w-3.5" />PDF</button>
-              <button type="button" class="inline-flex items-center gap-1 rounded border bg-white px-2 py-1" @click="exportRows('csv')"><FileDown class="h-3.5 w-3.5" />CSV</button>
-              <button type="button" class="inline-flex items-center gap-1 rounded border bg-white px-2 py-1" @click="exportRows('excel')"><FileSpreadsheet class="h-3.5 w-3.5" />Excel</button>
+              <button class="inline-flex items-center gap-1 rounded border bg-white px-2 py-1" @click="exportRows('pdf')"><Download class="h-3.5 w-3.5" />PDF</button>
+              <button class="inline-flex items-center gap-1 rounded border bg-white px-2 py-1" @click="exportRows('csv')"><FileDown class="h-3.5 w-3.5" />CSV</button>
+              <button class="inline-flex items-center gap-1 rounded border bg-white px-2 py-1" @click="exportRows('excel')"><FileSpreadsheet class="h-3.5 w-3.5" />Excel</button>
             </div>
           </div>
         </div>
@@ -286,7 +247,7 @@ onUnmounted(() => {
           <div class="max-h-[80vh] w-full max-w-3xl overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-2xl">
             <div class="flex items-center justify-between border-b px-4 py-3">
               <h2 class="text-base font-semibold">Filter</h2>
-              <button type="button" class="p-1 text-slate-500" @click="showSmartFilter = false"><X class="h-4 w-4" /></button>
+              <button class="p-1 text-slate-500" @click="showSmartFilter = false"><X class="h-4 w-4" /></button>
             </div>
             <div class="grid gap-2 px-4 py-3 sm:grid-cols-2 md:grid-cols-3">
               <div><label class="text-sm">Asset code</label><input v-model="smartFilter.assetCode" class="mt-1 w-full rounded border border-slate-300 px-2 py-1.5 text-sm" /></div>

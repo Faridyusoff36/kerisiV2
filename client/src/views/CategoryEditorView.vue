@@ -87,14 +87,14 @@ onMounted(load);
 
       <!-- ═══════ ACTIONS ═══════ -->
       <div class="flex items-center gap-3">
-        <button type="button"
+        <button
           class="flex items-center gap-2 rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-slate-800"
           @click="save"
         >
           <Save class="h-4 w-4" />
           {{ isEdit ? 'Update Category' : 'Create Category' }}
         </button>
-        <button type="button"
+        <button
           class="flex items-center gap-2 rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50"
           @click="router.push('/admin/categories')"
         >

@@ -34,8 +34,6 @@ import {
 import type { KerisiArDatatable, KerisiArPageSpec } from "@/config/kerisi-ar-registry.generated";
 import { getKerisiArSpec } from "@/config/kerisi-ar-registry.generated";
 import { useToast } from "@/composables/useToast";
-import { useDatatableFeatures } from "@/composables/useDatatableFeatures";
-import type { DatatableRefApi } from "@/composables/useDatatableFeatures";
 
 const toast   = useToast();
 const route   = useRoute();
@@ -252,33 +250,7 @@ function onLimitChange() {
   void loadRows();
 }
 
-const overflowOpen = ref(false);
-const overflowRoot = ref<HTMLElement | null>(null);
-
-function onClickOutside(event: MouseEvent) {
-  if (!overflowOpen.value) return;
-  if (overflowRoot.value?.contains(event.target as Node)) return;
-  overflowOpen.value = false;
-}
-
-const {
-  templateFileInputRef,
-  isGrouped,
-  handleSaveTemplate,
-  handleLoadTemplate,
-  onTemplateFileChange,
-  handleGroupList,
-  handleUngroupList,
-} = useDatatableFeatures({
-  pageName: "AR Module",
-  apiDataPath: "",
-  defaultExportColumns: [],
-  getFilteredList: () => [],
-  datatableRef: ref<DatatableRefApi | null>(null),
-  searchKeyword: ref(''),
-});
 onMounted(() => {
-  document.addEventListener("click", onClickOutside);
   initFilters();
   void loadRows();
 });
@@ -289,7 +261,6 @@ watch(menuId, () => {
 });
 
 onUnmounted(() => {
-  document.removeEventListener("click", onClickOutside);
   if (searchDebounce) clearTimeout(searchDebounce);
 });
 </script>
@@ -394,72 +365,67 @@ onUnmounted(() => {
                 <FileSpreadsheet class="h-3.5 w-3.5" />
                 Excel
               </button>
-                            <div ref="overflowRoot" class="relative">
-                  <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" @click.stop="overflowOpen = !overflowOpen">
-                    <MoreVertical class="h-4 w-4" />
-                  </button>
-                  <div v-if="overflowOpen" class="absolute right-0 z-30 mt-1 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg" @click.stop>
-                    <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleSaveTemplate()">Save template</button>
-                    <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleLoadTemplate()">Load template</button>
-                    <button v-if="isGrouped" type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleUngroupList()">Ungroup list</button>
-                    <button v-else type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleGroupList()">Group list</button>
-                  </div>
-              </div>
+              <button
+                type="button"
+                class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
+                aria-label="More options"
+              >
+                <MoreVertical class="h-4 w-4" />
+              </button>
             </div>
           </div>
 
           <div class="space-y-3 p-4">
             <!-- Search + smart-filter bar (primary datatable only) -->
             <template v-if="di === 0">
-              <div class="flex flex-wrap items-end justify-between gap-4">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-medium text-slate-600">Display</span>
-                  <select
-                    v-model="limit"
-                    class="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
-                    @change="onLimitChange"
-                  >
-                    <option v-for="n in [10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
-                  </select>
-                </div>
-                <div class="flex items-center gap-2">
-                  <label class="text-xs font-medium text-slate-600">Search</label>
-                  <div class="relative">
-                    <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-                    <input
-                      v-model="q"
-                      type="search"
-                      placeholder="Filter rows..."
-                      class="w-56 rounded-lg border border-slate-300 py-1.5 pl-8 pr-8 text-sm"
-                      @input="onSearch"
-                      @keydown.enter.prevent="onSearch"
-                    />
-                    <button
-                      v-if="q"
-                      type="button"
-                      class="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:bg-slate-100"
-                      @click="clearSearch"
-                    >
-                      <X class="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+              <div class="flex items-center gap-2">
+                <div class="relative flex-1">
+                  <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                  <input
+                    v-model="q"
+                    type="search"
+                    placeholder="Filter rows…"
+                    class="h-8 w-full rounded-lg border border-slate-300 pl-8 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    @input="onSearch"
+                    @keydown.enter.prevent="onSearch"
+                  />
                   <button
-                    v-if="showSmartFilterUi"
+                    v-if="q"
                     type="button"
-                    class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
-                    @click="showSmartFilter = true"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                    @click="clearSearch"
                   >
-                    <Filter class="h-4 w-4" />
-                    Filter
+                    <X class="h-3.5 w-3.5" />
                   </button>
                 </div>
+                <button
+                  v-if="showSmartFilterUi"
+                  type="button"
+                  class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 px-3 text-sm text-slate-600 hover:bg-slate-50"
+                  @click="showSmartFilter = true"
+                >
+                  <Filter class="h-3.5 w-3.5" />
+                  Filter
+                </button>
+              </div>
+
+              <!-- Display & limit row -->
+              <div class="flex items-center gap-2 text-sm text-slate-500">
+                <span>Display</span>
+                <select
+                  v-model="limit"
+                  class="rounded border border-slate-300 px-2 py-0.5 text-sm"
+                  @change="onLimitChange"
+                >
+                  <option v-for="n in [10, 25, 50, 100]" :key="n" :value="n">{{ n }}</option>
+                </select>
               </div>
             </template>
 
             <!-- Table -->
             <div class="overflow-x-auto">
-              <table class="admin-table-kitchen w-full text-sm">
-                <thead class="admin-table-thead-sticky">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50">
                   <tr class="border-b border-slate-200 text-left">
                     <th
                       v-for="(h, hi) in dt.dtBi"
@@ -472,12 +438,12 @@ onUnmounted(() => {
                 </thead>
                 <tbody>
                   <tr v-if="loading && di === 0">
-                    <td :colspan="tableColspan(dt)" class="admin-table-kitchen-caption">
+                    <td :colspan="tableColspan(dt)" class="px-3 py-8 text-center text-sm text-slate-500">
                       Loading…
                     </td>
                   </tr>
                   <tr v-else-if="(di === 0 ? rows : []).length === 0 && !loading">
-                    <td :colspan="tableColspan(dt)" class="admin-table-kitchen-caption">
+                    <td :colspan="tableColspan(dt)" class="px-3 py-8 text-center text-sm text-slate-500">
                       No records found.
                     </td>
                   </tr>

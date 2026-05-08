@@ -1125,8 +1125,8 @@ onUnmounted(() => {
           </div>
         </header>
         <div class="overflow-x-auto">
-          <table class="admin-table-kitchen min-w-full divide-y divide-slate-200">
-            <thead class="admin-table-thead-sticky">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th class="px-3 py-2 w-12">#</th>
                 <th class="px-3 py-2">Vendor Code</th>
@@ -1153,7 +1153,7 @@ onUnmounted(() => {
         <footer class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
           <span>{{ startIdxFor(categoryState) }}–{{ endIdxFor(categoryState) }} of {{ categoryState.total }}</span>
           <div class="flex items-center gap-2">
-            <button type="button" class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="categoryState.page <= 1" @click="prevPage('category')">Prev</button>
+            <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="categoryState.page <= 1" @click="prevPage('category')">Prev</button>
             <span>Page {{ categoryState.page }} of {{ totalPagesFor(categoryState) }}</span>
             <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="categoryState.page >= totalPagesFor(categoryState)" @click="nextPage('category')">Next</button>
           </div>
@@ -1189,8 +1189,8 @@ onUnmounted(() => {
           </div>
         </header>
         <div class="overflow-x-auto">
-          <table class="admin-table-kitchen min-w-full divide-y divide-slate-200">
-            <thead class="admin-table-thead-sticky">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th class="px-3 py-2 w-12">#</th>
                 <th class="px-3 py-2">Vendor Code</th>
@@ -1221,7 +1221,7 @@ onUnmounted(() => {
         <footer class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
           <span>{{ startIdxFor(accountState) }}–{{ endIdxFor(accountState) }} of {{ accountState.total }}</span>
           <div class="flex items-center gap-2">
-            <button type="button" class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="accountState.page <= 1" @click="prevPage('account')">Prev</button>
+            <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="accountState.page <= 1" @click="prevPage('account')">Prev</button>
             <span>Page {{ accountState.page }} of {{ totalPagesFor(accountState) }}</span>
             <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="accountState.page >= totalPagesFor(accountState)" @click="nextPage('account')">Next</button>
           </div>
@@ -1257,8 +1257,8 @@ onUnmounted(() => {
           </div>
         </header>
         <div class="overflow-x-auto">
-          <table class="admin-table-kitchen min-w-full divide-y divide-slate-200">
-            <thead class="admin-table-thead-sticky">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th class="px-3 py-2 w-12">#</th>
                 <th class="px-3 py-2">Type</th>
@@ -1295,7 +1295,7 @@ onUnmounted(() => {
         <footer class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
           <span>{{ startIdxFor(addressState) }}–{{ endIdxFor(addressState) }} of {{ addressState.total }}</span>
           <div class="flex items-center gap-2">
-            <button type="button" class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="addressState.page <= 1" @click="prevPage('address')">Prev</button>
+            <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="addressState.page <= 1" @click="prevPage('address')">Prev</button>
             <span>Page {{ addressState.page }} of {{ totalPagesFor(addressState) }}</span>
             <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="addressState.page >= totalPagesFor(addressState)" @click="nextPage('address')">Next</button>
           </div>
@@ -1331,8 +1331,8 @@ onUnmounted(() => {
           </div>
         </header>
         <div class="overflow-x-auto">
-          <table class="admin-table-kitchen min-w-full divide-y divide-slate-200">
-            <thead class="admin-table-thead-sticky">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th class="px-3 py-2 w-12">#</th>
                 <th class="px-3 py-2">Vendor Code</th>
@@ -1361,7 +1361,7 @@ onUnmounted(() => {
         <footer class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
           <span>{{ startIdxFor(jobscopeState) }}–{{ endIdxFor(jobscopeState) }} of {{ jobscopeState.total }}</span>
           <div class="flex items-center gap-2">
-            <button type="button" class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="jobscopeState.page <= 1" @click="prevPage('jobscope')">Prev</button>
+            <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="jobscopeState.page <= 1" @click="prevPage('jobscope')">Prev</button>
             <span>Page {{ jobscopeState.page }} of {{ totalPagesFor(jobscopeState) }}</span>
             <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="jobscopeState.page >= totalPagesFor(jobscopeState)" @click="nextPage('jobscope')">Next</button>
           </div>
@@ -1397,8 +1397,8 @@ onUnmounted(() => {
           </div>
         </header>
         <div class="overflow-x-auto">
-          <table class="admin-table-kitchen min-w-full divide-y divide-slate-200">
-            <thead class="admin-table-thead-sticky">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th class="px-3 py-2 w-12">#</th>
                 <th class="px-3 py-2">Vendor Code</th>
@@ -1427,7 +1427,7 @@ onUnmounted(() => {
         <footer class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
           <span>{{ startIdxFor(ssmState) }}–{{ endIdxFor(ssmState) }} of {{ ssmState.total }}</span>
           <div class="flex items-center gap-2">
-            <button type="button" class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="ssmState.page <= 1" @click="prevPage('ssm')">Prev</button>
+            <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="ssmState.page <= 1" @click="prevPage('ssm')">Prev</button>
             <span>Page {{ ssmState.page }} of {{ totalPagesFor(ssmState) }}</span>
             <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="ssmState.page >= totalPagesFor(ssmState)" @click="nextPage('ssm')">Next</button>
           </div>
@@ -1463,8 +1463,8 @@ onUnmounted(() => {
           </div>
         </header>
         <div class="overflow-x-auto">
-          <table class="admin-table-kitchen min-w-full divide-y divide-slate-200">
-            <thead class="admin-table-thead-sticky">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th class="px-3 py-2 w-12">#</th>
                 <th class="px-3 py-2">Vendor Code</th>
@@ -1493,7 +1493,7 @@ onUnmounted(() => {
         <footer class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
           <span>{{ startIdxFor(mofState) }}–{{ endIdxFor(mofState) }} of {{ mofState.total }}</span>
           <div class="flex items-center gap-2">
-            <button type="button" class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="mofState.page <= 1" @click="prevPage('mof')">Prev</button>
+            <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="mofState.page <= 1" @click="prevPage('mof')">Prev</button>
             <span>Page {{ mofState.page }} of {{ totalPagesFor(mofState) }}</span>
             <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="mofState.page >= totalPagesFor(mofState)" @click="nextPage('mof')">Next</button>
           </div>
@@ -1529,8 +1529,8 @@ onUnmounted(() => {
           </div>
         </header>
         <div class="overflow-x-auto">
-          <table class="admin-table-kitchen min-w-full divide-y divide-slate-200">
-            <thead class="admin-table-thead-sticky">
+          <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
                 <th class="px-3 py-2 w-12">#</th>
                 <th class="px-3 py-2">Vendor Code</th>
@@ -1559,7 +1559,7 @@ onUnmounted(() => {
         <footer class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
           <span>{{ startIdxFor(otherState) }}–{{ endIdxFor(otherState) }} of {{ otherState.total }}</span>
           <div class="flex items-center gap-2">
-            <button type="button" class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="otherState.page <= 1" @click="prevPage('other')">Prev</button>
+            <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="otherState.page <= 1" @click="prevPage('other')">Prev</button>
             <span>Page {{ otherState.page }} of {{ totalPagesFor(otherState) }}</span>
             <button class="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-50" :disabled="otherState.page >= totalPagesFor(otherState)" @click="nextPage('other')">Next</button>
           </div>

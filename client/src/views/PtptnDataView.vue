@@ -183,21 +183,7 @@ const exportColumns = [
   "Balance Amount",
 ];
 
-const overflowOpen = ref(false);
-const overflowRoot = ref<HTMLElement | null>(null);
-
-function onClickOutside(event: MouseEvent) {
-  if (!overflowOpen.value) return;
-  if (overflowRoot.value?.contains(event.target as Node)) return;
-  overflowOpen.value = false;
-}
-
-const {
-  isGrouped,
-  handleSaveTemplate,
-  handleLoadTemplate,
-  handleUngroupList,
-  handleGroupList, templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } =
+const { templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } =
   useDatatableFeatures({
     pageName: "PTPTN Data",
     apiDataPath: "/student-finance/ptptn-data",
@@ -267,11 +253,9 @@ watch(q, () => {
 });
 
 onMounted(() => {
-  document.addEventListener("click", onClickOutside);
   void loadRows();
 });
 onUnmounted(() => {
-  document.removeEventListener("click", onClickOutside);
   if (searchDebounce) clearTimeout(searchDebounce);
 });
 </script>
@@ -291,17 +275,13 @@ onUnmounted(() => {
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <h1 class="text-base font-semibold text-slate-900">List of PTPTN Data</h1>
-                    <div ref="overflowRoot" class="relative">
-            <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" @click.stop="overflowOpen = !overflowOpen">
-              <MoreVertical class="h-4 w-4" />
-            </button>
-            <div v-if="overflowOpen" class="absolute right-0 z-30 mt-1 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg" @click.stop>
-              <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleSaveTemplate()">Save template</button>
-              <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleLoadTemplate()">Load template</button>
-              <button v-if="isGrouped" type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleUngroupList()">Ungroup list</button>
-              <button v-else type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleGroupList()">Group list</button>
-            </div>
-          </div>
+          <button
+            type="button"
+            class="rounded-lg p-2 text-slate-500 hover:bg-slate-100"
+            aria-label="More"
+          >
+            <MoreVertical class="h-4 w-4" />
+          </button>
         </div>
 
         <div class="space-y-4 p-4">
@@ -344,8 +324,8 @@ onUnmounted(() => {
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="admin-table-kitchen w-full min-w-[1200px] text-sm">
-                <thead class="admin-table-thead-sticky">
+              <table class="w-full min-w-[1200px] text-sm">
+                <thead class="sticky top-0 bg-slate-50">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th
@@ -609,8 +589,8 @@ onUnmounted(() => {
                   <div
                     :class="detailsRows.length > 10 ? 'max-h-[360px] overflow-y-auto' : ''"
                   >
-                    <table class="admin-table-kitchen w-full min-w-[1100px] text-xs">
-                      <thead class="admin-table-thead-sticky">
+                    <table class="w-full min-w-[1100px] text-xs">
+                      <thead class="sticky top-0 bg-slate-50">
                         <tr class="border-b border-slate-200 text-left">
                           <th class="px-3 py-2 font-semibold uppercase">Student Id</th>
                           <th class="px-3 py-2 font-semibold uppercase">Student Name</th>

@@ -441,8 +441,8 @@ onUnmounted(() => {
             </button>
           </div>
           <div class="max-h-[60vh] overflow-auto p-4">
-            <table class="admin-table-kitchen w-full text-sm">
-              <thead class="admin-table-thead-sticky">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50">
                 <tr class="border-b border-slate-200 text-left">
                   <th class="px-3 py-2 text-xs font-semibold uppercase text-slate-600">Currency</th>
                   <th class="px-3 py-2 text-xs font-semibold uppercase text-slate-600">Start</th>
@@ -523,8 +523,8 @@ onUnmounted(() => {
             </div>
 
             <div class="rounded-lg border border-slate-200">
-              <table class="admin-table-kitchen w-full text-sm">
-                <thead class="admin-table-thead-sticky">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase text-slate-600">Currency</th>
                     <th class="px-3 py-2 text-right text-xs font-semibold uppercase text-slate-600">Unit</th>

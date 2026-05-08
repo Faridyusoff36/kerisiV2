@@ -1899,6 +1899,50 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
     ]
   },
   {
+    menuId: 3168,
+    label: "Pre - Purchase Requisition List · Pre - Purchase Requisition Details …",
+    to: "/admin/kerisi/m/3168",
+    hiddenByDefault: true,
+    children: [
+      {
+        menuId: 3169,
+        label: "Pre - Purchase Requisition List",
+        to: "/admin/kerisi/m/3169",
+        hiddenByDefault: true
+      },
+      {
+        menuId: 3171,
+        label: "Pre - Purchase Requisition Details",
+        to: "/admin/kerisi/m/3171",
+        hiddenByDefault: true
+      },
+      {
+        menuId: 3215,
+        label: "PRE - PR To Be Cancel List",
+        to: "/admin/kerisi/m/3215",
+        hiddenByDefault: true
+      },
+      {
+        menuId: 3216,
+        label: "PRE - PR To Be Cancel Detail",
+        to: "/admin/kerisi/m/3216",
+        hiddenByDefault: true
+      },
+      {
+        menuId: 3220,
+        label: "PRE - PR To Be Cancel Partial List",
+        to: "/admin/kerisi/m/3220",
+        hiddenByDefault: true
+      },
+      {
+        menuId: 3221,
+        label: "PRE - PR To Be Cancel Partial Detail",
+        to: "/admin/kerisi/m/3221",
+        hiddenByDefault: true
+      }
+    ]
+  },
+  {
     menuId: 3236,
     label: "Budget Checking (WBR068A) · Budget Summary By Date (WBR068) …",
     to: "/admin/kerisi/m/3236",
@@ -2104,25 +2148,10 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
         ]
       },
       {
-        menuId: 993,
-        label: "Role",
-        to: "/admin/kerisi/m/993"
-      },
-      {
         menuId: 1008,
         label: "Role Configure",
         to: "/admin/kerisi/m/1008",
         hiddenByDefault: true
-      },
-      {
-        menuId: 987,
-        label: "List of Lookup",
-        to: "/admin/kerisi/m/987"
-      },
-      {
-        menuId: 1087,
-        label: "Fund Type Existing",
-        to: "/admin/kerisi/m/1087"
       },
       {
         menuId: 1330,
@@ -2140,11 +2169,6 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
         menuId: 3506,
         label: "Letter Phrase",
         to: "/admin/kerisi/m/3506"
-      },
-      {
-        menuId: 2953,
-        label: "Profile VC & TNC",
-        to: "/admin/kerisi/m/2953"
       },
       {
         menuId: 2073,
@@ -2734,49 +2758,6 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
             to: "/admin/kerisi/m/1771"
           },
           {
-            menuId: 3168,
-            label: "Pre - Purchase Requisition",
-            to: "/admin/kerisi/m/3168",
-            children: [
-              {
-                menuId: 3169,
-                label: "Pre - Purchase Requisition List",
-                to: "/admin/kerisi/m/3169",
-                hiddenByDefault: true
-              },
-              {
-                menuId: 3171,
-                label: "Pre - Purchase Requisition Details",
-                to: "/admin/kerisi/m/3171",
-                hiddenByDefault: true
-              },
-              {
-                menuId: 3215,
-                label: "PRE - PR To Be Cancel List",
-                to: "/admin/kerisi/m/3215",
-                hiddenByDefault: true
-              },
-              {
-                menuId: 3216,
-                label: "PRE - PR To Be Cancel Detail",
-                to: "/admin/kerisi/m/3216",
-                hiddenByDefault: true
-              },
-              {
-                menuId: 3220,
-                label: "PRE - PR To Be Cancel Partial List",
-                to: "/admin/kerisi/m/3220",
-                hiddenByDefault: true
-              },
-              {
-                menuId: 3221,
-                label: "PRE - PR To Be Cancel Partial Detail",
-                to: "/admin/kerisi/m/3221",
-                hiddenByDefault: true
-              }
-            ]
-          },
-          {
             menuId: 1773,
             label: "Purchase Requisition List",
             to: "/admin/kerisi/m/1773"
@@ -2858,24 +2839,7 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
           {
             menuId: 3341,
             label: "Closing",
-            to: "/admin/kerisi/m/3341",
-            children: [
-              {
-                menuId: 2510,
-                label: "Process Closing",
-                to: "/admin/kerisi/m/2510"
-              },
-              {
-                menuId: 3161,
-                label: "PO Confirmation Process",
-                to: "/admin/kerisi/m/3161"
-              },
-              {
-                menuId: 3178,
-                label: "PO Confirmation Process List",
-                to: "/admin/kerisi/m/3178"
-              }
-            ]
+            to: "/admin/kerisi/m/3341"
           }
         ]
       },
@@ -3737,21 +3701,6 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
             label: "Payroll Payment",
             to: "/admin/kerisi/m/1904",
             children: [
-              {
-                menuId: 1905,
-                label: "EFT Preparation",
-                to: "/admin/kerisi/m/1905"
-              },
-              {
-                menuId: 1906,
-                label: "Payroll Batching",
-                to: "/admin/kerisi/m/1906"
-              },
-              {
-                menuId: 1907,
-                label: "Batching EPY List",
-                to: "/admin/kerisi/m/1907"
-              },
               {
                 menuId: 1920,
                 label: "Payroll Batching Form",
@@ -4742,26 +4691,12 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
           {
             menuId: 2127,
             label: "Reconciliation Daily",
-            to: "/admin/kerisi/m/2127",
-            children: [
-              {
-                menuId: 2128,
-                label: "Bank Reconciliation",
-                to: "/admin/kerisi/m/2128"
-              }
-            ]
+            to: "/admin/kerisi/m/2127"
           },
           {
             menuId: 2242,
             label: "Reconciliation Monthly",
-            to: "/admin/kerisi/m/2242",
-            children: [
-              {
-                menuId: 2249,
-                label: "Bank Reconciliation",
-                to: "/admin/kerisi/m/2249"
-              }
-            ]
+            to: "/admin/kerisi/m/2242"
           },
           {
             menuId: 3256,
@@ -5012,11 +4947,6 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
             label: "Refund (Staff)",
             to: "/admin/kerisi/m/2285",
             children: [
-              {
-                menuId: 2291,
-                label: "List of Refund Application (Portal)",
-                to: "/admin/kerisi/m/2291"
-              },
               {
                 menuId: 2702,
                 label: "Admin",
@@ -5526,19 +5456,7 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
           {
             menuId: 1410,
             label: "Table",
-            to: "/admin/kerisi/m/1410",
-            children: [
-              {
-                menuId: 1411,
-                label: "EPF Contribution",
-                to: "/admin/kerisi/m/1411"
-              },
-              {
-                menuId: 1412,
-                label: "SOCSO",
-                to: "/admin/kerisi/m/1412"
-              }
-            ]
+            to: "/admin/kerisi/m/1410"
           },
           {
             menuId: 2153,
@@ -6752,11 +6670,6 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
             menuId: 1025,
             label: "Profile",
             to: "/admin/kerisi/m/1025"
-          },
-          {
-            menuId: 1150,
-            label: "PTPTN (Masri)",
-            to: "/admin/kerisi/m/1150"
           },
           {
             menuId: 1478,
@@ -9241,6 +9154,11 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
     to: "/admin/kerisi/m/1178"
   },
   {
+    menuId: 2616,
+    label: "Debtor Information",
+    to: "/admin/kerisi/m/2616"
+  },
+  {
     menuId: 3,
     label: "User Manual",
     to: "/admin/kerisi/m/3"
@@ -9261,11 +9179,6 @@ export const KERISI_MENU_TREE: KerisiMigratedMenuNode[] = [
         to: "/admin/kerisi/m/-3"
       }
     ]
-  },
-  {
-    menuId: 2616,
-    label: "Debtor Information",
-    to: "/admin/kerisi/m/2616"
   }
 ];
 
@@ -9333,6 +9246,7 @@ export const KERISI_DEFAULT_HIDDEN_ITEM_IDS: readonly string[] = [
   "kerisi-3081",
   "kerisi-3095",
   "kerisi-3153",
+  "kerisi-3168",
   "kerisi-3236",
   "kerisi-3392",
   "kerisi-3396"
@@ -9572,6 +9486,12 @@ export const KERISI_DEFAULT_HIDDEN_CHILD_IDS: readonly string[] = [
   "kerisi-3155",
   "kerisi-3157",
   "kerisi-3156",
+  "kerisi-3169",
+  "kerisi-3171",
+  "kerisi-3215",
+  "kerisi-3216",
+  "kerisi-3220",
+  "kerisi-3221",
   "kerisi-3227",
   "kerisi-3382",
   "kerisi-3389",

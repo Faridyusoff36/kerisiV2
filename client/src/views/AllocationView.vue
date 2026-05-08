@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 import { Download, FileDown, FileSpreadsheet, MoreVertical, Search, X } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import {
@@ -30,9 +30,6 @@ const total = ref(0);
 const page = ref(1);
 const limit = ref(10);
 const q = ref("");
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / limit.value)));
-const startIdx = computed(() => (total.value === 0 ? 0 : (page.value - 1) * limit.value + 1));
-const endIdx = computed(() => Math.min(page.value * limit.value, total.value));
 const showSmartFilter = ref(false);
 const smartFilter = ref<{
   year: string;
@@ -133,21 +130,7 @@ function toExportRow(r: AllocationRow): Record<string, string | number> {
 }
 
 const datatableRef = ref<DatatableRefApi | null>(null);
-const overflowOpen = ref(false);
-const overflowRoot = ref<HTMLElement | null>(null);
-
-function onClickOutside(event: MouseEvent) {
-  if (!overflowOpen.value) return;
-  if (overflowRoot.value?.contains(event.target as Node)) return;
-  overflowOpen.value = false;
-}
-
-const {
-  isGrouped,
-  handleSaveTemplate,
-  handleLoadTemplate,
-  handleUngroupList,
-  handleGroupList, templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } = useDatatableFeatures({
+const { templateFileInputRef, onTemplateFileChange, handleDownloadPDF, handleDownloadCSV } = useDatatableFeatures({
   pageName: "Allocation",
   apiDataPath: "/budget/allocation",
   defaultExportColumns: exportColumns,
@@ -196,12 +179,10 @@ watch(q, () => {
 });
 
 onMounted(async () => {
-  document.addEventListener("click", onClickOutside);
   await loadOptions();
   await loadRows();
 });
 onUnmounted(() => {
-  document.removeEventListener("click", onClickOutside);
   if (searchDebounce) clearTimeout(searchDebounce);
 });
 </script>
@@ -221,17 +202,9 @@ onUnmounted(() => {
       <article class="rounded-lg border border-slate-200 bg-white shadow-sm">
         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
           <h1 class="text-base font-semibold text-slate-900">Allocation List</h1>
-                    <div ref="overflowRoot" class="relative">
-            <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" @click.stop="overflowOpen = !overflowOpen">
-              <MoreVertical class="h-4 w-4" />
-            </button>
-            <div v-if="overflowOpen" class="absolute right-0 z-30 mt-1 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg" @click.stop>
-              <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleSaveTemplate()">Save template</button>
-              <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleLoadTemplate()">Load template</button>
-              <button v-if="isGrouped" type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleUngroupList()">Ungroup list</button>
-              <button v-else type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleGroupList()">Group list</button>
-            </div>
-          </div>
+          <button class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="More">
+            <MoreVertical class="h-4 w-4" />
+          </button>
         </div>
         <div class="space-y-4 p-4">
           <div class="flex flex-wrap items-end justify-between gap-4">
@@ -246,6 +219,13 @@ onUnmounted(() => {
               </select>
             </div>
             <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+                @click="showSmartFilter = true"
+              >
+                Filter
+              </button>
               <label class="text-xs font-medium text-slate-600">Search</label>
               <div class="relative">
                 <Search class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -266,19 +246,12 @@ onUnmounted(() => {
                   <X class="h-3.5 w-3.5" />
                 </button>
               </div>
-              <button
-                type="button"
-                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
-                @click="showSmartFilter = true"
-              >
-                Filter
-              </button>
             </div>
           </div>
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="rows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="admin-table-kitchen w-full min-w-[800px] text-sm">
-                <thead class="admin-table-thead-sticky">
+              <table class="w-full min-w-[800px] text-sm">
+                <thead class="sticky top-0 bg-slate-50">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="px-3 py-2 text-xs font-semibold uppercase">Year</th>
@@ -302,7 +275,7 @@ onUnmounted(() => {
                     <td class="px-3 py-2">{{ row.qbuEndDate ?? "—" }}</td>
                     <td class="px-3 py-2">{{ row.qbuStatus }}</td>
                     <td class="px-3 py-2">
-                      <button type="button"
+                      <button
                         class="rounded p-1 text-slate-500 hover:bg-slate-100"
                         title="Edit"
                         @click="openEdit(row)"
@@ -316,14 +289,6 @@ onUnmounted(() => {
                   </tr>
                 </tbody>
               </table>
-            </div>
-          </div>
-          <div class="flex items-center justify-between text-sm text-slate-500">
-            <span>Showing {{ startIdx }}-{{ endIdx }} of {{ total }}</span>
-            <div class="flex items-center gap-2">
-              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50" :disabled="page <= 1 || total === 0" @click="page--; void loadRows()">Previous</button>
-              <span class="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-700">{{ page }} / {{ totalPages }}</span>
-              <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50" :disabled="page >= totalPages || total === 0" @click="page++; void loadRows()">Next</button>
             </div>
           </div>
           <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">

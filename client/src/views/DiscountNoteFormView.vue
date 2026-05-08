@@ -944,8 +944,8 @@ onUnmounted(() => {
           <h2 class="text-sm font-semibold text-slate-800">Debit</h2>
         </header>
         <div class="overflow-x-auto">
-          <table class="admin-table-kitchen w-full min-w-[1400px] text-xs">
-            <thead class="admin-table-thead-sticky">
+          <table class="w-full min-w-[1400px] text-xs">
+            <thead class="bg-slate-50 text-slate-700">
               <tr class="border-b border-slate-200 text-left">
                 <th class="px-2 py-2 font-semibold">No</th>
                 <th class="px-2 py-2 font-semibold">Revenue<br />Category</th>
@@ -1039,8 +1039,8 @@ onUnmounted(() => {
           <h2 class="text-sm font-semibold text-slate-800">Credit</h2>
         </header>
         <div class="overflow-x-auto">
-          <table class="admin-table-kitchen w-full min-w-[1400px] text-xs">
-            <thead class="admin-table-thead-sticky">
+          <table class="w-full min-w-[1400px] text-xs">
+            <thead class="bg-slate-50 text-slate-700">
               <tr class="border-b border-slate-200 text-left">
                 <th class="px-2 py-2 font-semibold">No</th>
                 <th class="px-2 py-2 font-semibold">Revenue<br />Category</th>

@@ -144,8 +144,8 @@ watch(pcbId, () => {
           </div>
           <div class="overflow-x-auto">
             <div :class="lines.length > 10 ? 'max-h-[480px] overflow-y-auto' : ''">
-              <table class="admin-table-kitchen w-full min-w-[1280px] text-sm">
-                <thead class="admin-table-thead-sticky">
+              <table class="w-full min-w-[1280px] text-sm">
+                <thead class="sticky top-0 bg-indigo-100 text-slate-700">
                   <tr class="text-left">
                     <th class="px-3 py-2 text-xs font-semibold">No</th>
                     <th class="px-3 py-2 text-xs font-semibold">Application No</th>
@@ -181,7 +181,7 @@ watch(pcbId, () => {
                     <td class="px-3 py-2 text-slate-800">{{ line.pcdBatchStatus || "-" }}</td>
                   </tr>
                   <tr v-if="lines.length === 0">
-                    <td colspan="12" class="admin-table-kitchen-caption">
+                    <td colspan="12" class="px-3 py-8 text-center text-sm text-slate-500">
                       No detail lines attached to this batch.
                     </td>
                   </tr>

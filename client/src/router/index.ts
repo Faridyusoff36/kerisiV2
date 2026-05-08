@@ -37,7 +37,6 @@ import KerisiMenuPlaceholderView from "@/views/KerisiMenuPlaceholderView.vue";
 import KerisiArPageView from "@/views/KerisiArPageView.vue";
 import KerisiPayrollPageView from "@/views/KerisiPayrollPageView.vue";
 import KerisiRemainingPageView from "@/views/KerisiRemainingPageView.vue";
-import ApVoucherInfoCreditorView from "@/views/ApVoucherInfoCreditorView.vue";
 import PurchasingItemMainView from "@/views/PurchasingItemMainView.vue";
 import PurchasingJobscopeListView from "@/views/PurchasingJobscopeListView.vue";
 import PurchasingPurchaseRequisitionView from "@/views/PurchasingPurchaseRequisitionView.vue";
@@ -92,8 +91,6 @@ import CashbookPtjView from "@/views/CashbookPtjView.vue";
 import CashbookLegacyPlaceholderView from "@/views/CashbookLegacyPlaceholderView.vue";
 import CreditNoteView from "@/views/CreditNoteView.vue";
 import CreditNoteFormView from "@/views/CreditNoteFormView.vue";
-import ApCreditNoteFormView from "@/views/ApCreditNoteFormView.vue";
-import ApDebitNoteFormView from "@/views/ApDebitNoteFormView.vue";
 import DebitNoteView from "@/views/DebitNoteView.vue";
 import DebitNoteFormView from "@/views/DebitNoteFormView.vue";
 import DiscountNoteView from "@/views/DiscountNoteView.vue";
@@ -1303,20 +1300,6 @@ const router = createRouter({
         relatedLabel: "Deposit",
       },
       meta: { requiresAuth: true, title: "Payment In Advance Details" },
-    },
-    {
-      path: "/admin/kerisi/m/2291",
-      name: "kerisi-cc-m-2291",
-      component: CreditControlLegacyPlaceholderView,
-      props: {
-        title: "List of Refund Application (Portal)",
-        breadcrumb: "Credit Control / Refund / Refund (Staff) / List of Refund Application (Portal)",
-        description:
-          "This legacy Credit Control screen is not reproduced in Kerisi20. Use Kerisi Classic for the full workflow.",
-        relatedPath: "/admin/kerisi/m/1809",
-        relatedLabel: "Deposit",
-      },
-      meta: { requiresAuth: true, title: "List of Refund Application (Portal)" },
     },
     {
       path: "/admin/kerisi/m/2300",
@@ -5635,42 +5618,6 @@ const router = createRouter({
       meta: { requiresAuth: true, title: "Cheque Listing (Old)" },
     },
     {
-      path: "/admin/kerisi/m/1905",
-      name: "kerisi-ap-payment-payroll-payment-eft-preparation",
-      component: AccountPayableLegacyPlaceholderView,
-      props: {
-        title: "EFT Preparation",
-        breadcrumb: "Account Payable / Payment / Payroll Payment / EFT Preparation",
-        relatedPath: "/admin/kerisi/m/2078",
-        relatedLabel: "Account Bank Updated",
-      },
-      meta: { requiresAuth: true, title: "EFT Preparation" },
-    },
-    {
-      path: "/admin/kerisi/m/1906",
-      name: "kerisi-ap-payment-payroll-payment-payroll-batching",
-      component: AccountPayableLegacyPlaceholderView,
-      props: {
-        title: "Payroll Batching",
-        breadcrumb: "Account Payable / Payment / Payroll Payment / Payroll Batching",
-        relatedPath: "/admin/kerisi/m/2078",
-        relatedLabel: "Account Bank Updated",
-      },
-      meta: { requiresAuth: true, title: "Payroll Batching" },
-    },
-    {
-      path: "/admin/kerisi/m/1907",
-      name: "kerisi-ap-payment-payroll-payment-batching-epy-list",
-      component: AccountPayableLegacyPlaceholderView,
-      props: {
-        title: "Batching EPY List",
-        breadcrumb: "Account Payable / Payment / Payroll Payment / Batching EPY List",
-        relatedPath: "/admin/kerisi/m/2078",
-        relatedLabel: "Account Bank Updated",
-      },
-      meta: { requiresAuth: true, title: "Batching EPY List" },
-    },
-    {
       path: "/admin/kerisi/m/1920",
       name: "kerisi-ap-payment-payroll-payment-payroll-batching-form",
       component: AccountPayableLegacyPlaceholderView,
@@ -7889,7 +7836,7 @@ const router = createRouter({
     { path: "/admin/kerisi/m/3226", name: "kerisi-rem-3226", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "New Applicaton" } },
     { path: "/admin/kerisi/m/3231", name: "kerisi-rem-3231", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "List of New Application - Draft" } },
     { path: "/admin/kerisi/m/3232", name: "kerisi-rem-3232", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "List of New Application - Rejected" } },
-    { path: "/admin/kerisi/m/3242", name: "kerisi-rem-3242", component: ApCreditNoteFormView, meta: { requiresAuth: true, title: "Credit Note Form" } },
+    { path: "/admin/kerisi/m/3242", name: "kerisi-rem-3242", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Credit Note Form" } },
     { path: "/admin/kerisi/m/3243", name: "kerisi-rem-3243", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Credit Note Listing" } },
     { path: "/admin/kerisi/m/3254", name: "kerisi-rem-3254", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Journal Revaluation Process" } },
     { path: "/admin/kerisi/m/3256", name: "kerisi-rem-3256", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Unmatched Matching Record" } },
@@ -7942,10 +7889,10 @@ const router = createRouter({
     { path: "/admin/kerisi/m/3535", name: "kerisi-rem-3535", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Voucher Process" } },
     { path: "/admin/kerisi/m/3538", name: "kerisi-rem-3538", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Payment Reject Batch" } },
     { path: "/admin/kerisi/m/3543", name: "kerisi-rem-3543", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Debit Note Form" } },
-    { path: "/admin/kerisi/m/3546", name: "kerisi-rem-3546", component: ApVoucherInfoCreditorView, meta: { requiresAuth: true, title: "Voucher Information Creditor" } },
-    { path: "/admin/kerisi/m/3548", name: "kerisi-rem-3548", component: ApDebitNoteFormView, meta: { requiresAuth: true, title: "Debit Note Form" } },
+    { path: "/admin/kerisi/m/3546", name: "kerisi-rem-3546", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Voucher Information Creditor" } },
+    { path: "/admin/kerisi/m/3548", name: "kerisi-rem-3548", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Debit Note Form" } },
     { path: "/admin/kerisi/m/3549", name: "kerisi-rem-3549", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Debit Note Cancellation" } },
-    { path: "/admin/kerisi/m/3550", name: "kerisi-rem-3550", component: ApDebitNoteFormView, meta: { requiresAuth: true, title: "Debit Note Cancellation Form" } },
+    { path: "/admin/kerisi/m/3550", name: "kerisi-rem-3550", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Debit Note Cancellation Form" } },
     { path: "/admin/kerisi/m/3558", name: "kerisi-rem-3558", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Payment Record" } },
     { path: "/admin/kerisi/m/3582", name: "kerisi-rem-3582", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Report Item Setup" } },
     // ── end Remaining FIMS pages ─────────────────────────────────────────────

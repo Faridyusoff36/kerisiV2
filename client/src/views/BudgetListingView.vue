@@ -10,8 +10,6 @@ import { ChevronLeft, Download, FileDown, FileSpreadsheet, MoreVertical, Search,
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import { listBudgetMonitoringListing } from "@/api/cms";
 import { useToast } from "@/composables/useToast";
-import { useDatatableFeatures } from "@/composables/useDatatableFeatures";
-import type { DatatableRefApi } from "@/composables/useDatatableFeatures";
 
 type ListingSection =
   | "initial"
@@ -138,33 +136,7 @@ watch([bgdId, year], () => {
   reloadAll();
 });
 
-const overflowOpen = ref(false);
-const overflowRoot = ref<HTMLElement | null>(null);
-
-function onClickOutside(event: MouseEvent) {
-  if (!overflowOpen.value) return;
-  if (overflowRoot.value?.contains(event.target as Node)) return;
-  overflowOpen.value = false;
-}
-
-const {
-  templateFileInputRef,
-  isGrouped,
-  handleSaveTemplate,
-  handleLoadTemplate,
-  onTemplateFileChange,
-  handleGroupList,
-  handleUngroupList,
-} = useDatatableFeatures({
-  pageName: "Budget Listing",
-  apiDataPath: "",
-  defaultExportColumns: [],
-  getFilteredList: () => [],
-  datatableRef: ref<DatatableRefApi | null>(null),
-  searchKeyword: ref(''),
-});
 onMounted(() => {
-  document.addEventListener("click", onClickOutside);
   if (canLoad.value) reloadAll();
 });
 
@@ -429,17 +401,9 @@ function footCols(s: ListingSection): number {
               <h2 class="text-base font-semibold text-slate-900">{{ title }}</h2>
               <span class="text-xs text-slate-500">GL: {{ bgdId }} · Year {{ year }}</span>
             </div>
-                        <div ref="overflowRoot" class="relative">
-              <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" @click.stop="overflowOpen = !overflowOpen">
-                <MoreVertical class="h-4 w-4" />
-              </button>
-              <div v-if="overflowOpen" class="absolute right-0 z-30 mt-1 w-44 rounded-lg border border-slate-200 bg-white py-1 shadow-lg" @click.stop>
-                <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleSaveTemplate()">Save template</button>
-                <button type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleLoadTemplate()">Load template</button>
-                <button v-if="isGrouped" type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleUngroupList()">Ungroup list</button>
-                <button v-else type="button" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" @click="overflowOpen = false; handleGroupList()">Group list</button>
-              </div>
-            </div>
+            <button type="button" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="More">
+              <MoreVertical class="h-4 w-4" />
+            </button>
           </div>
 
           <div class="space-y-4 p-4">
@@ -478,8 +442,8 @@ function footCols(s: ListingSection): number {
 
             <div class="overflow-x-auto rounded-lg border border-slate-200">
               <div :class="tabs[section].rows.length > 10 ? 'max-h-[360px] overflow-y-auto' : ''">
-                <table class="admin-table-kitchen min-w-[960px] w-full text-sm">
-                  <thead class="admin-table-thead-sticky">
+                <table class="min-w-[960px] w-full text-sm">
+                  <thead class="sticky top-0 bg-slate-50">
                     <tr class="border-b border-slate-200 text-left text-xs font-semibold uppercase text-slate-600">
                       <th class="px-2 py-2">No</th>
                       <template v-if="section === 'initial'">

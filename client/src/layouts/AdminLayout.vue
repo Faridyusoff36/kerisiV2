@@ -8,7 +8,6 @@ import type { MenuItemDef, MenuNode } from "@/config/admin-menu";
 import { useSidebarCollapse } from "@/composables/useSidebarCollapse";
 import { useToast } from "@/composables/useToast";
 import AppToastRegion from "@/components/AppToastRegion.vue";
-import AdminSidebarSubmenu from "@/components/AdminSidebarSubmenu.vue";
 
 import { useAuthStore } from "@/stores/auth";
 import { useMenuStore } from "@/stores/menu";
@@ -241,7 +240,7 @@ watch(
         <span class="h-full w-px bg-slate-200" />
 
         <div ref="settingsDropdownRef" class="relative flex h-full items-stretch">
-          <button type="button"
+          <button
             class="group relative flex h-full items-center px-4 text-slate-500 transition-colors hover:bg-[var(--accent-600)] hover:text-white"
             @click.stop="settingsOpen = !settingsOpen"
           >
@@ -255,7 +254,7 @@ watch(
           >
             <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Theme color</p>
             <div class="grid grid-cols-2 gap-2">
-              <button type="button"
+              <button
                 v-for="theme in themeChoices"
                 :key="theme.value"
                 class="flex items-center justify-between rounded-md border px-2.5 py-2 text-xs font-medium transition-colors"
@@ -286,7 +285,7 @@ watch(
             </div>
 
             <div class="mt-3 border-t border-slate-200 pt-3">
-              <button type="button"
+              <button
                 class="flex w-full items-center justify-between rounded-md border border-slate-200 px-2.5 py-2 text-xs font-medium text-slate-700 transition-colors hover:border-[var(--accent-ring)]"
                 @click="toggleCompact"
               >
@@ -317,7 +316,7 @@ watch(
 
         <span class="h-full w-px bg-slate-200" />
 
-        <button type="button"
+        <button
           class="group relative flex h-full items-center px-4 text-slate-500 transition-colors hover:bg-[var(--accent-600)] hover:text-white"
           @click="signOut"
         >
@@ -332,7 +331,7 @@ watch(
         class="relative flex flex-col border-r border-slate-200 bg-slate-50/50 transition-[width] duration-300 ease-in-out md:min-h-[calc(100vh-40px)]"
         :class="isCollapsed ? 'w-full md:w-14' : 'w-full md:w-64'"
       >
-        <button type="button"
+        <button
           class="absolute -right-3.5 top-10 z-40 hidden h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-[var(--accent-600)] text-white shadow-md transition-all hover:bg-[var(--accent-700)] hover:shadow-lg md:flex"
           :title="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
           @click="toggleSidebar"
@@ -423,17 +422,48 @@ watch(
                 </span>
               </router-link>
 
-              <AdminSidebarSubmenu
+              <div
                 v-if="item.children && item.children.length > 0 && openMenus[item.id] && !isCollapsed"
-                :nodes="item.children"
-                :depth="0"
-                :open-menus="openMenus"
-                :is-node-active="isNodeActive"
-                :child-row-class="childRowClass"
-                :child-class="childClass"
-                :toggle="toggleMenu"
-                :route-path="route.path"
-              />
+                class="ml-5 mt-1 space-y-0.5 border-l-2 border-slate-200 pl-4"
+              >
+                <template v-for="child in item.children" :key="child.id">
+                  <button
+                    v-if="child.children && child.children.length > 0"
+                    type="button"
+                    class="flex w-full items-center rounded-md text-left transition-all hover:bg-[var(--accent-50)]"
+                    :class="[childRowClass, childClass(isNodeActive(child) ? route.path : child.to)]"
+                    @click="toggleMenu(child.id)"
+                  >
+                    <span class="flex-1">{{ child.label }}</span>
+                    <ChevronDown
+                      class="h-3.5 w-3.5 text-slate-400 transition-transform duration-200"
+                      :class="{ '-rotate-90': !openMenus[child.id] }"
+                    />
+                  </button>
+
+                  <router-link
+                    v-else
+                    :to="child.to"
+                    :class="[childRowClass, childClass(child.to)]"
+                  >
+                    {{ child.label }}
+                  </router-link>
+
+                  <div
+                    v-if="child.children && child.children.length > 0 && openMenus[child.id]"
+                    class="ml-4 mt-1 space-y-0.5 border-l border-slate-200 pl-3"
+                  >
+                    <router-link
+                      v-for="grandchild in child.children"
+                      :key="grandchild.id"
+                      :to="grandchild.to"
+                      :class="[childRowClass, childClass(grandchild.to)]"
+                    >
+                      {{ grandchild.label }}
+                    </router-link>
+                  </div>
+                </template>
+              </div>
             </div>
           </div>
         </nav>

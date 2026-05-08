@@ -226,8 +226,8 @@ onUnmounted(() => {
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="catalogRows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="admin-table-kitchen w-full text-sm">
-                <thead class="admin-table-thead-sticky">
+              <table class="w-full text-sm">
+                <thead class="sticky top-0 bg-slate-50">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSortCatalog('lde_value')">Letter ID</th>
@@ -285,8 +285,8 @@ onUnmounted(() => {
 
           <div class="overflow-x-auto rounded-lg border border-slate-200">
             <div :class="historyRows.length > 10 ? 'max-h-[420px] overflow-y-auto' : ''">
-              <table class="admin-table-kitchen w-full text-sm">
-                <thead class="admin-table-thead-sticky">
+              <table class="w-full text-sm">
+                <thead class="sticky top-0 bg-slate-50">
                   <tr class="border-b border-slate-200 text-left">
                     <th class="px-3 py-2 text-xs font-semibold uppercase">No</th>
                     <th class="cursor-pointer px-3 py-2 text-xs font-semibold uppercase" @click="toggleSortHistory('surat')">Letter Name</th>

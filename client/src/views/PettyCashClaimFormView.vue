@@ -1032,8 +1032,8 @@ onUnmounted(() => {
         </div>
 
         <div class="overflow-x-auto">
-          <table class="admin-table-kitchen min-w-full divide-y divide-slate-200 text-sm">
-            <thead class="admin-table-thead-sticky">
+          <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-100 text-xs font-semibold text-slate-700">
               <tr>
                 <th class="px-3 py-2 text-left">Receipt No</th>
                 <th class="px-3 py-2 text-left">Petty Cash Main</th>
