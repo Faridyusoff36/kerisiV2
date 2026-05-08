@@ -105,6 +105,7 @@ import DepositFormView from "@/views/DepositFormView.vue";
 import DebtorProfileUpdateView from "@/views/DebtorProfileUpdateView.vue";
 import GlYearMonthView from "@/views/GlYearMonthView.vue";
 import GeneralLedgerListingView from "@/views/GeneralLedgerListingView.vue";
+import SubsidiaryLedgerAllView from "@/views/SubsidiaryLedgerAllView.vue";
 import JournalListingView from "@/views/JournalListingView.vue";
 import ManualJournalListingView from "@/views/ManualJournalListingView.vue";
 import PostingToTbView from "@/views/PostingToTbView.vue";
@@ -140,6 +141,13 @@ import CcEfApprovedListingView from "@/views/CcEfApprovedListingView.vue";
 import CcEmergencyFundAccrualTabs1983View from "@/views/CcEmergencyFundAccrualTabs1983View.vue";
 import CcEmergencyFundRelease2028View from "@/views/CcEmergencyFundRelease2028View.vue";
 import CcEfReminderReportView from "@/views/CcEfReminderReportView.vue";
+import CcAgeingReportView from "@/views/CcAgeingReportView.vue";
+import CcRefundBrIntegrationView from "@/views/CcRefundBrIntegrationView.vue";
+import CcRefundStaffDetailListingView from "@/views/CcRefundStaffDetailListingView.vue";
+import CcListOfRefundPortalView from "@/views/CcListOfRefundPortalView.vue";
+import CcRefundApplicationAdminView from "@/views/CcRefundApplicationAdminView.vue";
+import CcRequestRefundStaffView from "@/views/CcRequestRefundStaffView.vue";
+import CcReminderStatusView from "@/views/CcReminderStatusView.vue";
 import TenderQuotationView from "@/views/TenderQuotationView.vue";
 import AuditSystemTransactionView from "@/views/AuditSystemTransactionView.vue";
 import VendorPoStatusView from "@/views/VendorPoStatusView.vue";
@@ -153,6 +161,23 @@ import StaffProfileView from "@/views/StaffProfileView.vue";
 import PayrollLegacyPlaceholderView from "@/views/PayrollLegacyPlaceholderView.vue";
 import VendorPortalView from "@/views/VendorPortalView.vue";
 import AssetInventoryListView from "@/views/AssetInventoryListView.vue";
+import AssetBuildingLocationView from "@/views/AssetBuildingLocationView.vue";
+import AssetDisposeMethodView from "@/views/AssetDisposeMethodView.vue";
+import DisposalSecretariatSetupView from "@/views/DisposalSecretariatSetupView.vue";
+import AssetAccountSetupView from "@/views/AssetAccountSetupView.vue";
+import AssetDepreciationGroupView from "@/views/AssetDepreciationGroupView.vue";
+import AssetDepreciationTanahView from "@/views/AssetDepreciationTanahView.vue";
+import AssetDepreciationSchedulerView from "@/views/AssetDepreciationSchedulerView.vue";
+import AssetRoleListingView from "@/views/AssetRoleListingView.vue";
+import AssetVerificationOfficerView from "@/views/AssetVerificationOfficerView.vue";
+import AssetVerificationView from "@/views/AssetVerificationView.vue";
+import AssetCancellationAssetsView from "@/views/AssetCancellationAssetsView.vue";
+import AssetCancellationJournalListingView from "@/views/AssetCancellationJournalListingView.vue";
+import AssetDamageApplicationView from "@/views/AssetDamageApplicationView.vue";
+import AssetDamageListingView from "@/views/AssetDamageListingView.vue";
+import AssetKewPaGrnListingView from "@/views/AssetKewPaGrnListingView.vue";
+import AssetMaintenanceListingView from "@/views/AssetMaintenanceListingView.vue";
+import AssetRoomLocationListingView from "@/views/AssetRoomLocationListingView.vue";
 import AssetLegacyPlaceholderView from "@/views/AssetLegacyPlaceholderView.vue";
 import ProjectListView from "@/views/ProjectListView.vue";
 import ProjectUpdatedBalanceView from "@/views/ProjectUpdatedBalanceView.vue";
@@ -236,6 +261,11 @@ const router = createRouter({
   routes: [
     { path: "/admin/login", name: "login", component: LoginView, meta: { guestOnly: true, title: "Login" } },
     { path: "/admin", name: "main-dashboard", component: MainDashboardView, meta: { requiresAuth: true, title: "Main Dashboard" } },
+    // Shortcut → MENUID 2604 (sidebar: Credit Control / Refund / Refund (Staff) / …).
+    {
+      path: "/admin/credit-control/list-of-refund-application-portal",
+      redirect: "/admin/kerisi/m/2604",
+    },
     { path: "/admin/portal/dashboard", name: "dashboard", component: DashboardView, meta: { requiresAuth: true, title: "Dashboard" } },
     { path: "/admin/posts", name: "posts", component: PostsListView, meta: { requiresAuth: true, title: "Posts" } },
     { path: "/admin/posts/new", name: "post-create", component: PostEditorView, meta: { requiresAuth: true, title: "New Post" } },
@@ -253,6 +283,97 @@ const router = createRouter({
     { path: "/admin/menus", name: "menus", component: MenusView, meta: { requiresAuth: true, title: "Menus" } },
     { path: "/admin/kerisi/m/1551", name: "kerisi-fund-type", component: FundTypeView, meta: { requiresAuth: true, title: "Fund Type" } },
     { path: "/admin/kerisi/m/1552", name: "kerisi-account-code", component: AccountCodeView, meta: { requiresAuth: true, title: "Account Code" } },
+    { path: "/admin/kerisi/m/1564", name: "kerisi-asset-dispose-method", component: AssetDisposeMethodView, meta: { requiresAuth: true, title: "Asset Dispose Method" } },
+    { path: "/admin/kerisi/m/3118", name: "kerisi-disposal-secretariat-setup", component: DisposalSecretariatSetupView, meta: { requiresAuth: true, title: "Disposal Secretariat Setup" } },
+    { path: "/admin/kerisi/m/1645", name: "kerisi-asset-account-setup", component: AssetAccountSetupView, meta: { requiresAuth: true, title: "Asset Account Setup" } },
+    { path: "/admin/kerisi/m/2455", name: "kerisi-asset-depr-group", component: AssetDepreciationGroupView, meta: { requiresAuth: true, title: "Depreciation Group" } },
+    { path: "/admin/kerisi/m/2483", name: "kerisi-asset-depr-tanah", component: AssetDepreciationTanahView, meta: { requiresAuth: true, title: "Depreciation Setup (Tanah)" } },
+    { path: "/admin/kerisi/m/3338", name: "kerisi-asset-depr-scheduler", component: AssetDepreciationSchedulerView, meta: { requiresAuth: true, title: "Asset Depreciation Scheduler" } },
+    { path: "/admin/kerisi/m/3148", name: "kerisi-asset-role-listing", component: AssetRoleListingView, meta: { requiresAuth: true, title: "Role Listing" } },
+    { path: "/admin/kerisi/m/3471", name: "kerisi-asset-verification-officer", component: AssetVerificationOfficerView, meta: { requiresAuth: true, title: "Asset Verification Officer" } },
+    { path: "/admin/kerisi/m/2293", name: "kerisi-asset-item-main", component: PurchasingItemMainView, meta: { requiresAuth: true, title: "Item Main", kerisiMenuId: 2293 } },
+    {
+      path: "/admin/kerisi/m/1562",
+      name: "kerisi-asset-location-building",
+      component: AssetBuildingLocationView,
+      meta: { requiresAuth: true, title: "Location" },
+    },
+    {
+      path: "/admin/kerisi/m/2746",
+      name: "kerisi-asset-location-listing",
+      component: AssetRoomLocationListingView,
+      meta: { requiresAuth: true, title: "Location Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/1563",
+      name: "kerisi-asset-item-listing",
+      component: PurchasingItemMainView,
+      meta: { requiresAuth: true, title: "Item Listing", kerisiMenuId: 1563 },
+    },
+    {
+      path: "/admin/kerisi/m/3470",
+      name: "kerisi-asset-damage-report-list",
+      component: AssetDamageListingView,
+      meta: { requiresAuth: true, title: "Damage Report List", damageListingScope: "reports" },
+    },
+    {
+      path: "/admin/kerisi/m/3481",
+      name: "kerisi-asset-damage-application",
+      component: AssetDamageApplicationView,
+      meta: { requiresAuth: true, title: "Damage Asset Application" },
+    },
+    {
+      path: "/admin/kerisi/m/3492",
+      name: "kerisi-asset-preventive-maint-list",
+      component: AssetMaintenanceListingView,
+      meta: { requiresAuth: true, title: "Preventive Maintenance Listing", maintenanceListing: "preventive" },
+    },
+    {
+      path: "/admin/kerisi/m/3493",
+      name: "kerisi-asset-preventive-maint-form-draft",
+      component: AssetMaintenanceListingView,
+      meta: {
+        requiresAuth: true,
+        title: "Preventive Maintenance Form",
+        maintenanceListing: "preventive",
+        maintenanceDraftOnly: true,
+      },
+    },
+    {
+      path: "/admin/kerisi/m/3502",
+      name: "kerisi-asset-schedule-maint-list",
+      component: AssetMaintenanceListingView,
+      meta: { requiresAuth: true, title: "Schedule Maintenance Listing", maintenanceListing: "schedule" },
+    },
+    {
+      path: "/admin/kerisi/m/3498",
+      name: "kerisi-asset-corrective-maint-list",
+      component: AssetMaintenanceListingView,
+      meta: { requiresAuth: true, title: "Corrective Maintenance List", maintenanceListing: "corrective" },
+    },
+    {
+      path: "/admin/kerisi/m/3499",
+      name: "kerisi-asset-corrective-maint-form-draft",
+      component: AssetMaintenanceListingView,
+      meta: {
+        requiresAuth: true,
+        title: "Corrective Maintenance Form",
+        maintenanceListing: "corrective",
+        maintenanceDraftOnly: true,
+      },
+    },
+    {
+      path: "/admin/kerisi/m/2589",
+      name: "kerisi-asset-kew-pa-receipt",
+      component: AssetKewPaGrnListingView,
+      meta: { requiresAuth: true, title: "Kew PA 1 – Penerimaan Aset", kewPaVariant: "receive" },
+    },
+    {
+      path: "/admin/kerisi/m/2597",
+      name: "kerisi-asset-kew-pa-reject",
+      component: AssetKewPaGrnListingView,
+      meta: { requiresAuth: true, title: "Kew PA 2 – Penolakan Aset", kewPaVariant: "reject" },
+    },
     { path: "/admin/kerisi/m/1566", name: "kerisi-activity-code", component: ActivityCodeView, meta: { requiresAuth: true, title: "Activity Code" } },
     { path: "/admin/kerisi/m/1887", name: "kerisi-cost-centre", component: CostCentreView, meta: { requiresAuth: true, title: "Cost Centre" } },
     { path: "/admin/kerisi/m/2295", name: "kerisi-ptj-code", component: PtjCodeView, meta: { requiresAuth: true, title: "PTJ Code" } },
@@ -1022,6 +1143,196 @@ const router = createRouter({
       meta: { requiresAuth: true, title: "Listing" },
     },
     {
+      path: "/admin/kerisi/m/2286",
+      name: "kerisi-cc-refund-application-admin",
+      component: CcRefundApplicationAdminView,
+      meta: {
+        requiresAuth: true,
+        title: "Refund Type",
+      },
+    },
+    {
+      path: "/admin/kerisi/m/2287",
+      name: "kerisi-cc-list-refund-staff-admin",
+      component: CcListOfRefundPortalView,
+      props: {
+        pageHeading: "Credit Control / Refund / Refund (Staff) / Admin / List of Refund",
+        cardTitle: "List of Refund",
+        datatablePageName: "List of Refund (Staff Admin)",
+        excelFileLabel: "CC_List_of_Refund",
+        excelSheetName: "List of refund",
+        emptyStateTitle: "No refund applications in this list",
+        emptyStateHint:
+          "Try another search. Rows use the same APPLY queue and refund-prefix scope as the portal listing.",
+      },
+      meta: { requiresAuth: true, title: "List of Refund" },
+    },
+    {
+      path: "/admin/kerisi/m/2291",
+      name: "kerisi-cc-request-refund-staff",
+      component: CcRequestRefundStaffView,
+      meta: { requiresAuth: true, title: "Request Refund" },
+    },
+    {
+      path: "/admin/kerisi/m/2289",
+      name: "kerisi-cc-refund-bri-list",
+      component: CcRefundBrIntegrationView,
+      meta: { requiresAuth: true, title: "List Of Refund Bill" },
+    },
+    {
+      path: "/admin/kerisi/m/2290",
+      name: "kerisi-cc-refund-staff-report",
+      component: CcRefundStaffDetailListingView,
+      meta: { requiresAuth: true, title: "Detail Listing Of Refund Process" },
+    },
+    {
+      path: "/admin/kerisi/m/2604",
+      name: "kerisi-cc-list-refund-portal",
+      component: CcListOfRefundPortalView,
+      meta: {
+        requiresAuth: true,
+        title: "List Of Refund Application (Portal)",
+      },
+    },
+    {
+      path: "/admin/kerisi/m/2669",
+      name: "kerisi-cc-reminder-success",
+      component: CcReminderStatusView,
+      meta: { requiresAuth: true, title: "Successful Generated Reminder" },
+    },
+    {
+      path: "/admin/kerisi/m/3370",
+      name: "kerisi-cc-ageing-creditor-summary",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Creditor Ageing / Creditor Ageing Summary",
+        cardTitle: "Creditor Ageing Summary",
+        ageingKind: "creditor_summary",
+      },
+      meta: { requiresAuth: true, title: "Creditor Ageing Summary" },
+    },
+    {
+      path: "/admin/kerisi/m/3445",
+      name: "kerisi-cc-ageing-creditor-summary-6y",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Creditor Ageing / Creditor Ageing Summary ( > 6 Years )",
+        cardTitle: "Creditor Ageing Summary ( > 6 Years )",
+        ageingKind: "creditor_summary_ext",
+      },
+      meta: { requiresAuth: true, title: "Creditor Ageing Summary ( > 6 Years )" },
+    },
+    {
+      path: "/admin/kerisi/m/3371",
+      name: "kerisi-cc-ageing-creditor-details",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Creditor Ageing / Creditor Ageing Details",
+        cardTitle: "Creditor Ageing Details",
+        ageingKind: "creditor_details",
+      },
+      meta: { requiresAuth: true, title: "Creditor Ageing Details" },
+    },
+    {
+      path: "/admin/kerisi/m/3443",
+      name: "kerisi-cc-ageing-creditor-details-6y",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Creditor Ageing / Creditor Ageing Details( > 6 Years)",
+        cardTitle: "Creditor Ageing Details( > 6 Years)",
+        ageingKind: "creditor_details_ext",
+      },
+      meta: { requiresAuth: true, title: "Creditor Ageing Details( > 6 Years)" },
+    },
+    {
+      path: "/admin/kerisi/m/3375",
+      name: "kerisi-cc-ageing-creditor-ap",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Creditor Ageing / Creditor AP Listing",
+        cardTitle: "Creditor AP Listing",
+        ageingKind: "creditor_ap_listing",
+      },
+      meta: { requiresAuth: true, title: "Creditor AP Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/3447",
+      name: "kerisi-cc-ageing-debtor-summary-6y",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Debtor Ageing / Debtor Ageing Summary ( > 6 Years)",
+        cardTitle: "Debtor Ageing Summary ( > 6 Years)",
+        ageingKind: "debtor_summary_ext",
+      },
+      meta: { requiresAuth: true, title: "Debtor Ageing Summary ( > 6 Years)" },
+    },
+    {
+      path: "/admin/kerisi/m/3446",
+      name: "kerisi-cc-ageing-debtor-details-6y",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Debtor Ageing / Debtor Ageing Details ( > 6 Years )",
+        cardTitle: "Debtor Ageing Details ( > 6 Years )",
+        ageingKind: "debtor_details_ext",
+      },
+      meta: { requiresAuth: true, title: "Debtor Ageing Details ( > 6 Years )" },
+    },
+    {
+      path: "/admin/kerisi/m/3409",
+      name: "kerisi-cc-ageing-advance-listing",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Advance Ageing / Advance Listing",
+        cardTitle: "Advance Listing",
+        ageingKind: "advance_listing",
+      },
+      meta: { requiresAuth: true, title: "Advance Listing" },
+    },
+    {
+      path: "/admin/kerisi/m/3448",
+      name: "kerisi-cc-ageing-advance-summary-6y",
+      component: CcAgeingReportView,
+      props: {
+        pageBreadcrumb: "Credit Control / Advance Ageing / Advance Ageing Summary (> 6 Years)",
+        cardTitle: "Advance Ageing Summary (> 6 Years)",
+        ageingKind: "advance_listing",
+      },
+      meta: { requiresAuth: true, title: "Advance Ageing Summary (> 6 Years)" },
+    },
+    {
+      path: "/admin/kerisi/m/3380",
+      name: "kerisi-cc-subsidiary-gl-individual",
+      component: GeneralLedgerListingView,
+      props: {
+        pageBreadcrumb: "Credit Control / Subsidiary Ledger / Individual Subsidiary Ledger",
+        cardTitle: "Individual Subsidiary Ledger",
+        creditControlSubsidiary: true,
+      },
+      meta: { requiresAuth: true, title: "Individual Subsidiary Ledger" },
+    },
+    {
+      path: "/admin/kerisi/m/3381",
+      name: "kerisi-cc-subsidiary-gl-all",
+      component: SubsidiaryLedgerAllView,
+      props: {
+        pageBreadcrumb: "Credit Control / Subsidiary Ledger / All Subsidiary Ledger",
+        cardTitle: "All Subsidiary Ledger",
+        legacyMenuId: "3381",
+      },
+      meta: { requiresAuth: true, title: "All Subsidiary Ledger" },
+    },
+    {
+      path: "/admin/kerisi/m/2667",
+      name: "kerisi-cc-subsidiary-statement",
+      component: SubsidiaryLedgerAllView,
+      props: {
+        pageBreadcrumb: "Credit Control / Report / Subsidiary Statement",
+        cardTitle: "Subsidiary Statement",
+        legacyMenuId: "2667",
+      },
+      meta: { requiresAuth: true, title: "Subsidiary Statement" },
+    },
+    {
       path: "/admin/kerisi/m/2040",
       name: "kerisi-cc-m-2040",
       component: CreditControlLegacyPlaceholderView,
@@ -1290,16 +1601,7 @@ const router = createRouter({
     {
       path: "/admin/kerisi/m/2288",
       name: "kerisi-cc-m-2288",
-      component: CreditControlLegacyPlaceholderView,
-      props: {
-        title: "Payment In Advance Details",
-        breadcrumb: "Credit Control / Refund / Refund (Staff) / Payment In Advance Details",
-        description:
-          "This legacy Credit Control screen is not reproduced in Kerisi20. Use Kerisi Classic for the full workflow.",
-        relatedPath: "/admin/kerisi/m/1809",
-        relatedLabel: "Deposit",
-      },
-      meta: { requiresAuth: true, title: "Payment In Advance Details" },
+      redirect: (to) => ({ path: "/admin/kerisi/m/2289", query: to.query }),
     },
     {
       path: "/admin/kerisi/m/2300",
@@ -1766,16 +2068,7 @@ const router = createRouter({
     {
       path: "/admin/kerisi/m/2485",
       name: "kerisi-cc-m-2485",
-      component: CreditControlLegacyPlaceholderView,
-      props: {
-        title: "Payment In Advance Details (Draft)",
-        breadcrumb: "Credit Control / Refund / Refund (Staff) / Payment In Advance Details (Draft)",
-        description:
-          "This legacy Credit Control screen is not reproduced in Kerisi20. Use Kerisi Classic for the full workflow.",
-        relatedPath: "/admin/kerisi/m/1809",
-        relatedLabel: "Deposit",
-      },
-      meta: { requiresAuth: true, title: "Payment In Advance Details (Draft)" },
+      redirect: (to) => ({ path: "/admin/kerisi/m/2289", query: to.query }),
     },
     {
       path: "/admin/kerisi/m/2522",
@@ -2636,6 +2929,28 @@ const router = createRouter({
     { path: "/admin/kerisi/m/1961", name: "kerisi-portal-vendor-portal", component: VendorPortalView, meta: { requiresAuth: true, title: "Vendor Portal / Vendor Portal" } },
     // FIMS Asset — MENUID 1548 (PAGEID 1271). Backed by AssetInventoryListController.
     { path: "/admin/kerisi/m/1548", name: "kerisi-asset-list-of-asset", component: AssetInventoryListView, meta: { requiresAuth: true, title: "Asset / List of Asset" } },
+    // FIMS Asset Level 4 — PAGEID 2123 (MENUID 2574), 2139 (2591), 2221 (2697), 2267 (2756).
+    { path: "/admin/kerisi/m/2574", name: "kerisi-asset-verification", component: AssetVerificationView, meta: { requiresAuth: true, title: "Asset / Asset Verification" } },
+    {
+      path: "/admin/kerisi/m/2591",
+      name: "kerisi-asset-cancellation",
+      component: AssetCancellationAssetsView,
+      props: { selectionMode: true },
+      meta: { requiresAuth: true, title: "Asset / Asset Cancellation" },
+    },
+    {
+      path: "/admin/kerisi/m/2697",
+      name: "kerisi-asset-cancellation-verify",
+      component: AssetCancellationAssetsView,
+      props: { selectionMode: false },
+      meta: { requiresAuth: true, title: "Asset / Asset Cancellation For Verification" },
+    },
+    {
+      path: "/admin/kerisi/m/2756",
+      name: "kerisi-asset-cancellation-listing",
+      component: AssetCancellationJournalListingView,
+      meta: { requiresAuth: true, title: "Asset / Asset Cancellation Listing" },
+    },
     // HIDDEN_PAGE_LEVEL3 Asset (from `HIDDEN_PAGE_LEVEL3.json`; must stay before LEVEL4 Asset routes and `...kerisiAssetHiddenRoutes`).
     {
       path: "/admin/kerisi/m/1671",
@@ -7660,7 +7975,7 @@ const router = createRouter({
       path: "/admin/kerisi/m/1820",
       name: "kerisi-rem-1820",
       component: PurchasingItemMainView,
-      meta: { requiresAuth: true, title: "Item Main" },
+      meta: { requiresAuth: true, title: "Item Main", kerisiMenuId: 1820 },
     },
     { path: "/admin/kerisi/m/1823", name: "kerisi-rem-1823", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Voucher Registration" } },
     { path: "/admin/kerisi/m/1828", name: "kerisi-rem-1828", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "List Of Vendor" } },
@@ -7771,7 +8086,6 @@ const router = createRouter({
     { path: "/admin/kerisi/m/2663", name: "kerisi-rem-2663", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "List of Vendor" } },
     { path: "/admin/kerisi/m/2664", name: "kerisi-rem-2664", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Daily Summary" } },
     { path: "/admin/kerisi/m/2665", name: "kerisi-rem-2665", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Monthly Summary" } },
-    { path: "/admin/kerisi/m/2667", name: "kerisi-rem-2667", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Subsidiary Statement" } },
     { path: "/admin/kerisi/m/2670", name: "kerisi-rem-2670", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Cashbook Balance By Fund" } },
     { path: "/admin/kerisi/m/2673", name: "kerisi-rem-2673", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Allocation Receive Log" } },
     { path: "/admin/kerisi/m/2706", name: "kerisi-rem-2706", component: KerisiRemainingPageView, meta: { requiresAuth: true, title: "Print SAB By Batch" } },

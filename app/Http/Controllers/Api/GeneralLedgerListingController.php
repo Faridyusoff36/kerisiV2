@@ -340,6 +340,11 @@ class GeneralLedgerListingController extends Controller
             })
             ->where('pd.pde_status', 'APPROVE');
 
+        if (filter_var($request->input('credit_control_subsidiary'), FILTER_VALIDATE_BOOLEAN)) {
+            $query->where('am.acm_flag_subsidiary', 'Y')
+                ->where('am.acm_acct_group', 'CREDITOR');
+        }
+
         if ($q !== '') {
             $like = $this->likeEscape(mb_strtolower($q, 'UTF-8'));
             $query->whereRaw(

@@ -1,0 +1,1778 @@
+
+######## API_LIST_OF_REFUND_CC ########
+<?php
+
+include 'userinfo.php';
+$db2 = DB2;
+
+//|------------------------------------------------------------------------------
+//| FUNCTION : Process di button search refund by anis
+//|------------------------------------------------------------------------------
+
+if ($_GET['refund_process']) { 
+	
+	//if ($_GET['type']== 'A') { 
+
+		//$filter .= " AND dm.vcs_vendor_code = ?";
+       	$filter2 .= "dm.dpm_deposit_master_id = dd.dpm_deposit_master_id";
+
+		if($_GET['ID']){
+            $filter2 .= " AND dm.vcs_vendor_code = ?";
+             $param2[] = $_GET['ID'];
+        }
+
+		$filter2 .= " AND dm.dpm_payto_type='A'";
+		$filter2 .= " AND dd.acm_acct_code = (SELECT acm_acct_code FROM $db2.noninv_struct_details nsd WHERE nsm_id=0 and nsd_trans_type='CR')";
+		$filter2 .= " AND dm.dpm_status in ('APPROVE','1')";
+		$filter2 .= " AND dm.dpm_refund_process IS NULL";
+
+		$filter .= "dd.dpm_deposit_master_id = dm.dpm_deposit_master_id";
+
+		//$filter .= " AND dm.vcs_vendor_code IS NOT EXISTS";
+
+		$filter .= " AND dpm_refund_process IS NULL";
+        $filter .= " AND dpm_payto_type = ?";
+        $param[] = $_GET['type'];
+
+        if($_GET['ID']){
+            $filter .= " AND dm.vcs_vendor_code = ?";
+            $param[] = $_GET['ID'];
+        }
+
+        if($_GET['accountCode']){
+            $filter .= " AND dd.acm_acct_code = ?";
+            $param[] = $_GET['accountCode'];
+        }
+
+		$sql = "SELECT 
+					dm.dpm_deposit_no, 
+					SUM(CASE WHEN dd.ddt_type='CR' THEN   ddt_amt WHEN dd.ddt_type='DT' THEN - ddt_amt ELSE 0 END) totalTransactionAmt
+					FROM $db2.deposit_master dm, $db2.deposit_details dd
+					WHERE 
+						$filter2
+					GROUP BY dm.dpm_deposit_no
+				";
+		$rscheck    = executeQueryV2($sql, $param2); 
+
+        //$filter .= " AND NOT EXISTS (SELECT tr.vcs_vendor_code FROM $db2.temp_refund_application tr where tr.vcs_vendor_code= dm.vcs_vendor_code)";
+
+		if($rscheck){
+
+			$maxID = executeQueryV2(["sql" => "SELECT ifnull(max(cast(tra_batch_id as decimal))+1, 1) maxID FROM ".DB2.".temp_refund_application"])[0]['maxID'];
+
+			$sql = "    INSERT INTO $db2.temp_refund_application 
+						(tra_id, vcs_vendor_code, tra_vendor_name, tra_payto_type,tra_ref_no, tra_ref_no_note, fty_fund_type, at_activity_code, oun_code,
+						ccr_costcentre, cpa_project_no, acm_acct_code, sac_bank_code, sac_bank_acc_no, tra_status, tra_amt, tra_amt_refund, tra_batch_id, tra_process, createddate, createdby)
+					SELECT
+						$db2.getTableSequenceNumForDML('temp_refund_application'),
+						dm.vcs_vendor_code, 
+						dm.dpm_vendor_name, 
+						dpm_payto_type, 
+						dpm_ref_no, 
+						dpm_ref_no_note,
+						dd.fty_fund_type, 
+						dd.at_activity_code,
+						dd.oun_code, 
+						dd.ccr_costcentre, 											
+						dd.cpa_project_no, 
+						dd.acm_acct_code,
+						ifnull(sac_bank_code,''),
+						ifnull(sac_bank_acc_no, ''),
+						'1', 
+						ddt_amt,
+						ddt_amt,
+						'$maxID',
+						'N',
+						NOW(),
+						'{$_USER['USERNAME']}'
+
+						FROM $db2.deposit_master dm 
+						LEFT JOIN $db2.stud_account sa ON dm.vcs_vendor_code = sa.std_student_id, 
+						$db2.deposit_details dd
+						where  
+							$filter
+					";
+
+						$rs    = executeQueryV2($sql, $param); 
+				// var_dump($rs); die;
+			}
+	
+    //} 	 
+    // else if ($_GET['type']== 'B') {
+
+    //     $filter .= "dd.dpm_deposit_master_id = dm.dpm_deposit_master_id";
+
+    //     $filter .= " AND dpm_payto_type = ?";
+    //     $param[] = $_GET['type'];
+
+    //     if($_GET['ID']){
+    //         $filter .= " AND dm.vcs_vendor_code = ?";
+    //         $param[] = $_GET['ID'];
+    //     }
+
+    //     if($_GET['accountCode']){
+    //         $filter .= " AND dd.acm_acct_code = ?";
+    //         $param[] = $_GET['accountCode'];
+    //     }
+
+    //     $maxID = executeQueryV2(["sql" => "SELECT ifnull(max(cast(tra_batch_id as decimal))+1, 1) maxID FROM ".DB2.".temp_refund_application"])[0]['maxID'];
+
+    
+######## SNA_API_CREDITCONTROL_REQUESTREFUNDSTAFF ########
+<?
+// BY ANIS
+// CREATED ON 28092021
+// FOR MODUL CREDIT CARD/ REQUEST REFUND
+
+include ('userinfo.php');
+
+//============================================================= datatable request ======================================================================
+if($_GET['dt_listapply']){
+	
+    $common = "
+            FROM ".DB2.".temp_refund_application
+            WHERE
+            tra_status = 'APPLY'
+			AND tra_payto_type = 'B'
+			AND
+            CONCAT_WS('__',
+               tra_application_no,
+               vcs_vendor_code,
+               tra_vendor_name,
+               tra_ref_no,
+               tra_ref_no_note,
+               fty_fund_type,
+               at_activity_code,
+               oun_code,
+               ccr_costcentre,
+               acm_acct_code,
+               tra_amt_refund,
+			   tra_status,
+			   createddate
+                ) LIKE CONCAT('%', ?, '%')
+        ";
+    
+	//============================================================ record count
+	$sql = "SELECT COUNT(*) C $common";
+	$recordsFiltered = executeQueryV2($sql, [$_POST['search']['value']])[0]['C'];
+
+	//============================================================ main sql
+        $sql = "
+            SELECT
+			   tra_application_no,
+               vcs_vendor_code,
+               tra_vendor_name,
+			   concat_ws(' - ', tra_ref_no, tra_ref_no_note) reference,
+               fty_fund_type,
+               at_activity_code,
+               oun_code,
+               ccr_costcentre,
+               acm_acct_code,
+               tra_amt_refund,
+			   tra_status,
+			   createddate
+			   
+            
+            $common
+        ORDER BY {$_POST['orderBy'][0]} {$_POST['orderBy'][1]}
+        LIMIT ".$_POST['start'].", ".$_POST['length']."
+    ";
+
+    $data = executeQueryV2($sql, [$_POST['search']['value']]);
+
+    return [
+		'draw' => $_POST['draw'],
+		'recordsFiltered' => $recordsFiltered|0,
+		'data' => $data,
+    ];
+}
+
+//============================================================= display data ======================================================================
+else if($_GET['request_detail']){
+
+	$applyno = $_GET['applyno'];
+
+	$sql = " SELECT
+
+				tra_application_no 	AS APPLYNO,
+				vcs_vendor_code		AS STAFFNO,
+				tra_vendor_name 	AS STAFFNAME,
+				concat_ws(' - ', tra_ref_no, tra_ref_no_note) AS REFERENCE,
+				fty_fund_type 		AS FUNDTYPE,
+				at_activity_code 	AS ACTIVITYCODE,
+				oun_code 			AS PTJ,
+				ccr_costcentre 		AS COSTCENTER,
+				acm_acct_code 		AS ACCOUNTCODE,
+				tra_amt_refund 		AS TOTALAMT, 
+				tra_status 			AS STATUS,
+				date_format(createddate, '%d/%m/%Y') AS REQUESTDATE				
+
+			FROM ".DB2.".temp_refund_application
+
+			WHERE tra_status = 'APPLY'
+			AND tra_payto_type = 'B'
+			AND tra_application_no = '$applyno'
+	";
+
+	$rs = executeQueryV2($sql)[0];
+
+	//============================================================ finally
+	return [
+		'APPLYNO' 		=> $rs['APPLYNO'],
+		'STAFFNO' 		=> $rs['STAFFNO'],
+		'TOTALAMT'		=> $rs['TOTALAMT'],
+		'REQUESTDATE'	=> $rs['REQUESTDATE'],
+		'REFERENCE'		=> $rs['REFERENCE'],
+		'STAFFNAME'		=> $rs['STAFFNAME'],
+		'FUNDTYPE' 		=> $rs['FUNDTYPE'],
+		'ACTIVITYCODE' 	=> $rs['ACTIVITYCODE'],
+		'COSTCENTER' 	=> $rs['COSTCENTER'],
+		'SOCODE' 		=> $rs['SOCODE'],
+		'ACCOUNTCODE'	=> $rs['ACCOUNTCODE'],
+		'STATUS'		=> $rs['STATUS'],
+		'PTJ'			=> $rs['PTJ'],
+		'count' 		=> count($rs),
+		's' 			=> SESSION_NAME != 'FIMS_PROD' ? $sql : '',
+	];
+}
+
+//============================================================= process edit data ======================================================================
+else if($_GET['process_details']){
+
+	$noapply = $_POST['modal']['applyno_modal'];
+
+	//update tble temp_refund_application
+	$sqlupdatemaster = "UPDATE ".DB2.".temp_refund_application
+						SET
+							tra_status = '1',
+							tra_amt_refund = ?,
+							tra_process = 'Y',
+							tra_status_process = 'DRAFT',
+						
+######## SNA_API_LIST_OF_REFUND_CC_STAFF ########
+<?php
+
+include 'userinfo.php';
+$db2 = DB2;
+
+//|------------------------------------------------------------------------------
+//| FUNCTION :  DataTable Refund 
+//|------------------------------------------------------------------------------
+
+if($_GET['ListOfRefund']) { //guna
+
+	$array_group = preg_split('(\]\[|\]|\[)', $_USER['FUG_GROUP_CODE']);
+
+	array_shift($array_group);
+	array_pop($array_group);
+
+	/* |==== Mcm pelik jer sql korang ni so aku comment dlu sbb aku tak faham kenapa kena group by - Athir ====| */
+	// //============================================================ common filter
+	// $common = "FROM 
+	// 			".DB2.".temp_refund_application tra,
+	// 			".DB2.".refund_prefix_setup rps
+	// 		WHERE 
+	// 			rps.acm_acct_code = tra.acm_acct_code
+	// 			AND tra_application_no is not null
+	// 			AND tra_status ='APPLY'
+	// 			AND tra_process != 'Y'
+	// 			AND tra_status_process IS NULL
+	// 			AND tra_payto_type = 'B'
+	// 			AND rps_group_desc IN (".q_mark($array_group).")
+	// 			AND
+	// 				CONCAT_WS('__',
+	// 					tra_id,
+	// 					tra_application_no,
+	// 					vcs_vendor_code,
+	// 					tra_vendor_name,
+	// 					tra.acm_acct_code,
+	// 					tra_ref_no,
+	// 					DATE_FORMAT(tra.createddate,'%d/%m/%Y'),
+	// 					tra_status,
+	// 					dpm_deposit_no,
+	// 					tra_reason_reject
+	// 				) LIKE CONCAT('%', ?, '%')
+	// 	";
+	// 	//============================================================ record count  edited by asiah 24/0/2021
+	// 	$sql = "SELECT COUNT(*) C 
+	// 			FROM (SELECT
+	// 			tra_id,
+	// 			tra_application_no,
+	// 			tra.createddate,
+	// 			tra_amt_refund,
+	// 			tra_amt,
+	// 			tra_status,
+	// 			tra_ref_no,
+	// 			dpm_deposit_no,
+	// 			tra_reason_reject
+	// 			$common 
+	// 			GROUP BY tra_id,tra_application_no,tra_ref_no,tra.createddate,tra_status, dpm_deposit_no, tra_reason_reject
+	// 			) tbl 
+	// 			";
+	// 	$recordsFiltered = executeQueryV2($sql,[ ...$array_group, $_POST['search']['value'] ])[0]['C'];
+
+	// 	$sql = "SELECT
+	// 				tra_id,
+	// 				tra_application_no,
+	// 				DATE_FORMAT(tra.createddate,'%d/%m/%Y') createddate,
+	// 				tra_amt_refund,
+	// 				tra_amt,
+	// 				vcs_vendor_code,
+	// 				tra_vendor_name,
+	// 				(SELECT CONCAT_WS(' - ',tra.acm_acct_code,am.acm_acct_desc) FROM ".DB2.".account_main am WHERE tra.acm_acct_code = am.acm_acct_code) acm_acct_code,
+	// 				tra_ref_no,
+	// 				tra_status,
+	// 				'' remark,
+	// 				dpm_deposit_no,
+	// 				tra_reason_reject
+	// 		$common
+	// 		GROUP BY tra_id,tra_application_no,tra_ref_no,tra.createddate,tra_status,vcs_vendor_code,tra_vendor_name,acm_acct_code, dpm_deposit_no, tra_reason_reject
+	// 		ORDER BY {$_POST['orderBy'][0]} {$_POST['orderBy'][1]}
+	// 		LIMIT ".$_POST['start'].", ".$_POST['length']."
+	// 	";
+    //     $data = executeQueryV2($sql,[ ...$array_group, $_POST['search']['value'] ]);
+    //     $footer_tra_amt = executeQueryV2("SELECT SUM(tra_amt) S $common",[...$array_group, $_POST['search']['value']])[0]['S'];
+	
+	//============================================================ common filter
+	$param = [
+		...$array_group,
+		$_POST['search']['value']
+	];
+
+	$common = "
+			FROM 
+				$db2.temp_refund_application tra,
+				$db2.refund_prefix_setup rps
+			WHERE 
+				rps.acm_acct_code = tra.acm_acct_code
+				AND tra_application_no IS NOT NULL
+				AND tra_status ='APPLY'
+				AND tra_process != 'Y'
+				AND tra_status_process IS NULL
+				AND tra_payto_type = 'B'
+				AND rps_payto_type = 'B'
+				AND rps_group_desc IN (".q_mark($array_group).")
+				AND CONCAT_WS('__',
+						tra_application_no,
+						vcs_vendor_code,
+						tra_vendor_name,
+						CONCAT_WS(' - ', tra.acm_acct_code, tra_extended_field->>'$.acm_acct_desc'),
+						dpm_deposit_no,
+						DATE_FORMAT(tra.createddate,'%d/%m/%Y'),
+						tra_amt,
+						tra_amt_refund,
+						tra_status,
+						tra_reason_reject
+					) LIKE CONCAT('%', ?, '%')";
+	//==================================================
+######## MM_API_LIST_OF_REFUND_CC_STUDENT ########
+<?php
+
+include 'userinfo.php';
+$db2 = DB2;
+
+if($_GET['checkReject']){
+
+	$id = array_keys($_POST['data']);
+	$parameterize = q_mark(count($id));
+
+	$checkCountReject = executeQueryV2([
+		"sql" => "SELECT COUNT(DISTINCT tra_application_no) C FROM ".DB2.".temp_refund_application WHERE tra_id IN ($parameterize)",
+		"params" => [...$id]
+	])[0]['C'];
+
+	if($checkCountReject=='1'){
+		return[
+			"status" => "ok"
+		];
+	}else{
+		return[
+			"status" => "ko",
+			"count" => $checkCountReject
+		];
+	}
+}
+
+//|------------------------------------------------------------------------------
+//| FUNCTION : Process di button search refund by anis
+//|------------------------------------------------------------------------------
+
+if ($_GET['refund_process']) { 
+	
+	//if ($_GET['type']== 'A') { 
+
+		//$filter .= " AND dm.vcs_vendor_code = ?";
+       	$filter2 .= "dm.dpm_deposit_master_id = dd.dpm_deposit_master_id";
+
+		if($_GET['ID']){
+            $filter2 .= " AND dm.vcs_vendor_code = ?";
+             $param2[] = $_GET['ID'];
+        }
+
+		$filter2 .= " AND dm.dpm_payto_type='A'";
+		$filter2 .= " AND dd.acm_acct_code = (SELECT acm_acct_code FROM $db2.noninv_struct_details nsd WHERE nsm_id=0 and nsd_trans_type='CR')";
+		$filter2 .= " AND dm.dpm_status in ('APPROVE','1')";
+		$filter2 .= " AND dm.dpm_refund_process IS NULL";
+
+		$filter .= "dd.dpm_deposit_master_id = dm.dpm_deposit_master_id";
+
+		//$filter .= " AND dm.vcs_vendor_code IS NOT EXISTS";
+
+		$filter .= " AND dpm_refund_process IS NULL";
+        $filter .= " AND dpm_payto_type = ?";
+        $param[] = $_GET['type'];
+
+        if($_GET['ID']){
+            $filter .= " AND dm.vcs_vendor_code = ?";
+            $param[] = $_GET['ID'];
+        }
+
+        if($_GET['accountCode']){
+            $filter .= " AND dd.acm_acct_code = ?";
+            $param[] = $_GET['accountCode'];
+        }
+
+		$sql = "SELECT 
+					dm.dpm_deposit_no, 
+					SUM(CASE WHEN dd.ddt_type='CR' THEN   ddt_amt WHEN dd.ddt_type='DT' THEN - ddt_amt ELSE 0 END) totalTransactionAmt
+					FROM $db2.deposit_master dm, $db2.deposit_details dd
+					WHERE 
+						$filter2
+					GROUP BY dm.dpm_deposit_no
+				";
+		$rscheck    = executeQueryV2($sql, $param2); 
+
+        //$filter .= " AND NOT EXISTS (SELECT tr.vcs_vendor_code FROM $db2.temp_refund_application tr where tr.vcs_vendor_code= dm.vcs_vendor_code)";
+
+		if($rscheck){
+
+			$maxID = executeQueryV2(["sql" => "SELECT ifnull(max(cast(tra_batch_id as decimal))+1, 1) maxID FROM ".DB2.".temp_refund_application"])[0]['maxID'];
+
+			$sql = "    INSERT INTO $db2.temp_refund_application 
+						(tra_id, vcs_vendor_code, tra_vendor_name, tra_payto_type,tra_ref_no, tra_ref_no_note, fty_fund_type, at_activity_code, oun_code,
+						ccr_costcentre, cpa_project_no, acm_acct_code, sac_bank_code, sac_bank_acc_no, tra_status, tra_amt, tra_amt_refund, tra_batch_id, tra_process, createddate, createdby)
+					SELECT
+						$db2.getTableSequenceNumForDML('temp_refund_application'),
+						dm.vcs_vendor_code, 
+						dm.dpm_vendor_name, 
+						dpm_payto_type, 
+						dpm_ref_no, 
+						dpm_ref_no_note,
+						dd.fty_fund_type, 
+						dd.at_activity_code,
+						dd.oun_code, 
+						dd.ccr_costcentre, 											
+						dd.cpa_project_no, 
+						dd.acm_acct_code,
+						ifnull(sac_bank_code,''),
+						ifnull(sac_bank_acc_no, ''),
+						'1', 
+						ddt_amt,
+						ddt_amt,
+						'$maxID',
+						'N',
+						NOW(),
+						'{$_USER['USERNAME']}'
+
+						FROM $db2.deposit_master dm 
+						LEFT JOIN $db2.stud_account sa ON dm.vcs_vendor_code = sa.std_student_id, 
+						$db2.deposit_details dd
+						where  
+							$filter
+					";
+
+						$rs    = executeQueryV2($sql, $param); 
+				// var_dump($rs); die;
+			}
+	
+  		return [ 'status' => 'ok',
+		   		'maxID' => $maxID 
+		   	];
+}
+
+//|------------------------------------------------------------------------------
+//| FUNCTION :  DataTable Refund 
+//|----------------------------
+######## SNA_API_CC_REFUNDSTAFF_BRINTEGRATION ########
+<?
+// by anis on 06102021
+
+include('userinfo.php');
+
+//=============================================== datatable bill registration integration list non approved ========================================================
+if($_GET['dt_briList']) {
+
+	if($_POST['search']['value']) {
+		$filter .= "
+			AND CONCAT_WS('__',
+				bim_bills_id,
+				bim_bills_no,
+				if(bim_bills_type = 'I', 'INDIVIDU', 'BERKELOMPOK'),
+				bim_bills_desc,
+				bim_bill_amt,
+				bim_cust_invoice_no,
+				bim_cust_invoice_date,
+				bim_payto_id,
+				bim_payto_name,
+				bim_status,
+				createddate
+			) LIKE CONCAT('%', ?, '%')
+		";
+		$param[] = $_POST['search']['value'];
+	}
+
+	if($_POST['smartFilter']['bim_bills_no']) {
+		$filter .= " AND bim_bills_no LIKE CONCAT('%', ?, '%')";
+		$param[] = $_POST['smartFilter']['bim_bills_no'];
+	}
+
+	if($_POST['smartFilter']['bim_bills_type']) {
+		$filter .= " AND bim_bills_type  = ?";
+		$param[] = $_POST['smartFilter']['bim_bills_type'];
+	}
+
+	if($_POST['smartFilter']['bim_payto_id']) {
+		$filter .= " AND bim_payto_id LIKE CONCAT('%', ?, '%')";
+		$param[] = $_POST['smartFilter']['bim_payto_id'];
+	}
+
+	if($_POST['smartFilter']['bim_payto_name']) {
+		$filter .= " AND bim_payto_name LIKE CONCAT('%', ?, '%')";
+		$param[] = $_POST['smartFilter']['bim_payto_name'];
+	}
+
+	if($_POST['smartFilter']['bim_bills_desc']) {
+		$filter .= " AND bim_bills_desc  = ?";
+		$param[] = $_POST['smartFilter']['bim_bills_desc'];
+	}
+
+	if($_POST['smartFilter']['bim_bill_amt']) {
+		$filter .= " AND bim_bill_amt  = ?";
+		$param[] = $_POST['smartFilter']['bim_bill_amt'];
+	}
+
+	if($_POST['smartFilter']['bim_status']) {
+		$filter .= " AND bim_status  = ?";
+		$param[] = $_POST['smartFilter']['bim_status'];
+	}
+
+	if($_POST['smartFilter']['createddate']) {
+		$filter .= " AND DATE_FORMAT(createddate, '%Y-%m-%d')  = STR_TO_DATE(?, '%d/%m/%Y')";
+		$param[] = $_POST['smartFilter']['createddate'];
+	}
+
+	$common = "
+		FROM
+			".DB2.".temp_refund_bills_master
+		WHERE
+			bim_status != 'APPROVE'
+			AND bim_system_id = 'REFUND_STAFF'
+			$filter
+	"; 
+
+    //============================================================ record count
+    $sql = "SELECT COUNT(*) C $common";
+    $recordsFiltered = executeQueryV2($sql, $param)[0]['C'];
+
+	//============================================================ main sql
+	$sql = "
+            SELECT
+                bim_bills_id,
+                bim_bills_no,
+                if(bim_bills_type = 'I', 'INDIVIDU', 'BERKELOMPOK') bim_bills_type,
+                bim_bills_desc,
+                bim_bill_amt,
+                bim_cust_invoice_no,
+                bim_cust_invoice_date,
+                bim_payto_id,
+                bim_payto_name,
+                bim_status,
+				createddate
+
+	$common
+	ORDER BY {$_POST['orderBy'][0]} {$_POST['orderBy'][1]}
+	LIMIT ".$_POST['start'].", ".$_POST['length']."
+	";
+	$data = executeQueryV2($sql, $param);
+
+    for($x=0; $x<count($data); $x++) {
+	    $data[$x]['url_view'] = "index.php?a=".flc_url_encode("page=page_wrapper&menuID=2288&bim_bills_id=".$data[$x]['bim_bills_id']."&mode=view");
+		$data[$x]['url_edit'] = "index.php?a=".flc_url_encode("page=page_wrapper&menuID=2485&bim_bills_id=".$data[$x]['bim_bills_id']."&mode=edit");
+    }
+
+	return [
+		'draw' => $_POST['draw'],
+        'recordsFiltered' => $recordsFiltered,
+		'data' => $data,
+	];	
+}
+
+//=============================================== datatable bill registration integration list approved ========================================================
+if($_GET['dt_briListApproved']) {
+
+    $common = "
+		        FROM ".DB2.".temp_refund_bills_master
+                WHERE
+					bim_status = 'APPROVE'
+					AND bim_system_id = 'REFUND_STAFF'
+				AND
+                CONCAT_WS('__',
+                    bim_bills_id,
+                    bim_bills_no,
+                    if(bim_bills_type = 'I', 'INDIVIDU', 'BERKELOMPOK'),
+                    bim_bills_de
+######## SNA_API_CC_REFUNDSTAFF_DETAILISTINGPROCESS ########
+<?php
+// BY ANIS
+
+
+include 'userinfo.php';
+
+// ======================================================== listing table ========================================================
+if($_GET['dt_list']){
+
+	// var_dump($_GET['bim_payto_name']);die();
+
+	if($_GET['bim_bills_no']) {
+		$filter .= " AND bim.bim_bills_no LIKE CONCAT('%', ?, '%')";
+		$param[] = $_GET['bim_bills_no'];
+	}
+
+	if($_GET['bim_payto_id']) {
+		$filter .= " AND bid_payto_id = ? "; 
+		$param[] = $_GET['bim_payto_id'];
+	}
+
+	if($_GET['bim_payto_name']) {
+		$filter .= " AND bim_payto_name LIKE CONCAT('%', ?, '%') ";
+		$param[] = $_GET['bim_payto_name'];
+	}
+
+	if($_GET['bid_amt']) {
+		$filter .= " AND bid_amt LIKE CONCAT('%', ?, '%') ";
+		$param[] = $_GET['bid_amt'];
+	}
+
+	if($_GET['bim_status']) {
+		$filter .= " AND bim_status = ? ";
+		$param[] = $_GET['bim_status'];
+	}
+
+	if($_GET['createddate']){
+		$filter .= " AND DATE_FORMAT(bim.createddate, '%d/%m/%Y') = ? ";
+		$param[] = $_GET['createddate'];
+	}
+
+	$param[] = $_POST['search']['value'];
+
+
+	//============================================================ common filter
+    $common = "
+           FROM
+			".DB2.".temp_refund_bills_master bim
+			INNER JOIN ".DB2.".temp_refund_bills_details bid ON bim.bim_bills_id = bid.bim_bills_id
+			LEFT JOIN ".DB2.".voucher_details vd on vd.bim_bills_no = bim.bim_bills_no and bid.bid_trans_type = vd.vde_trans_type AND vd.vde_payto_id = bid.bid_payto_id
+			LEFT JOIN ".DB2.".voucher_master vm on vd.vma_voucher_id = vm.vma_voucher_id
+			LEFT JOIN ".DB2.".payment_record pr on pr.pre_voucher_no = vm.vma_voucher_no  AND IFNULL(vd.vde_factoring_id, vd.vde_payto_id) = pr.pre_payto_id
+		WHERE
+			bid_trans_type = 'DT'
+			AND bim_system_id = 'REFUND_STAFF'
+			$filter
+            
+        AND CONCAT_WS('__',
+			bim.bim_bills_id,
+			bim.bim_bills_no,
+			bim_bills_type,
+			bim_bills_desc,
+			bim_bill_amt,
+			bim_cust_invoice_no,
+			bim_cust_invoice_date,
+			bim_payto_id,
+			bim_payto_name,
+			bim_status,
+			DATE_FORMAT(bim.createddate, '%d/%m/%Y'),
+			bid_payto_type,
+			bid_payto_id, 
+			bid_payto_name,
+			bid.fty_fund_type, 
+			bid.at_activity_code,
+			bid.oun_code, 
+			bid.ccr_costcentre,
+			bid.acm_acct_code,
+			bid_amt,
+			vsa_vendor_bank,
+			bid_trans_type,
+            case 
+				when vm.vma_voucher_no like '%VCR%' then vm.vma_voucher_no
+                when vm.vma_voucher_no like '%temp%' then bim.bim_voucher_no
+            end,
+            vd.updateddate,
+            vde_paymode,
+            vd.vde_payment_no,
+            pr.updateddate,
+			tra_application_no 
+		) LIKE CONCAT('%', ?, '%')
+        ";
+    
+	//============================================================ record count
+	$sql = "SELECT COUNT(*) C $common";
+	$recordsFiltered = executeQueryV2($sql, $param)[0]['C'];
+
+	//============================================================ main sql
+        $sql = "
+           SELECT
+			bim.bim_bills_id,
+			bim.bim_bills_no,
+			if(bim_bills_type = 'I', 'INDIVIDU', 'BERKELOMPOK') bim_bills_type,
+			bim_bills_desc,
+			bim_bill_amt,
+			bim_cust_invoice_no,
+			bim_cust_invoice_date,
+			bim_payto_id,
+			bim_payto_name,
+			bim_status,
+			bim.createddate,
+			bid_payto_type,
+			bid_payto_id, 
+			bid_payto_name,
+			bid.fty_fund_type, 
+			bid.at_activity_code,
+			bid.oun_code, 
+			bid.ccr_costcentre,
+			bid.acm_acct_code,
+			bid_amt,
+			vsa_vendor_bank,
+			concat(vsa_bank_accno,'<br>',SUBSTRING_INDEX(bid_extended_field->>'$.debtorbankName','-',-1)) vsa_bank_accno,
+			concat(bid_factoring_id,' - ',bid_extended_field ->> '$.trirdPartyName') third_party_info,
+			bid_extended_field ->> '$.thirdPartyBankName' thirdPartyBankName,
+			bid_fact_bank_acctno tra_3rd_bank_acc_no,
+            case 
+				when vm.vma_voucher_no like '%VCR%' then vm.vma_voucher_no
+                when vm.vma_voucher_no like '%temp%' then bim.bim_voucher_no
+            end novoucher,
+            vd.updateddate voucherdate
+######## SNA_API_CREDITCONTROL_REMINDERSTATUS ########
+<?
+// by anis on 16012022
+// modul credit control
+
+include 'userinfo.php';
+
+//========================================== for businesstype_comp ====================================
+if($_GET['lov_businesstype_comp']) {
+	$sql = "
+		SELECT DISTINCT cm_business_type id, cm_business_type text
+		FROM
+			".DB2.".ccontroller_master  
+		WHERE
+			cm_business_type IN ('INVOICE', 'BOC', 'LOAN', 'ACTIVITYADV')
+			AND cm_debtor_creditor = ?
+	";
+	return executeQueryV2($sql, [$_POST['type_comp']]);
+}
+
+//========================================== datatble ==============================================
+if($_GET['dt_listoutstanding']) {
+
+	$type = $_GET['type'];
+	$businesstype = $_GET['businesstype'];
+
+	$common = "
+	FROM ".DB2.".ccontroller_reminder CR
+	LEFT JOIN ".DB2.".ccontroller_master CM ON CM.cm_id = CR.cm_id
+		WHERE 
+		crm_confirm_status = 'Y'
+		AND cm_debtor_creditor = '$type'
+		AND cm_business_type = '$businesstype'
+		AND
+		CONCAT_WS('__',
+			crm_id,
+			crm_debtor_id,
+			crm_debtor_name,
+			crm_amt_outstanding,
+			crm_reminder_bil,
+			crm_reminder_date,
+			crm_handphone_no,
+			crm_reference,
+			crm_extended_field ->> '$.loan_category',
+			crm_email_addr,
+			cm_business_type,
+			CASE
+				WHEN cm_business_type = 'INVOICE' THEN 'OUTSTANDING'
+				WHEN cm_business_type = 'BOC' THEN ''
+				WHEN cm_business_type = 'LOAN' THEN CASE
+													WHEN crm_extended_field ->> '$.loan_category'  = 'C' THEN 'COMPUTER / SMARTPHONE'
+													WHEN crm_extended_field ->> '$.loan_category'  = 'V' THEN 'VEHICLE'
+													WHEN crm_extended_field ->> '$.loan_category'  = 'H' THEN 'HOUSING'
+												END
+				WHEN cm_business_type = 'ACTIVITYADV' THEN 'OUTSTANDING'
+			END,
+			crm_invoice_no
+			) LIKE CONCAT('%', ?, '%')
+		";
+	//============================================================ record count
+	$sql = "SELECT COUNT(*) C $common";
+	$recordsFiltered = executeQueryV2($sql, [$_POST['search']['value']])[0]['C'];
+
+	$sql = "SELECT
+				crm_id SEQID,
+				crm_debtor_id DEBTORID,
+				crm_debtor_name DEBTORNAME,
+				crm_amt_outstanding OUTSTANDINGAMT,
+				crm_reminder_bil REMINDERBILL,
+				crm_reminder_date REMINDERDATE,
+				crm_handphone_no PHONENO,
+				crm_reference REFERENCENO,
+				CASE
+					WHEN cm_business_type = 'INVOICE' THEN 'OUTSTANDING'
+					WHEN  cm_business_type = 'BOC' THEN ''
+					WHEN cm_business_type = 'LOAN' THEN CASE
+														WHEN crm_extended_field ->> '$.loan_category'  = 'C' THEN 'COMPUTER / SMARTPHONE'
+														WHEN crm_extended_field ->> '$.loan_category'  = 'V' THEN 'VEHICLE'
+														WHEN crm_extended_field ->> '$.loan_category'  = 'H' THEN 'HOUSING'
+													END
+					WHEN cm_business_type = 'ACTIVITYADV' THEN 'OUTSTANDING'
+				END CATEGORY,
+				crm_email_addr EMAIL,
+				cm_business_type TYPE2,
+				CASE
+					WHEN cm_business_type = 'INVOICE' THEN ''
+					WHEN cm_business_type = 'BOC' THEN (SELECT ss_loan_id FROM ".DB2.".staff_study SS WHERE SS.stf_staff_id = CR.crm_debtor_id AND ss_loan_id IS NOT NULL) 
+					WHEN cm_business_type = 'LOAN' THEN (SELECT lap_loan_no FROM ".DB2.".loan_application LA WHERE LA.stf_staff_id = CR.crm_debtor_id AND LA.lap_loan_type = CR.crm_extended_field ->> '$.loan_category') 
+					WHEN cm_business_type = 'ACTIVITYADV' THEN ''
+				END LOANO,
+				CASE
+					WHEN cm_business_type = 'INVOICE' THEN crm_invoice_no
+					WHEN cm_business_type = 'BOC' THEN ''
+					WHEN cm_business_type = 'LOAN' THEN ''
+					WHEN cm_business_type = 'ACTIVITYADV' THEN crm_invoice_no
+				END NOINV
+
+		$common
+			ORDER BY {$_POST['orderBy'][0]} {$_POST['orderBy'][1]}
+			LIMIT ".$_POST['start'].", ".$_POST['length']."
+	";
+	$data = executeQueryV2($sql, [$_POST['search']['value']]);
+	//$footer_outstandingamt = executeQueryV2("SELECT SUM(crm_amt_outstanding) S $common", [$staffno, $_POST['search']['value']])[0]['S'];
+
+	return [
+		'draw' => $_POST['draw'],
+        'recordsFiltered' => $recordsFiltered,
+		'data' => $dat
+######## HQL_CC_CREDITOR_AGEING_SUMMARY_API ########
+<?
+include('userinfo.php');
+$db2 = DB2;
+
+//======================================================= AUTOSUGGEST : Filter Region
+// if($_GET['autoSuggestRegion']) { 
+//     return autoSuggest([
+//        "id" => "oun.pejabat",
+// 		"text" => "CONCAT_WS(' - ', oun.pejabat)",
+// 		"table" => DB2.".v_organization_unit oun",
+// 		"order" => "1"
+//     ]);
+// }
+
+//======================================================= AUTOSUGGEST : Filter PTJ
+if($_GET['autoSuggestPTJ']) { 
+	if($_POST['tf_region'] != ''){
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"where" => "PEJABAT =?",
+			"param"=>[$_POST['tf_region']],
+			"order" => "1"
+		]);
+	}else{
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"order" => "1"
+		]);
+	}
+}
+
+//======================================================= AUTOSUGGEST : Filter Fund Type
+if($_REQUEST['autoSuggestFundType']) {
+	return autoSuggest([
+		"id" => "fty.fty_fund_type",
+		"text" => "CONCAT_WS(' - ', fty.fty_fund_type, fty.fty_fund_desc)",
+		"table" =>  DB2.".fund_type fty",
+		"order" => "1"
+	]);
+}
+//======================================================= AUTOSUGGEST : Filter PTJ
+if($_GET['autoSuggestAcctCode']) { 
+    if(PROJECT_TYPE === 'tourism') {
+        return autoSuggest([
+            "id" => "acm_acct_code",
+            "text" => "CONCAT_WS(' - ', acm_acct_code, acm_acct_desc)",
+            "table" => DB2.".account_main",
+            "where" => "acm_acct_level=5 and acm_acct_group='CREDITOR' and acm_flag_subsidiary='Y' and acm_acct_code IN (
+                        'L0111101',
+                        'L0111105',
+                        'L0111102',
+                        'L0111103',
+                        'L0111104',
+                        'L0111201',
+                        'L0111202')",
+            "order" => "acm_acct_code"
+        ]);
+    } else {
+        return autoSuggest([
+            "id" => "acm_acct_code",
+            "text" => "CONCAT_WS(' - ', acm_acct_code, acm_acct_desc)",
+            "table" => DB2.".account_main",
+            "where" => "acm_acct_level=5 and acm_acct_group='CREDITOR' and acm_flag_subsidiary='Y'",
+            "order" => "acm_acct_code"
+        ]);
+    }
+}
+
+//======================================================= AUTOSUGGEST : Filter Cust ID
+else if($_GET['autoSuggestCustID']) {
+	if($_POST['customer_type'] == 'A'){
+		return autoSuggest([
+			"id" 	=> "std_student_id",
+			"text" 	=> "CONCAT_WS(' - ', std_student_id, std_student_name)",
+			"table" => DB2.".student"
+		]);
+	}
+	else if($_POST['customer_type'] == 'B'){
+		return autoSuggest([
+			"id" 	=> "stf_staff_id",
+			"text" 	=> "CONCAT_WS(' - ', stf_staff_id, stf_staff_name)",
+			"table" => DB2.".staff"
+		]);
+	}
+	else if($_POST['customer_type'] == 'C' || $_POST['customer_type'] == 'D'){
+		return autoSuggest([
+			"id" 	=> "vcs_vendor_code",
+			"text" 	=> "CONCAT_WS(' - ', vcs_vendor_code, vcs_vendor_name)",
+			"table" => DB2.".vend_customer_supplier",
+		]);
+	}
+	else if($_POST['customer_type'] == 'F'){
+		return autoSuggest([
+			"id" 	=> "iit_inst_code",
+			"text" 	=> "CONCAT_WS(' - ', iit_inst_code, iit_inst_name)",
+			"table" => DB2.".investment_institution",
+		]);
+	}
+	else{
+		return autoSuggest([
+			"id" 	=> "pde_payto_id",
+			"text" 	=> "CONCAT_WS(' - ', pde_payto_id, pde_payto_name)",
+			"table" => "(
+						SELECT DISTINCT 
+							std_student_id pde_payto_id, 
+							std_student_name pde_payto_name 
+						FROM ".DB2.".student
+						UNION 
+						SELECT DISTINCT 
+							stf_staff_id pde_payto_id, 
+							stf_staff_name pde_payto_name 
+						FROM ".DB2.".staff
+						UNION
+						SELECT DISTINCT 
+							vcs_vendor_code pde_payto_id,
+							vcs_vendor_name pde_payto_name
+	
+######## SZ_CC_CREDITOR_AGEING_SUMMARY_API ########
+<?
+include('userinfo.php');
+$db2 = DB2;
+
+//======================================================= AUTOSUGGEST : Filter Region
+if($_GET['autoSuggestRegion']) { 
+    return autoSuggest([
+       "id" => "oun.pejabat",
+		"text" => "CONCAT_WS(' - ', oun.pejabat)",
+		"table" => DB2.".v_organization_unit oun",
+		"order" => "1"
+    ]);
+}
+
+//======================================================= AUTOSUGGEST : Filter PTJ
+if($_GET['autoSuggestPTJ']) { 
+	if($_POST['tf_region'] != ''){
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"where" => "PEJABAT ='" . $_POST['tf_region'] . "'",
+			"order" => "1"
+		]);
+	}else{
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"order" => "1"
+		]);
+	}
+}
+
+//======================================================= AUTOSUGGEST : Filter Cust ID
+else if($_GET['autoSuggestCustID']) {
+	if($_POST['customer_type'] == 'A'){
+		return autoSuggest([
+			"id" 	=> "std_student_id",
+			"text" 	=> "CONCAT_WS(' - ', std_student_id, std_student_name)",
+			"table" => DB2.".student"
+		]);
+	}
+	else if($_POST['customer_type'] == 'B'){
+		return autoSuggest([
+			"id" 	=> "stf_staff_id",
+			"text" 	=> "CONCAT_WS(' - ', stf_staff_id, stf_staff_name)",
+			"table" => DB2.".staff"
+		]);
+	}
+	else if($_POST['customer_type'] == 'C' || $_POST['customer_type'] == 'D'){
+		return autoSuggest([
+			"id" 	=> "vcs_vendor_code",
+			"text" 	=> "CONCAT_WS(' - ', vcs_vendor_code, vcs_vendor_name)",
+			"table" => DB2.".vend_customer_supplier",
+		]);
+	}
+	else if($_POST['customer_type'] == 'F'){
+		return autoSuggest([
+			"id" 	=> "iit_inst_code",
+			"text" 	=> "CONCAT_WS(' - ', iit_inst_code, iit_inst_name)",
+			"table" => DB2.".investment_institution",
+		]);
+	}
+	else{
+		return autoSuggest([
+			"id" 	=> "pde_payto_id",
+			"text" 	=> "CONCAT_WS(' - ', pde_payto_id, pde_payto_name)",
+			"table" => "(
+						SELECT DISTINCT 
+							std_student_id pde_payto_id, 
+							std_student_name pde_payto_name 
+						FROM ".DB2.".student
+						UNION 
+						SELECT DISTINCT 
+							stf_staff_id pde_payto_id, 
+							stf_staff_name pde_payto_name 
+						FROM ".DB2.".staff
+						UNION
+						SELECT DISTINCT 
+							vcs_vendor_code pde_payto_id,
+							vcs_vendor_name pde_payto_name
+						FROM ".DB2.".vend_customer_supplier
+						#WHERE vcs_vendor_code LIKE 'C%'
+						UNION
+						SELECT DISTINCT 
+							vcs_vendor_code pde_payto_id,
+							vcs_vendor_name pde_payto_name
+						FROM ".DB2.".vend_customer_supplier_myflite
+						#WHERE vcs_vendor_code LIKE 'D%'
+					) TBL" 
+		]);
+	}
+}
+
+if($_GET['dt_listing']){
+
+    if($_GET['tf_customer_type']){
+
+        $filter1 .= " AND rr.pde_payto_type = ?";
+        $param[] = $_GET['tf_customer_type'];
+    }
+
+    if($_GET['oun_code']){
+
+        $filter1 .= " AND rr.oun_code = ?";
+        $param[] = $_GET['oun_code'];
+    }
+
+    if($_POST['fty_fund_type']){
+
+        $filter2 .= " AND rad.fty_fund_type = ?";
+        $param[] = $_POST['fty_fund_type'];
+    }
+
+    if($_GET['tf_end_date']){
+
+        $dateString = $_GET['tf_end_date'];
+        $date = DateTime::createFromFormat('d/m/Y', $dateString);
+        $formattedDate = $date->format('Y-m-d');
+
+        $filter1 .= " AND date(rr.pde_trans_date) <= ?";
+        $param[] = $formattedDate;
+    }
+
+    if($_GET['tf_customer_type']){
+
+        $filter2 .= " AND rad.pde_payto_type = ?";
+        $param[] = $_GET['tf_customer_type'];
+    }
+
+    if($_GET['oun_code']){
+
+        $filter2 .= " AND rad.oun_code = ?";
+        $param[] = $_GET['oun_code'];
+    }
+
+    if($_GET['tf_end_date']){
+
+        $dateString = $_GET['tf_end_date'];
+        $date = DateTime::createFromFormat('d/m/Y', $dateString);
+        $formattedDate = $date->
+######## HQL_CC_CREDITOR_AGEING_DETAILS_API ########
+<?
+include('userinfo.php');
+$db2 = DB2;
+
+//======================================================= AUTOSUGGEST : Filter Region
+if($_GET['autoSuggestRegion']) { 
+  return autoSuggest([
+     "id" => "oun.pejabat",
+  "text" => "CONCAT_WS(' - ', oun.pejabat)",
+  "table" => DB2.".v_organization_unit oun",
+  "order" => "1"
+  ]);
+}
+
+//======================================================= AUTOSUGGEST : Filter PTJ
+if($_GET['autoSuggestPTJ']) { 
+
+	if($_POST['tf_region'] != ''){
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"where" => "PEJABAT ='" . $_POST['tf_region'] . "'",
+			"order" => "1"
+		]);
+	}else{
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"order" => "1"
+		]);
+	}
+}
+
+//======================================================= AUTOSUGGEST : Filter Cust ID
+else if($_GET['autoSuggestCustID']) {
+	if($_POST['customer_type'] == 'A'){
+		return autoSuggest([
+			"id" 	=> "std_student_id",
+			"text" 	=> "CONCAT_WS(' - ', std_student_id, std_student_name)",
+			"table" => DB2.".student"
+		]);
+	}
+	else if($_POST['customer_type'] == 'B'){
+		return autoSuggest([
+			"id" 	=> "stf_staff_id",
+			"text" 	=> "CONCAT_WS(' - ', stf_staff_id, stf_staff_name)",
+			"table" => DB2.".staff"
+		]);
+	}
+	else if($_POST['customer_type'] == 'C' || $_POST['customer_type'] == 'D'){
+		return autoSuggest([
+			"id" 	=> "vcs_vendor_code",
+			"text" 	=> "CONCAT_WS(' - ', vcs_vendor_code, vcs_vendor_name)",
+			"table" => DB2.".vend_customer_supplier",
+		]);
+	}
+	else if($_POST['customer_type'] == 'F'){
+		return autoSuggest([
+			"id" 	=> "iit_inst_code",
+			"text" 	=> "CONCAT_WS(' - ', iit_inst_code, iit_inst_name)",
+			"table" => DB2.".investment_institution",
+		]);
+	}
+	else{
+		return autoSuggest([
+			"id" 	=> "pde_payto_id",
+			"text" 	=> "CONCAT_WS(' - ', pde_payto_id, pde_payto_name)",
+			"table" => "(
+						SELECT DISTINCT 
+							std_student_id pde_payto_id, 
+							std_student_name pde_payto_name 
+						FROM ".DB2.".student
+						UNION 
+						SELECT DISTINCT 
+							stf_staff_id pde_payto_id, 
+							stf_staff_name pde_payto_name 
+						FROM ".DB2.".staff
+						UNION
+						SELECT DISTINCT 
+							vcs_vendor_code pde_payto_id,
+							vcs_vendor_name pde_payto_name
+						FROM ".DB2.".vend_customer_supplier
+						#WHERE vcs_vendor_code LIKE 'C%'
+						UNION
+						SELECT DISTINCT 
+							vcs_vendor_code pde_payto_id,
+							vcs_vendor_name pde_payto_name
+						FROM ".DB2.".vend_customer_supplier_myflite
+						#WHERE vcs_vendor_code LIKE 'D%'
+					) TBL" 
+		]);
+	}
+}
+
+//======================================================= AUTOSUGGEST : Filter Account Code
+if($_GET['autoSuggestAcctCode']) {
+
+	return autoSuggest([
+		"id" 	=> "am.acm_acct_code",
+		"text" 	=> "CONCAT_WS(' - ', am.acm_acct_code, am.acm_acct_desc)",
+		"table" => DB2.".account_main am",
+		"where" => "acm_flag_subsidiary='Y' AND acm_acct_code IN (select acm_acct_code from $db2.bills_details)	AND acm_acct_group ='CREDITOR'",
+	]);
+	
+}
+
+//======================================================= AUTOSUGGEST : Filte rActivity
+if($_GET['autoSuggestActivity']) {
+
+	return autoSuggest([
+		"id" => "at.at_activity_code",
+		"text" => "CONCAT_WS(' - ', at.at_activity_code, at.at_activity_description_bm)",
+		"table" => DB2.".org_unit_costcentre ouc, ".DB2.".activity_type at",
+		"where" => "ouc.at_activity_code = at.at_activity_code AND ouc.ouc_status = 1",
+		"order" => "1"
+	]);
+	
+}
+
+//======================================================= AUTOSUGGEST : Filter Cost Center
+if($_GET['autoSuggestCostCenter']) {
+
+	return autoSuggest([
+		"id" => "ccr.ccr_costcentre",
+		"text" => "CONCAT_WS(' - ', ccr.ccr_costcentre, ccr.ccr_costcentre_desc)",
+		"table" => DB2.".org_unit_costcentre ouc, ".DB2.".costcentre ccr",
+		"where" => "ouc.ccr_costcentre = ccr.ccr_costcentre AND ouc.ouc_status = 1
+######## SZ_CC_CREDITOR_AGEING_DETAILS_API ########
+<?
+include('userinfo.php');
+$db2 = DB2;
+
+//======================================================= AUTOSUGGEST : Filter Region
+if($_GET['autoSuggestRegion']) { 
+  return autoSuggest([
+     "id" => "oun.pejabat",
+  "text" => "CONCAT_WS(' - ', oun.pejabat)",
+  "table" => DB2.".v_organization_unit oun",
+  "order" => "1"
+  ]);
+}
+
+//======================================================= AUTOSUGGEST : Filter PTJ
+if($_GET['autoSuggestPTJ']) { 
+
+	if($_POST['tf_region'] != ''){
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"where" => "PEJABAT ='" . $_POST['tf_region'] . "'",
+			"order" => "1"
+		]);
+	}else{
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"order" => "1"
+		]);
+	}
+}
+
+//======================================================= AUTOSUGGEST : Filter Cust ID
+else if($_GET['autoSuggestCustID']) {
+	if($_POST['customer_type'] == 'A'){
+		return autoSuggest([
+			"id" 	=> "std_student_id",
+			"text" 	=> "CONCAT_WS(' - ', std_student_id, std_student_name)",
+			"table" => DB2.".student"
+		]);
+	}
+	else if($_POST['customer_type'] == 'B'){
+		return autoSuggest([
+			"id" 	=> "stf_staff_id",
+			"text" 	=> "CONCAT_WS(' - ', stf_staff_id, stf_staff_name)",
+			"table" => DB2.".staff"
+		]);
+	}
+	else if($_POST['customer_type'] == 'C' || $_POST['customer_type'] == 'D'){
+		return autoSuggest([
+			"id" 	=> "vcs_vendor_code",
+			"text" 	=> "CONCAT_WS(' - ', vcs_vendor_code, vcs_vendor_name)",
+			"table" => DB2.".vend_customer_supplier",
+		]);
+	}
+	else if($_POST['customer_type'] == 'F'){
+		return autoSuggest([
+			"id" 	=> "iit_inst_code",
+			"text" 	=> "CONCAT_WS(' - ', iit_inst_code, iit_inst_name)",
+			"table" => DB2.".investment_institution",
+		]);
+	}
+	else{
+		return autoSuggest([
+			"id" 	=> "pde_payto_id",
+			"text" 	=> "CONCAT_WS(' - ', pde_payto_id, pde_payto_name)",
+			"table" => "(
+						SELECT DISTINCT 
+							std_student_id pde_payto_id, 
+							std_student_name pde_payto_name 
+						FROM ".DB2.".student
+						UNION 
+						SELECT DISTINCT 
+							stf_staff_id pde_payto_id, 
+							stf_staff_name pde_payto_name 
+						FROM ".DB2.".staff
+						UNION
+						SELECT DISTINCT 
+							vcs_vendor_code pde_payto_id,
+							vcs_vendor_name pde_payto_name
+						FROM ".DB2.".vend_customer_supplier
+						#WHERE vcs_vendor_code LIKE 'C%'
+						UNION
+						SELECT DISTINCT 
+							vcs_vendor_code pde_payto_id,
+							vcs_vendor_name pde_payto_name
+						FROM ".DB2.".vend_customer_supplier_myflite
+						#WHERE vcs_vendor_code LIKE 'D%'
+					) TBL" 
+		]);
+	}
+}
+
+//======================================================= AUTOSUGGEST : Filter Account Code
+if($_GET['autoSuggestAcctCode']) {
+
+	return autoSuggest([
+		"id" 	=> "am.acm_acct_code",
+		"text" 	=> "CONCAT_WS(' - ', am.acm_acct_code, am.acm_acct_desc)",
+		"table" => DB2.".account_main am",
+		"where" => "acm_flag_subsidiary='Y' AND acm_acct_code IN (select acm_acct_code from $db2.bills_details)	AND acm_acct_group ='CREDITOR'",
+	]);
+	
+}
+
+//======================================================= AUTOSUGGEST : Filte rActivity
+if($_GET['autoSuggestActivity']) {
+
+	return autoSuggest([
+		"id" => "at.at_activity_code",
+		"text" => "CONCAT_WS(' - ', at.at_activity_code, at.at_activity_description_bm)",
+		"table" => DB2.".org_unit_costcentre ouc, ".DB2.".activity_type at",
+		"where" => "ouc.at_activity_code = at.at_activity_code AND ouc.ouc_status = 1",
+		"order" => "1"
+	]);
+	
+}
+
+//======================================================= AUTOSUGGEST : Filter Cost Center
+if($_GET['autoSuggestCostCenter']) {
+
+	return autoSuggest([
+		"id" => "ccr.ccr_costcentre",
+		"text" => "CONCAT_WS(' - ', ccr.ccr_costcentre, ccr.ccr_costcentre_desc)",
+		"table" => DB2."
+######## SZ_CC_DEBTOR_AGEING_SUMMARY_API ########
+<?
+include('userinfo.php');
+$db2 = DB2;
+
+//======================================================= AUTOSUGGEST : Filter PTJ
+if($_GET['autoSuggestPTJ']) { 
+
+	if($_POST['tf_region'] != ''){
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"where" => "PEJABAT ='" . $_POST['tf_region'] . "'",
+			"order" => "1"
+		]);
+	}else{
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"order" => "1"
+		]);
+	}
+}
+//======================================================= AUTOSUGGEST : Filter Region
+if($_GET['autoSuggestRegion']) { 
+	return autoSuggest([
+	   "id" => "oun.pejabat",
+	"text" => "CONCAT_WS(' - ', oun.pejabat)",
+	"table" => DB2.".v_organization_unit oun",
+	"order" => "1"
+	]);
+}
+//======================================================= AUTOSUGGEST : Filter Cust ID
+if($_GET['autoSuggestCustID']) {
+	if($_POST['customer_type'] == 'A'){
+		return autoSuggest([
+			"id" 	=> "std_student_id",
+			"text" 	=> "CONCAT_WS(' - ', std_student_id, std_student_name)",
+			"table" => DB2.".student"
+		]);
+	}
+	else if($_POST['customer_type'] == 'B'){
+		return autoSuggest([
+			"id" 	=> "stf_staff_id",
+			"text" 	=> "CONCAT_WS(' - ', stf_staff_id, stf_staff_name)",
+			"table" => DB2.".staff"
+		]);
+	}
+	else if($_POST['customer_type'] == 'C' || $_POST['customer_type'] == 'D'){
+		return autoSuggest([
+			"id" 	=> "vcs_vendor_code",
+			"text" 	=> "CONCAT_WS(' - ', vcs_vendor_code, vcs_vendor_name)",
+			"table" => DB2.".vend_customer_supplier",
+		]);
+	}
+	else if($_POST['customer_type'] == 'F'){
+		return autoSuggest([
+			"id" 	=> "iit_inst_code",
+			"text" 	=> "CONCAT_WS(' - ', iit_inst_code, iit_inst_name)",
+			"table" => DB2.".investment_institution",
+		]);
+	}
+	else{
+		return autoSuggest([
+			"id" 	=> "pde_payto_id",
+			"text" 	=> "CONCAT_WS(' - ', pde_payto_id, pde_payto_name)",
+			"table" => "(
+						SELECT DISTINCT 
+							std_student_id pde_payto_id, 
+							std_student_name pde_payto_name 
+						FROM ".DB2.".student
+						UNION 
+						SELECT DISTINCT 
+							stf_staff_id pde_payto_id, 
+							stf_staff_name pde_payto_name 
+						FROM ".DB2.".staff
+						UNION
+						SELECT DISTINCT 
+							vcs_vendor_code pde_payto_id,
+							vcs_vendor_name pde_payto_name
+						FROM ".DB2.".vend_customer_supplier
+						#WHERE vcs_vendor_code LIKE 'C%'
+						UNION
+						SELECT DISTINCT 
+							vcs_vendor_code pde_payto_id,
+							vcs_vendor_name pde_payto_name
+						FROM ".DB2.".vend_customer_supplier_myflite
+						#WHERE vcs_vendor_code LIKE 'D%'
+					) TBL" 
+		]);
+	}
+}
+
+//======================================================= AUTOSUGGEST : Filter Account
+if($_GET['autoSuggestAcctCode']) {
+
+	return autoSuggest([
+		"id" 	=> "am.acm_acct_code",
+		"text" 	=> "CONCAT_WS(' - ', am.acm_acct_code, am.acm_acct_desc)",
+		"table" => DB2.".account_main am",
+		"where" => "acm_flag_subsidiary='Y' AND acm_acct_group ='DEBTOR'",
+	]);
+	
+}
+
+//======================================================= AUTOSUGGEST : Filter Activity
+if($_GET['autoSuggestActivity']) {
+
+	return autoSuggest([
+		"id" => "at.at_activity_code",
+		"text" => "CONCAT_WS(' - ', at.at_activity_code, at.at_activity_description_bm)",
+		"table" => DB2.".org_unit_costcentre ouc, ".DB2.".activity_type at",
+		"where" => "ouc.at_activity_code = at.at_activity_code AND ouc.ouc_status = 1",
+		"order" => "1"
+	]);
+	
+}
+
+//======================================================= AUTOSUGGEST : Filter Cost Center
+if($_GET['autoSuggestCostCenter']) {
+
+	return autoSuggest([
+		"id" => "ccr.ccr_costcentre",
+		"text" => "CONCAT_WS(' - ', ccr.ccr_costcentre, ccr.ccr_costcentre_desc)",
+		"table" => DB2.".org_unit_costcentre ouc, ".DB2.".costcentre ccr",
+		"where" => "ouc.ccr_costcentre = ccr
+######## SZ_CC_DEBTOR_AGEING_DETAILS_API ########
+<?
+include('userinfo.php');
+$db2 = DB2;
+
+
+//======================================================= AUTOSUGGEST : Filter Region
+if($_GET['autoSuggestRegion']) { 
+	return autoSuggest([
+	   "id" => "oun.pejabat",
+	"text" => "CONCAT_WS(' - ', oun.pejabat)",
+	"table" => DB2.".v_organization_unit oun",
+	"order" => "1"
+	]);
+}
+
+//======================================================= AUTOSUGGEST : Filter PTJ
+if($_GET['autoSuggestPTJ']) { 
+
+	if($_POST['tf_region'] != ''){
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"where" => "PEJABAT ='" . $_POST['tf_region'] . "'",
+			"order" => "1"
+		]);
+	}else{
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"order" => "1"
+		]);
+	}
+}
+
+//======================================================= AUTOSUGGEST : Filter Cust ID
+if($_GET['autoSuggestCustID']) {
+	if($_POST['customer_type'] == 'A'){
+		return autoSuggest([
+			"id" 	=> "std_student_id",
+			"text" 	=> "CONCAT_WS(' - ', std_student_id, std_student_name)",
+			"table" => DB2.".student"
+		]);
+	}
+	else if($_POST['customer_type'] == 'B'){
+		return autoSuggest([
+			"id" 	=> "stf_staff_id",
+			"text" 	=> "CONCAT_WS(' - ', stf_staff_id, stf_staff_name)",
+			"table" => DB2.".staff"
+		]);
+	}
+	else if($_POST['customer_type'] == 'C' || $_POST['customer_type'] == 'D'){
+		return autoSuggest([
+			"id" 	=> "vcs_vendor_code",
+			"text" 	=> "CONCAT_WS(' - ', vcs_vendor_code, vcs_vendor_name)",
+			"table" => DB2.".vend_customer_supplier",
+		]);
+	}
+	else if($_POST['customer_type'] == 'F'){
+		return autoSuggest([
+			"id" 	=> "iit_inst_code",
+			"text" 	=> "CONCAT_WS(' - ', iit_inst_code, iit_inst_name)",
+			"table" => DB2.".investment_institution",
+		]);
+	}
+	else{
+		return autoSuggest([
+			"id" 	=> "pde_payto_id",
+			"text" 	=> "CONCAT_WS(' - ', pde_payto_id, pde_payto_name)",
+			"table" => "(
+						SELECT DISTINCT 
+							std_student_id pde_payto_id, 
+							std_student_name pde_payto_name 
+						FROM ".DB2.".student
+						UNION 
+						SELECT DISTINCT 
+							stf_staff_id pde_payto_id, 
+							stf_staff_name pde_payto_name 
+						FROM ".DB2.".staff
+						UNION
+						SELECT DISTINCT 
+							vcs_vendor_code pde_payto_id,
+							vcs_vendor_name pde_payto_name
+						FROM ".DB2.".vend_customer_supplier
+						#WHERE vcs_vendor_code LIKE 'C%'
+						UNION
+						SELECT DISTINCT 
+							vcs_vendor_code pde_payto_id,
+							vcs_vendor_name pde_payto_name
+						FROM ".DB2.".vend_customer_supplier_myflite
+						#WHERE vcs_vendor_code LIKE 'D%'
+					) TBL" 
+		]);
+	}
+}
+
+//======================================================= AUTOSUGGEST : Filter Acct Code
+if($_GET['autoSuggestAcctCode']) {
+
+	return autoSuggest([
+		"id" 	=> "am.acm_acct_code",
+		"text" 	=> "CONCAT_WS(' - ', am.acm_acct_code, am.acm_acct_desc)",
+		"table" => DB2.".account_main am",
+		"where" => "acm_flag_subsidiary='Y' AND acm_acct_group ='DEBTOR'",
+	]);
+
+}
+
+//======================================================= AUTOSUGGEST : Filter Activity
+if($_GET['autoSuggestActivity']) {
+
+	return autoSuggest([
+		"id" => "at.at_activity_code",
+		"text" => "CONCAT_WS(' - ', at.at_activity_code, at.at_activity_description_bm)",
+		"table" => DB2.".org_unit_costcentre ouc, ".DB2.".activity_type at",
+		"where" => "ouc.at_activity_code = at.at_activity_code AND ouc.ouc_status = 1",
+		"order" => "1"
+	]);
+	
+}
+
+//======================================================= AUTOSUGGEST : Filter Cost Center
+if($_GET['autoSuggestCostCenter']) {
+
+	return autoSuggest([
+		"id" => "ccr.ccr_costcentre",
+		"text" => "CONCAT_WS(' - ', ccr.ccr_costcentre, ccr.ccr_costcentre_desc)",
+		"table" => DB2.".org_unit_costcentre ouc, ".DB2.".costcentre ccr",
+		"where" => "ouc.ccr_costcentr
+######## SZ_CC_ADVANCE_AGEING_API ########
+<?
+include('userinfo.php');
+$db2 = DB2;
+
+//======================================================= AUTOSUGGEST : Filter Account Code
+if($_GET['autoSuggestAccountCode']) {
+
+    if($_POST['advance_category'] != ''){
+        return autoSuggest([
+            "id" 	=> "acm_acct_code",
+            "text" 	=> "CONCAT_WS(' - ', acm_acct_code, acm_acct_desc)",
+            "table" =>  DB2.".account_main",
+            "where" => "acm_acct_parent = ?",
+			"param" => [$_POST['advance_category']],
+			"order" => "1"
+        ]);
+    }else{
+        return autoSuggest([
+            "id" 	=> "acm_acct_code",
+            "text" 	=> "CONCAT_WS(' - ', acm_acct_code, acm_acct_desc)",
+            "table" =>  DB2.".account_main",
+			"order" => "1"
+        ]);
+    }
+}
+/*if($_GET['autoSuggestAccountCode']) {
+    if($_POST['advance_category'] != ''){
+        return autoSuggest([
+            "id" 	=> "ACCT_CODE",
+            "text" 	=> "CONCAT_WS(' - ', ACCT_CODE, ACCT_DESC)",
+            "table" => $db2.".v_debtor_category",
+            "where" => "JENIS ='" . $_POST['advance_category'] . "'",
+			 "order" => "1"
+        ]);
+    }else{
+        return autoSuggest([
+            "id" 	=> "ACCT_CODE",
+            "text" 	=> "CONCAT_WS(' - ', ACCT_CODE, ACCT_DESC)",
+            "table" => $db2.".v_debtor_category",
+			 "order" => "1"
+        ]);
+    }
+}*/
+
+//======================================================= AUTOSUGGEST : Filter Region
+/*if($_GET['autoSuggestRegion']) { 
+	return autoSuggest([
+	   "id" => "oun.pejabatx",
+		"text" => "CONCAT_WS(' - ', oun.pejabat)",
+		"table" => DB2.".v_organization_unit oun",
+		"order" => "1"
+	]);
+}*/
+
+//======================================================= AUTOSUGGEST : Filter PTJ
+if($_GET['autoSuggestPTJ']) { 
+
+	if($_POST['tf_region'] != ''){
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"where" => "PEJABAT ='" . $_POST['tf_region'] . "'",
+			"order" => "1"
+		]);
+	}else{
+		return autoSuggest([
+		"id" => "oun.l4_oun_code",
+			"text" => "CONCAT_WS(' - ', oun.l4_oun_code, oun.l4_oun_desc)",
+			"table" => DB2.".v_organization_unit oun",
+			"order" => "1"
+		]);
+	}
+}
+
+//======================================================= AUTOSUGGEST : Filter Cost Center
+if($_GET['autoSuggestCostCenter']) {
+
+	return autoSuggest([
+		"id" => "ccr.ccr_costcentre",
+		"text" => "CONCAT_WS(' - ', ccr.ccr_costcentre, ccr.ccr_costcentre_desc)",
+		"table" => DB2.".org_unit_costcentre ouc, ".DB2.".costcentre ccr",
+		"where" => "ouc.ccr_costcentre = ccr.ccr_costcentre AND ouc.ouc_status = 1",
+		"order" => "1"
+	]);
+
+	
+}
+
+if($_GET['dt_listing']){
+
+	$region 	        = $_GET['tf_region'];
+	$advance_category 	= $_GET['advance_category'];
+	$fty_fund_type 	  	= $_GET['fty_fund_type'];
+	$oun_code 	      	= $_GET['oun_code'];
+  	$cost_centre 	    = $_GET['ccr_costcentre'];
+	$account_code 	  	= $_GET['account_code'];
+  	$p_end_date 		= $_GET['p_end_date'];
+
+	$enddate = str_replace('/', '-', $p_end_date);
+	$EndDate = date('Y-m-d', strtotime($enddate));
+
+  	if($_GET['tf_region']){
+		$filter1 .= " AND vo.pejabat = ?";
+		$param[] = $_GET['tf_region'];
+		$param2[] = $_GET['tf_region'];
+  	}
+
+  	if($_GET['advance_category']){
+		$filter1 .= " AND am4.acm_acct_code = ?";
+		$param[] = $_GET['advance_category'];
+		$param2[] = $_GET['advance_category'];
+  	}
+
+  	if($_GET['fty_fund_type']){
+		$filter1 .= " AND rad.fty_fund_type = ?";
+		$param[] = $_GET['fty_fund_type'];
+		$param2[] = $_GET['fty_fund_type'];
+  	}
+
+  	if($_GET['oun_code']){
+		$filter1 .= " AND rad.oun_code = ?";
+		$param[] = $_GET['oun_code'];
+		$param2[] = $_GET['oun_code'];
+  	}
+
+  	if($_GET['ccr_costcentre']){
+		$filter1 .= " AND rad.ccr_costcentre = ?";
+		$param[] = $_GET['ccr_costcentre'];
+		$param2[] = $_GET['ccr_costcentre'];
+  	}
+
+  	if($_GET['accou

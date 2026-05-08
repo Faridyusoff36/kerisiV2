@@ -8,7 +8,23 @@ use App\Http\Controllers\Api\AccountCodePpiController;
 use App\Http\Controllers\Api\ActivityCodeController;
 use App\Http\Controllers\Api\AdvancePaymentController;
 use App\Http\Controllers\Api\AgRateController;
+use App\Http\Controllers\Api\AssetAccountSetupController;
+use App\Http\Controllers\Api\AssetBuildingLocationController;
+use App\Http\Controllers\Api\AssetCancellationController;
+use App\Http\Controllers\Api\AssetDamageApplicationController;
+use App\Http\Controllers\Api\AssetDamageListingController;
+use App\Http\Controllers\Api\AssetDepreciationGroupController;
+use App\Http\Controllers\Api\AssetDepreciationSchedulerController;
+use App\Http\Controllers\Api\AssetDepreciationTanahController;
+use App\Http\Controllers\Api\AssetGoodsReceiveKewpaController;
+use App\Http\Controllers\Api\AssetDisposeMethodController;
 use App\Http\Controllers\Api\AssetInventoryListController;
+use App\Http\Controllers\Api\AssetMaintenanceListingController;
+use App\Http\Controllers\Api\AssetOrganizationCascadeRoleController;
+use App\Http\Controllers\Api\AssetRoomLocationListingController;
+use App\Http\Controllers\Api\AssetSecretariatController;
+use App\Http\Controllers\Api\AssetVerificationController;
+use App\Http\Controllers\Api\AssetVerificationOfficerController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuditSystemTransactionController;
 use App\Http\Controllers\Api\AuthController;
@@ -39,6 +55,14 @@ use App\Http\Controllers\Api\CashbookPtjController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CheckErrorController;
 use App\Http\Controllers\Api\CostCentreController;
+use App\Http\Controllers\Api\CreditControlAgeingReportController;
+use App\Http\Controllers\Api\CreditControlListOfRefundPortalController;
+use App\Http\Controllers\Api\CreditControlRefundApplicationController;
+use App\Http\Controllers\Api\CreditControlRefundBrIntegrationController;
+use App\Http\Controllers\Api\CreditControlRefundStaffDetailController;
+use App\Http\Controllers\Api\CreditControlSubsidiaryLedgerAllController;
+use App\Http\Controllers\Api\CreditControlReminderStatusController;
+use App\Http\Controllers\Api\CreditControlRequestRefundStaffController;
 use App\Http\Controllers\Api\CreditNoteController;
 use App\Http\Controllers\Api\CreditNoteFormController;
 use App\Http\Controllers\Api\DashboardController;
@@ -122,8 +146,8 @@ use App\Http\Controllers\Api\SponsorPtptnController;
 use App\Http\Controllers\Api\StaffProfileController;
 use App\Http\Controllers\Api\StatusPoPrController;
 use App\Http\Controllers\Api\StructureBudgetListController;
-use App\Http\Controllers\Api\StudentInvoiceGenerationController;
 use App\Http\Controllers\Api\StudentInsuranceListingController;
+use App\Http\Controllers\Api\StudentInvoiceGenerationController;
 use App\Http\Controllers\Api\StudentJournalApprovalController;
 use App\Http\Controllers\Api\SummaryListInvestmentsController;
 use App\Http\Controllers\Api\TenderQuotationController;
@@ -173,6 +197,60 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/fund-types/{id}', [FundTypeController::class, 'show']);
     Route::post('/fund-types', [FundTypeController::class, 'store']);
     Route::put('/fund-types/{id}', [FundTypeController::class, 'update']);
+
+    Route::get('/asset/dispose-methods', [AssetDisposeMethodController::class, 'index']);
+    Route::get('/asset/dispose-methods/{id}', [AssetDisposeMethodController::class, 'show']);
+    Route::post('/asset/dispose-methods', [AssetDisposeMethodController::class, 'store']);
+    Route::put('/asset/dispose-methods/{id}', [AssetDisposeMethodController::class, 'update']);
+
+    Route::get('/asset/disposal-secretariat/options', [AssetSecretariatController::class, 'options']);
+    Route::get('/asset/disposal-secretariat', [AssetSecretariatController::class, 'index']);
+    Route::get('/asset/disposal-secretariat/{id}', [AssetSecretariatController::class, 'show']);
+    Route::post('/asset/disposal-secretariat', [AssetSecretariatController::class, 'store']);
+    Route::put('/asset/disposal-secretariat/{id}', [AssetSecretariatController::class, 'update']);
+    Route::delete('/asset/disposal-secretariat/{id}', [AssetSecretariatController::class, 'destroy']);
+
+    Route::get('/asset/depreciation-groups', [AssetDepreciationGroupController::class, 'index']);
+    Route::get('/asset/depreciation-groups/{id}', [AssetDepreciationGroupController::class, 'show']);
+    Route::post('/asset/depreciation-groups', [AssetDepreciationGroupController::class, 'store']);
+    Route::put('/asset/depreciation-groups/{id}', [AssetDepreciationGroupController::class, 'update']);
+    Route::delete('/asset/depreciation-groups/{id}', [AssetDepreciationGroupController::class, 'destroy']);
+
+    Route::get('/asset/depreciation-tanah', [AssetDepreciationTanahController::class, 'index']);
+    Route::get('/asset/depreciation-tanah/{id}', [AssetDepreciationTanahController::class, 'show']);
+    Route::post('/asset/depreciation-tanah', [AssetDepreciationTanahController::class, 'store']);
+    Route::put('/asset/depreciation-tanah/{id}', [AssetDepreciationTanahController::class, 'update']);
+    Route::delete('/asset/depreciation-tanah/{id}', [AssetDepreciationTanahController::class, 'destroy']);
+
+    Route::get('/asset/depreciation-scheduler', [AssetDepreciationSchedulerController::class, 'index']);
+    Route::put('/asset/depreciation-scheduler/{id}', [AssetDepreciationSchedulerController::class, 'update']);
+
+    Route::get('/asset/account-setup', [AssetAccountSetupController::class, 'index']);
+    Route::get('/asset/account-setup/{id}', [AssetAccountSetupController::class, 'show']);
+
+    Route::get('/asset/verification-officers', [AssetVerificationOfficerController::class, 'index']);
+    Route::get('/asset/verification-officers/{id}', [AssetVerificationOfficerController::class, 'show']);
+    Route::post('/asset/verification-officers', [AssetVerificationOfficerController::class, 'store']);
+    Route::put('/asset/verification-officers/{id}', [AssetVerificationOfficerController::class, 'update']);
+    Route::delete('/asset/verification-officers/{id}', [AssetVerificationOfficerController::class, 'destroy']);
+
+    // Asset inventory location stack (menus 1562 / 2746).
+    Route::get('/asset/building-locations', [AssetBuildingLocationController::class, 'index']);
+    Route::get('/asset/building-locations/{id}', [AssetBuildingLocationController::class, 'show'])->whereNumber('id');
+    Route::post('/asset/building-locations', [AssetBuildingLocationController::class, 'store']);
+    Route::put('/asset/building-locations/{id}', [AssetBuildingLocationController::class, 'update'])->whereNumber('id');
+    Route::delete('/asset/building-locations/{id}', [AssetBuildingLocationController::class, 'destroy'])->whereNumber('id');
+    Route::get('/asset/room-location-listing', [AssetRoomLocationListingController::class, 'index']);
+
+    // Damage + maintenance listings (menus 3470 / 3481 / 3492 / 3493 / 3498 / 3499 / 3502).
+    Route::get('/asset/damage-listing', [AssetDamageListingController::class, 'index']);
+    Route::get('/asset/damage-application/{drmId}', [AssetDamageApplicationController::class, 'show'])->whereNumber('drmId');
+    Route::get('/asset/maintenance-listing', [AssetMaintenanceListingController::class, 'index']);
+
+    // Kew PA GRN-derived registers (menus 2589 / 2597).
+    Route::get('/asset/goods-receive-kewpa', [AssetGoodsReceiveKewpaController::class, 'index']);
+
+    Route::get('/asset/organization-cascade-roles', [AssetOrganizationCascadeRoleController::class, 'index']);
     Route::get('/setup/activity-code', [ActivityCodeController::class, 'index']);
     Route::post('/setup/activity-code/group', [ActivityCodeController::class, 'storeGroup']);
     Route::put('/setup/activity-code/group/{code}', [ActivityCodeController::class, 'updateGroup']);
@@ -857,6 +935,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/credit-control/invoice-balance/search-invoice', [InvoiceBalanceController::class, 'searchInvoice']);
     Route::get('/credit-control/invoice-balance', [InvoiceBalanceController::class, 'index']);
 
+    // Subsidiary Ledger All / Subsidiary Statement (legacy SNA_API_CC_SUBSLEDGER_ALL).
+    // Line-level rep_aging_debtor + subsidiary account_main, running balance.
+    Route::get('/credit-control/subsidiary-ledger-all/options', [CreditControlSubsidiaryLedgerAllController::class, 'options']);
+    Route::get('/credit-control/subsidiary-ledger-all', [CreditControlSubsidiaryLedgerAllController::class, 'index']);
+
     // Post Dated Cheque (PAGEID 1436 / MENUID 1755). Legacy BL
     // ZR_CREDITCONTROL_POSTDATEDCHEQUE_BL — `cheque_registry` with future
     // cheque date and non-cleared flag filter.
@@ -888,6 +971,26 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/credit-control/deposit-form/{id}', [DepositFormController::class, 'show'])->whereNumber('id');
     Route::put('/credit-control/deposit-form/{id}', [DepositFormController::class, 'update'])->whereNumber('id');
     Route::put('/credit-control/deposit-form/{id}/detail/{detailId}', [DepositFormController::class, 'updateDetail'])->whereNumber('id')->whereNumber('detailId');
+
+    // Credit Control — Level 4 migrated reports / refund staff (mysql_secondary, ORM/query builder).
+    Route::get('/credit-control/reminder-status/types', [CreditControlReminderStatusController::class, 'debtorCreditorTypes']);
+    Route::get('/credit-control/reminder-status/business-types', [CreditControlReminderStatusController::class, 'businessTypes']);
+    Route::get('/credit-control/reminder-status', [CreditControlReminderStatusController::class, 'index']);
+    Route::get('/credit-control/refund-br-integration', [CreditControlRefundBrIntegrationController::class, 'index']);
+    Route::get('/credit-control/refund-staff-detail-listing', [CreditControlRefundStaffDetailController::class, 'index']);
+    Route::get('/credit-control/list-of-refund-portal', [CreditControlListOfRefundPortalController::class, 'index']);
+    Route::post('/credit-control/list-of-refund-portal/submit-check', [CreditControlListOfRefundPortalController::class, 'submitCheck']);
+    Route::post('/credit-control/list-of-refund-portal/submit', [CreditControlListOfRefundPortalController::class, 'submit']);
+    Route::post('/credit-control/list-of-refund-portal/reject', [CreditControlListOfRefundPortalController::class, 'reject']);
+    // MENUID 2286 — Admin / Refund Application (refined scope vs raw `dt_listapply`).
+    Route::get('/credit-control/refund-application', [CreditControlRefundApplicationController::class, 'index']);
+    Route::get('/credit-control/refund-application/deposit-account-options', [CreditControlRefundApplicationController::class, 'depositAccountOptions']);
+    Route::get('/credit-control/refund-application/pay-to-vendor-options', [CreditControlRefundApplicationController::class, 'payToVendorOptions']);
+    Route::post('/credit-control/refund-application/submit-check', [CreditControlRefundApplicationController::class, 'submitCheck']);
+    Route::post('/credit-control/refund-application/submit', [CreditControlRefundApplicationController::class, 'submit']);
+    // Refund (Staff) / Request Refund — legacy `SNA_API_CREDITCONTROL_REQUESTREFUNDSTAFF` (`dt_listapply`).
+    Route::get('/credit-control/request-refund-staff', [CreditControlRequestRefundStaffController::class, 'index']);
+    Route::get('/credit-control/ageing-reports', [CreditControlAgeingReportController::class, 'index']);
 
     // Portal pages — read-only vendor/debtor self-service listings.
     // Debtor Portal > List of Profile Update Application (PAGEID 2155 / MENUID 2608).
@@ -974,6 +1077,13 @@ Route::middleware('auth:sanctum')->group(function () {
     // Read-only listing of asset_inventory_main with a smart filter; the
     // legacy autosuggest + RBAC scoping endpoints are deferred.
     Route::get('/asset/list-of-asset', [AssetInventoryListController::class, 'index']);
+    // Asset Verification (PAGEID 2123 / MENUID 2574); Asset Cancellation assets /
+    // journals (PAGEIDs 2139, 2221, 2267).
+    Route::get('/asset/verification', [AssetVerificationController::class, 'index']);
+    Route::get('/asset/verification/{assetId}', [AssetVerificationController::class, 'show'])->whereNumber('assetId');
+    Route::put('/asset/verification/{assetId}', [AssetVerificationController::class, 'update'])->whereNumber('assetId');
+    Route::get('/asset/cancellation/assets', [AssetCancellationController::class, 'assets']);
+    Route::get('/asset/cancellation/journals', [AssetCancellationController::class, 'journals']);
 
     // Project Monitoring (MENUID 1544 List of Project, MENUID 2065 Updated
     // Balance). MENUID 1544 is a datatable; MENUID 2065 is a form (Project ID

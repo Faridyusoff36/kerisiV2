@@ -5,7 +5,7 @@
  */
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute } from "vue-router";
-import { Eye, Pencil, Search, Plus, X } from "lucide-vue-next";
+import { Download, Eye, FileDown, FileSpreadsheet, Pencil, Plus, Search, X } from "lucide-vue-next";
 import AdminLayout from "@/layouts/AdminLayout.vue";
 import {
   purchasingItemMainGroups,
@@ -18,14 +18,20 @@ import {
 import { getKerisiMenuTrailByMenuId } from "@/config/kerisi-menu-resolve";
 import { useToast } from "@/composables/useToast";
 
-const MENU_ID = 1820;
-
 const toast = useToast();
 const route = useRoute();
 
+const kerisiMenuId = computed(() => {
+  const m = (route.meta as { kerisiMenuId?: number }).kerisiMenuId;
+  return typeof m === "number" && !Number.isNaN(m) ? m : 1820;
+});
+
 const pageHeading = computed(() => {
-  const trail = getKerisiMenuTrailByMenuId(MENU_ID);
-  return trail?.length ? trail.join(" / ") : "Purchasing / Setup / Item Main";
+  const trail = getKerisiMenuTrailByMenuId(kerisiMenuId.value);
+  if (trail?.length) return trail.join(" / ");
+  if (kerisiMenuId.value === 2293) return "Asset / Setup / General / Item Main";
+  if (kerisiMenuId.value === 1563) return "Asset / Setup / General / Item Listing";
+  return "Purchasing / Setup / Item Main";
 });
 
 const groupOptions = ref<PurchasingItemMainGroupOpt[]>([]);
@@ -357,11 +363,241 @@ const linePages = computed(() =>
   Math.max(1, Math.ceil(lineTotal.value / Math.max(1, lineLimit.value))),
 );
 
-function rangeLabel(total: number, page: number, limit: number): string {
-  if (total <= 0) return "0 records";
-  const from = (page - 1) * limit + 1;
-  const to = Math.min(page * limit, total);
-  return `${from}–${to} of ${total}`;
+const mainStartIdx = computed(() => (mainTotal.value === 0 ? 0 : (mainPage.value - 1) * mainLimit.value + 1));
+const mainEndIdx = computed(() => Math.min(mainPage.value * mainLimit.value, mainTotal.value));
+const subStartIdx = computed(() => (subTotal.value === 0 ? 0 : (subPage.value - 1) * subLimit.value + 1));
+const subEndIdx = computed(() => Math.min(subPage.value * subLimit.value, subTotal.value));
+const ssiStartIdx = computed(() => (ssiTotal.value === 0 ? 0 : (ssiPage.value - 1) * ssiLimit.value + 1));
+const ssiEndIdx = computed(() => Math.min(ssiPage.value * ssiLimit.value, ssiTotal.value));
+const lineStartIdx = computed(() => (lineTotal.value === 0 ? 0 : (linePage.value - 1) * lineLimit.value + 1));
+const lineEndIdx = computed(() => Math.min(linePage.value * lineLimit.value, lineTotal.value));
+
+function mainPrev() {
+  if (mainPage.value > 1) {
+    mainPage.value -= 1;
+    void fetchMain();
+  }
+}
+function mainNext() {
+  if (mainPage.value < mainPages.value) {
+    mainPage.value += 1;
+    void fetchMain();
+  }
+}
+function subPrev() {
+  if (subPage.value > 1) {
+    subPage.value -= 1;
+    void fetchSub();
+  }
+}
+function subNext() {
+  if (subPage.value < subPages.value) {
+    subPage.value += 1;
+    void fetchSub();
+  }
+}
+function ssiPrev() {
+  if (ssiPage.value > 1) {
+    ssiPage.value -= 1;
+    void fetchSsi();
+  }
+}
+function ssiNext() {
+  if (ssiPage.value < ssiPages.value) {
+    ssiPage.value += 1;
+    void fetchSsi();
+  }
+}
+function linePrev() {
+  if (linePage.value > 1) {
+    linePage.value -= 1;
+    void fetchLines();
+  }
+}
+function lineNext() {
+  if (linePage.value < linePages.value) {
+    linePage.value += 1;
+    void fetchLines();
+  }
+}
+
+function toastAdd(section: string) {
+  toast.info(
+    "Not available here",
+    `Adding "${section}" from this screen is not implemented in Kerisi 2.0 yet. Use the legacy process if your site supports it.`,
+  );
+}
+
+function csvEscapeField(field: unknown): string {
+  if (field === null || field === undefined) return "";
+  const str = String(field);
+  return str.includes(",") || str.includes('"') || str.includes("\n") ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
+function exportDateSlug(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function downloadCsvBlob(filename: string, lines: string[]): void {
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+}
+
+async function exportTablePdf(
+  title: string,
+  fileSlug: string,
+  headers: string[],
+  dataRows: string[][],
+): Promise<void> {
+  const { default: jsPDF } = await import("jspdf");
+  const autoTable = (await import("jspdf-autotable")).default;
+  const orientation = headers.length >= 4 ? "landscape" : "portrait";
+  const doc = new jsPDF({ orientation, unit: "mm", format: "a4" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 10;
+  const now = new Date();
+  const formattedDateTime = `Date : ${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()} ${String(now.getHours() % 12 || 12).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")} ${now.getHours() >= 12 ? "PM" : "AM"}`;
+  doc.setFontSize(10);
+  doc.text(formattedDateTime, pageWidth - margin - doc.getTextWidth(formattedDateTime), margin + 8);
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text(title, (pageWidth - doc.getTextWidth(title)) / 2, margin + 10);
+  const body = dataRows.map((row, index) => [String(index + 1), ...row]);
+  autoTable(doc, {
+    head: [["No.", ...headers]],
+    body: body,
+    startY: margin + 18,
+    margin: { left: margin, right: margin },
+    styles: { fontSize: 8, cellPadding: 1.5 },
+    headStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
+    columnStyles: { 0: { halign: "center", cellWidth: 12 } },
+  });
+  doc.save(`${fileSlug}_${exportDateSlug()}.pdf`);
+}
+
+async function exportTableExcel(
+  worksheetName: string,
+  fileSlug: string,
+  headers: string[],
+  dataRows: string[][],
+): Promise<void> {
+  const ExcelJS = await import("exceljs");
+  const wb = new ExcelJS.Workbook();
+  const safeName =
+    worksheetName
+      .replace(/[:\\/?*[\]]/g, "-")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 31) || "Export";
+  const ws = wb.addWorksheet(safeName);
+  ws.addRow(["No.", ...headers]);
+  dataRows.forEach((row, index) => {
+    ws.addRow([index + 1, ...row]);
+  });
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${fileSlug}_${exportDateSlug()}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function runGridExport(
+  label: string,
+  fileSlug: string,
+  headers: string[],
+  dataRows: string[][],
+  kind: "pdf" | "csv" | "excel",
+): void {
+  if (dataRows.length === 0) {
+    toast.info("No data", "There is nothing to export on this page.");
+    return;
+  }
+  void (async () => {
+    try {
+      if (kind === "csv") {
+        const lines = [
+          ["No.", ...headers].map(csvEscapeField).join(","),
+          ...dataRows.map((row, i) => [String(i + 1), ...row].map(csvEscapeField).join(",")),
+        ];
+        downloadCsvBlob(`${fileSlug}_${exportDateSlug()}.csv`, lines);
+        toast.success("CSV downloaded");
+        return;
+      }
+      if (kind === "excel") {
+        await exportTableExcel(label, fileSlug, headers, dataRows);
+        toast.success("Excel downloaded");
+        return;
+      }
+      await exportTablePdf(label, fileSlug, headers, dataRows);
+      toast.success("PDF downloaded");
+    } catch (e) {
+      toast.error("Export failed", e instanceof Error ? e.message : String(e));
+    }
+  })();
+}
+
+function mainExportPayload(): { headers: string[]; rows: string[][] } {
+  return {
+    headers: ["Code", "Description", "Status"],
+    rows: mainRows.value.map((row) => [cellMainCode(row), cellMainDesc(row), cellMainStatus(row)]),
+  };
+}
+
+function exportMain(kind: "pdf" | "csv" | "excel") {
+  const { headers, rows } = mainExportPayload();
+  runGridExport("Item listing — Main category", "ItemListing_MainCategory", headers, rows, kind);
+}
+
+function subExportPayload(): { headers: string[]; rows: string[][] } {
+  return {
+    headers: ["Code", "Description", "Status"],
+    rows: subRows.value.map((row) => [cellSubCode(row), cellSubDesc(row), cellSubStatus(row)]),
+  };
+}
+
+function exportSub(kind: "pdf" | "csv" | "excel") {
+  const { headers, rows } = subExportPayload();
+  runGridExport("Item listing — Subcategory", "ItemListing_Subcategory", headers, rows, kind);
+}
+
+function ssiExportPayload(): { headers: string[]; rows: string[][] } {
+  return {
+    headers: ["Code", "Description", "Status"],
+    rows: ssiRows.value.map((row) => [cellSsiCode(row), cellSsiDesc(row), cellSsiStatus(row)]),
+  };
+}
+
+function exportSsi(kind: "pdf" | "csv" | "excel") {
+  const { headers, rows } = ssiExportPayload();
+  runGridExport("Item listing — Subsiri", "ItemListing_Subsiri", headers, rows, kind);
+}
+
+function lineExportPayload(): { headers: string[]; rows: string[][] } {
+  return {
+    headers: ["Code", "Description", "Account Code", "MyFisLite", "Status"],
+    rows: lineRows.value.map((row) => [
+      cellLineCode(row),
+      cellLineDesc(row),
+      cellLineAcct(row),
+      cellLineMyFi(row),
+      cellLineStatus(row),
+    ]),
+  };
+}
+
+function exportLine(kind: "pdf" | "csv" | "excel") {
+  const { headers, rows } = lineExportPayload();
+  runGridExport("Item listing — Item main", "ItemListing_ItemMain", headers, rows, kind);
 }
 
 /** Detail modal */
@@ -456,6 +692,12 @@ function cellLineStatus(r: Record<string, unknown>) {
 onMounted(async () => {
   await loadGroups();
   applyQueryGroupFromRoute();
+  if (!grouplookup.value.trim() && (kerisiMenuId.value === 2293 || kerisiMenuId.value === 1563)) {
+    const prefs = ["ASSET/INV", "WIP"];
+    const pick = prefs.find((p) => groupOptions.value.some((o) => o.value === p));
+    if (pick) grouplookup.value = pick;
+    else if (groupOptions.value[0]?.value) grouplookup.value = groupOptions.value[0].value;
+  }
   if (grouplookup.value.trim()) await applyGroupSearch();
 });
 
@@ -505,12 +747,8 @@ onUnmounted(() => {
 
       <!-- Main Category -->
       <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+        <div class="border-b border-slate-100 px-4 py-3">
           <h2 class="text-base font-semibold text-slate-900">Main Category</h2>
-          <button type="button" class="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
-            <Plus class="h-3.5 w-3.5" />
-            Add
-          </button>
         </div>
         <div class="space-y-3 p-4">
           <div class="flex flex-wrap items-center gap-3">
@@ -599,32 +837,58 @@ onUnmounted(() => {
               </tbody>
             </table>
           </div>
-          <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-            <span>{{ mainTotal }} records</span>
-            <span>{{ rangeLabel(mainTotal, mainPage, mainLimit) }}</span>
-            <div class="flex items-center gap-1">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+            <div class="text-xs text-slate-500">Showing {{ mainStartIdx }}-{{ mainEndIdx }} of {{ mainTotal }}</div>
+            <div class="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                class="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50 disabled:opacity-40"
                 :disabled="mainPage <= 1"
-                @click="
-                  mainPage--;
-                  fetchMain();
-                "
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+                @click="mainPrev"
               >
-                ‹
+                Prev
               </button>
-              <span class="px-2">{{ mainPage }} / {{ mainPages }}</span>
+              <span class="text-xs text-slate-600">Page {{ mainPage }} / {{ mainPages }}</span>
               <button
                 type="button"
-                class="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50 disabled:opacity-40"
                 :disabled="mainPage >= mainPages"
-                @click="
-                  mainPage++;
-                  fetchMain();
-                "
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+                @click="mainNext"
               >
-                ›
+                Next
+              </button>
+              <div class="mx-2 h-5 w-px bg-slate-200" />
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                @click="exportMain('pdf')"
+              >
+                <Download class="h-3.5 w-3.5" />
+                PDF
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                @click="exportMain('csv')"
+              >
+                <FileDown class="h-3.5 w-3.5" />
+                CSV
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                @click="exportMain('excel')"
+              >
+                <FileSpreadsheet class="h-3.5 w-3.5" />
+                Excel
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-slate-800"
+                @click="toastAdd('Main Category')"
+              >
+                <Plus class="h-3.5 w-3.5" />
+                Add
               </button>
             </div>
           </div>
@@ -633,12 +897,8 @@ onUnmounted(() => {
 
       <!-- Item Subcategory -->
       <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+        <div class="border-b border-slate-100 px-4 py-3">
           <h2 class="text-base font-semibold text-slate-900">Item Subcategory</h2>
-          <button type="button" class="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
-            <Plus class="h-3.5 w-3.5" />
-            Add
-          </button>
         </div>
         <div class="space-y-3 p-4">
           <div class="flex flex-wrap items-center gap-3">
@@ -727,32 +987,58 @@ onUnmounted(() => {
               </tbody>
             </table>
           </div>
-          <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-            <span>{{ subTotal }} records</span>
-            <span>{{ rangeLabel(subTotal, subPage, subLimit) }}</span>
-            <div class="flex items-center gap-1">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+            <div class="text-xs text-slate-500">Showing {{ subStartIdx }}-{{ subEndIdx }} of {{ subTotal }}</div>
+            <div class="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                class="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50 disabled:opacity-40"
                 :disabled="subPage <= 1"
-                @click="
-                  subPage--;
-                  fetchSub();
-                "
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+                @click="subPrev"
               >
-                ‹
+                Prev
               </button>
-              <span class="px-2">{{ subPage }} / {{ subPages }}</span>
+              <span class="text-xs text-slate-600">Page {{ subPage }} / {{ subPages }}</span>
               <button
                 type="button"
-                class="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50 disabled:opacity-40"
                 :disabled="subPage >= subPages"
-                @click="
-                  subPage++;
-                  fetchSub();
-                "
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+                @click="subNext"
               >
-                ›
+                Next
+              </button>
+              <div class="mx-2 h-5 w-px bg-slate-200" />
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                @click="exportSub('pdf')"
+              >
+                <Download class="h-3.5 w-3.5" />
+                PDF
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                @click="exportSub('csv')"
+              >
+                <FileDown class="h-3.5 w-3.5" />
+                CSV
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                @click="exportSub('excel')"
+              >
+                <FileSpreadsheet class="h-3.5 w-3.5" />
+                Excel
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-slate-800"
+                @click="toastAdd('Item Subcategory')"
+              >
+                <Plus class="h-3.5 w-3.5" />
+                Add
               </button>
             </div>
           </div>
@@ -761,12 +1047,8 @@ onUnmounted(() => {
 
       <!-- Item Subsiri -->
       <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+        <div class="border-b border-slate-100 px-4 py-3">
           <h2 class="text-base font-semibold text-slate-900">Item Subsiri</h2>
-          <button type="button" class="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
-            <Plus class="h-3.5 w-3.5" />
-            Add
-          </button>
         </div>
         <div class="space-y-3 p-4">
           <div class="flex flex-wrap items-center gap-3">
@@ -850,32 +1132,58 @@ onUnmounted(() => {
               </tbody>
             </table>
           </div>
-          <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-            <span>{{ ssiTotal }} records</span>
-            <span>{{ rangeLabel(ssiTotal, ssiPage, ssiLimit) }}</span>
-            <div class="flex items-center gap-1">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+            <div class="text-xs text-slate-500">Showing {{ ssiStartIdx }}-{{ ssiEndIdx }} of {{ ssiTotal }}</div>
+            <div class="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                class="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50 disabled:opacity-40"
                 :disabled="ssiPage <= 1"
-                @click="
-                  ssiPage--;
-                  fetchSsi();
-                "
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+                @click="ssiPrev"
               >
-                ‹
+                Prev
               </button>
-              <span class="px-2">{{ ssiPage }} / {{ ssiPages }}</span>
+              <span class="text-xs text-slate-600">Page {{ ssiPage }} / {{ ssiPages }}</span>
               <button
                 type="button"
-                class="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50 disabled:opacity-40"
                 :disabled="ssiPage >= ssiPages"
-                @click="
-                  ssiPage++;
-                  fetchSsi();
-                "
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+                @click="ssiNext"
               >
-                ›
+                Next
+              </button>
+              <div class="mx-2 h-5 w-px bg-slate-200" />
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                @click="exportSsi('pdf')"
+              >
+                <Download class="h-3.5 w-3.5" />
+                PDF
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                @click="exportSsi('csv')"
+              >
+                <FileDown class="h-3.5 w-3.5" />
+                CSV
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                @click="exportSsi('excel')"
+              >
+                <FileSpreadsheet class="h-3.5 w-3.5" />
+                Excel
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-slate-800"
+                @click="toastAdd('Item Subsiri')"
+              >
+                <Plus class="h-3.5 w-3.5" />
+                Add
               </button>
             </div>
           </div>
@@ -884,12 +1192,8 @@ onUnmounted(() => {
 
       <!-- Item Main (codes) -->
       <section class="rounded-lg border border-slate-200 bg-white shadow-sm">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+        <div class="border-b border-slate-100 px-4 py-3">
           <h2 class="text-base font-semibold text-slate-900">Item Main</h2>
-          <button type="button" class="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
-            <Plus class="h-3.5 w-3.5" />
-            Add
-          </button>
         </div>
         <div class="space-y-3 p-4">
           <div class="flex flex-wrap items-center gap-3">
@@ -972,32 +1276,58 @@ onUnmounted(() => {
               </tbody>
             </table>
           </div>
-          <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-            <span>{{ lineTotal }} records</span>
-            <span>{{ rangeLabel(lineTotal, linePage, lineLimit) }}</span>
-            <div class="flex items-center gap-1">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+            <div class="text-xs text-slate-500">Showing {{ lineStartIdx }}-{{ lineEndIdx }} of {{ lineTotal }}</div>
+            <div class="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                class="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50 disabled:opacity-40"
                 :disabled="linePage <= 1"
-                @click="
-                  linePage--;
-                  fetchLines();
-                "
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+                @click="linePrev"
               >
-                ‹
+                Prev
               </button>
-              <span class="px-2">{{ linePage }} / {{ linePages }}</span>
+              <span class="text-xs text-slate-600">Page {{ linePage }} / {{ linePages }}</span>
               <button
                 type="button"
-                class="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-50 disabled:opacity-40"
                 :disabled="linePage >= linePages"
-                @click="
-                  linePage++;
-                  fetchLines();
-                "
+                class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+                @click="lineNext"
               >
-                ›
+                Next
+              </button>
+              <div class="mx-2 h-5 w-px bg-slate-200" />
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                @click="exportLine('pdf')"
+              >
+                <Download class="h-3.5 w-3.5" />
+                PDF
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                @click="exportLine('csv')"
+              >
+                <FileDown class="h-3.5 w-3.5" />
+                CSV
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-slate-50"
+                @click="exportLine('excel')"
+              >
+                <FileSpreadsheet class="h-3.5 w-3.5" />
+                Excel
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-slate-800"
+                @click="toastAdd('Item Main')"
+              >
+                <Plus class="h-3.5 w-3.5" />
+                Add
               </button>
             </div>
           </div>

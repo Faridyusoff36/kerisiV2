@@ -162,7 +162,6 @@ class KerisiRemainingShellListService
             2663 => $this->purchasingListingOfVendor($request, $page, $limit, $q),
             2664 => $this->assetMaintenanceMasterList($request, $page, $limit, $q),
             2665 => $this->assetDamageList($request, $page, $limit, $q),
-            2667 => $this->assetAdjustmentList($request, $page, $limit, $q),
             3086 => $this->assetJournalAdjListing($request, $page, $limit, $q),
             3087 => $this->assetJournalAdjForm($request, $page, $limit, $q),
             3302 => $this->assetDisposalInfo($request, $page, $limit, $q),

@@ -28,7 +28,13 @@ class LookupDetail extends Model
         'lde_description2',
         'lde_sorting',
         'lde_status',
+        'lde_group',
+        'lde_extended_field',
         'createddate',
         'updateddate',
+    ];
+
+    protected $casts = [
+        'lde_extended_field' => 'array',
     ];
 }

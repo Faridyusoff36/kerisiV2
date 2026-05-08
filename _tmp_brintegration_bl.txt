@@ -1,0 +1,237 @@
+<?
+// by anis on 06102021
+
+include('userinfo.php');
+
+//=============================================== datatable bill registration integration list non approved ========================================================
+if($_GET['dt_briList']) {
+
+	if($_POST['search']['value']) {
+		$filter .= "
+			AND CONCAT_WS('__',
+				bim_bills_id,
+				bim_bills_no,
+				if(bim_bills_type = 'I', 'INDIVIDU', 'BERKELOMPOK'),
+				bim_bills_desc,
+				bim_bill_amt,
+				bim_cust_invoice_no,
+				bim_cust_invoice_date,
+				bim_payto_id,
+				bim_payto_name,
+				bim_status,
+				createddate
+			) LIKE CONCAT('%', ?, '%')
+		";
+		$param[] = $_POST['search']['value'];
+	}
+
+	if($_POST['smartFilter']['bim_bills_no']) {
+		$filter .= " AND bim_bills_no LIKE CONCAT('%', ?, '%')";
+		$param[] = $_POST['smartFilter']['bim_bills_no'];
+	}
+
+	if($_POST['smartFilter']['bim_bills_type']) {
+		$filter .= " AND bim_bills_type  = ?";
+		$param[] = $_POST['smartFilter']['bim_bills_type'];
+	}
+
+	if($_POST['smartFilter']['bim_payto_id']) {
+		$filter .= " AND bim_payto_id LIKE CONCAT('%', ?, '%')";
+		$param[] = $_POST['smartFilter']['bim_payto_id'];
+	}
+
+	if($_POST['smartFilter']['bim_payto_name']) {
+		$filter .= " AND bim_payto_name LIKE CONCAT('%', ?, '%')";
+		$param[] = $_POST['smartFilter']['bim_payto_name'];
+	}
+
+	if($_POST['smartFilter']['bim_bills_desc']) {
+		$filter .= " AND bim_bills_desc  = ?";
+		$param[] = $_POST['smartFilter']['bim_bills_desc'];
+	}
+
+	if($_POST['smartFilter']['bim_bill_amt']) {
+		$filter .= " AND bim_bill_amt  = ?";
+		$param[] = $_POST['smartFilter']['bim_bill_amt'];
+	}
+
+	if($_POST['smartFilter']['bim_status']) {
+		$filter .= " AND bim_status  = ?";
+		$param[] = $_POST['smartFilter']['bim_status'];
+	}
+
+	if($_POST['smartFilter']['createddate']) {
+		$filter .= " AND DATE_FORMAT(createddate, '%Y-%m-%d')  = STR_TO_DATE(?, '%d/%m/%Y')";
+		$param[] = $_POST['smartFilter']['createddate'];
+	}
+
+	$common = "
+		FROM
+			".DB2.".temp_refund_bills_master
+		WHERE
+			bim_status != 'APPROVE'
+			AND bim_system_id = 'REFUND_STAFF'
+			$filter
+	"; 
+
+    //============================================================ record count
+    $sql = "SELECT COUNT(*) C $common";
+    $recordsFiltered = executeQueryV2($sql, $param)[0]['C'];
+
+	//============================================================ main sql
+	$sql = "
+            SELECT
+                bim_bills_id,
+                bim_bills_no,
+                if(bim_bills_type = 'I', 'INDIVIDU', 'BERKELOMPOK') bim_bills_type,
+                bim_bills_desc,
+                bim_bill_amt,
+                bim_cust_invoice_no,
+                bim_cust_invoice_date,
+                bim_payto_id,
+                bim_payto_name,
+                bim_status,
+				createddate
+
+	$common
+	ORDER BY {$_POST['orderBy'][0]} {$_POST['orderBy'][1]}
+	LIMIT ".$_POST['start'].", ".$_POST['length']."
+	";
+	$data = executeQueryV2($sql, $param);
+
+    for($x=0; $x<count($data); $x++) {
+	    $data[$x]['url_view'] = "index.php?a=".flc_url_encode("page=page_wrapper&menuID=2288&bim_bills_id=".$data[$x]['bim_bills_id']."&mode=view");
+		$data[$x]['url_edit'] = "index.php?a=".flc_url_encode("page=page_wrapper&menuID=2485&bim_bills_id=".$data[$x]['bim_bills_id']."&mode=edit");
+    }
+
+	return [
+		'draw' => $_POST['draw'],
+        'recordsFiltered' => $recordsFiltered,
+		'data' => $data,
+	];	
+}
+
+//=============================================== datatable bill registration integration list approved ========================================================
+if($_GET['dt_briListApproved']) {
+
+    $common = "
+		        FROM ".DB2.".temp_refund_bills_master
+                WHERE
+					bim_status = 'APPROVE'
+					AND bim_system_id = 'REFUND_STAFF'
+				AND
+                CONCAT_WS('__',
+                    bim_bills_id,
+                    bim_bills_no,
+                    if(bim_bills_type = 'I', 'INDIVIDU', 'BERKELOMPOK'),
+                    bim_bills_desc,
+                    bim_bill_amt,
+                    bim_cust_invoice_no,
+                    bim_cust_invoice_date,
+                    bim_payto_id,
+                    bim_payto_name,
+                    bim_status,
+					createddate
+                ) LIKE CONCAT('%', ?, '%')
+            ";
+
+    //============================================================ record count
+    $sql = "SELECT COUNT(*) C $common";
+    $recordsFiltered = executeQueryV2($sql, [$_POST['search']['value']])[0]['C'];
+
+	$sql = "
+            SELECT
+                bim_bills_id,
+                bim_bills_no,
+                if(bim_bills_type = 'I', 'INDIVIDU', 'BERKELOMPOK') bim_bills_type,
+                bim_bills_desc,
+                bim_bill_amt,
+                bim_cust_invoice_no,
+                bim_cust_invoice_date,
+                bim_payto_id,
+                bim_payto_name,
+                bim_status,
+				createddate
+
+	$common
+	ORDER BY {$_POST['orderBy'][0]} {$_POST['orderBy'][1]}
+	LIMIT ".$_POST['start'].", ".$_POST['length']."
+	";
+
+    $data = executeQueryV2($sql,  [$_POST['search']['value']]);
+    for($x=0; $x<count($data); $x++) {
+	    $data[$x]['url_view'] = "index.php?a=".flc_url_encode("page=page_wrapper&menuID=2288&bim_bills_id=".$data[$x]['bim_bills_id']."&mode=view");
+		//$data[$x]['url_edit'] = "index.php?a=".flc_url_encode("page=page_wrapper&menuID=2050&bim_bills_id=".$data[$x]['bim_bills_id']."&mode=edit");
+    }
+
+	return [
+		'draw' => $_POST['draw'],
+        'recordsFiltered' => $recordsFiltered,
+		'data' => $data,
+	];
+}
+
+//=============================================== REPORT EXCEL ========================================================
+if($_GET['downloadExcel']) {
+
+	$id = $_GET['id'];
+
+	//var_dump($id);die();
+
+	$common = "
+    	FROM ".DB2.".temp_refund_bills_master bim
+		JOIN ".DB2.".temp_refund_application tra ON bim.tra_batch_id=tra.tra_batch_id
+		JOIN ".DB2.".temp_refund_bills_details bid ON bid.tra_id=tra.tra_id
+    	WHERE 
+			bim.bim_bills_id = ?
+		";
+	//============================================================ record count
+	$sql = "SELECT COUNT(*) C $common";
+	$recordsFiltered = executeQueryV2($sql, [$id])[0]['C'];
+
+	$sql = "
+    	SELECT
+			tra_payto_type `Type`,
+            tra.vcs_vendor_code `Payee Code`,
+            tra.tra_vendor_name `Payeee Name`,
+			sac_bank_acc_no `Account No`,
+			bid.fty_fund_type `Fund`, 
+            bid.at_activity_code `Activity`,
+            bid.oun_code `PTJ`, 
+            bid.ccr_costcentre `Cost Center`,
+            bid.acm_acct_code `Account Code`,
+			vsa_bank_accno `Bank Account No`,
+           	SUBSTRING_INDEX(tra_extended_field->>'$.studBankName','-',-1) `Bank Name`,
+			concat(tra_3rd_vendor_code,' - ',tra_extended_field ->> '$.trirdPartyName') `Third Party Info`,
+			bid_amt `Amount (RM)`
+			
+    	$common
+
+	";
+	$data = executeQueryV2($sql, [$id]);
+	$brino = executeQueryV2("SELECT bim_bills_no a $common", [$id])[0]['a'];
+	$billtype = executeQueryV2("SELECT if(bim_bills_type = 'I', 'INDIVIDU', 'BERKELOMPOK') b $common", [$id])[0]['b'];
+	$payeecode = executeQueryV2("SELECT bim_payto_id c $common", [$id])[0]['c'];
+	$payeename = executeQueryV2("SELECT bim_payto_name d $common", [$id])[0]['d'];
+	$description = executeQueryV2("SELECT bim_bills_desc e $common", [$id])[0]['e'];
+	$totalamount = executeQueryV2("SELECT bim_bill_amt f $common", [$id])[0]['f'];
+	$status = executeQueryV2("SELECT bim_status g $common", [$id])[0]['g'];
+	$refundate = executeQueryV2("SELECT date_format(bim.createddate, '%d/%m/%Y') h $common", [$id])[0]['h'];
+	//$footer_totalAmt = executeQueryV2("SELECT bim_bill_amt i $common", [$id])[0]['i'];
+
+	generateCSV([
+		"filename" => "Report Bill Registration Integration ".date("dmY"), 
+		"header" => [
+			"BRI No:" => $brino,
+			"Type of BRI:" => $billtype,
+			"Payee Code:" => $payeecode,
+			"Payee Name:" => $payeename,
+			"Description:" => $description,
+			"Amount:" => $totalamount,
+			"Status:" => $status,
+			"Refund Date:" => $refundate,
+		],
+		"index" => true, //optional, default = false
+		"content" => $data,
+	]);
+}
